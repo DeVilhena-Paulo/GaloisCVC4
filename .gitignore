@@ -1,0 +1,8 @@
+*~
+
+isabelle.jedit/bin
+isabelle.pide/bin
+isabelle.pure/bin
+isabelle.graphview/bin
+isabelle.pure.ui/bin
+.cache
