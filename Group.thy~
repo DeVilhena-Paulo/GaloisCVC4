@@ -817,11 +817,6 @@ next
   show "x \<otimes> y \<in> \<Inter>A" by blast
 qed
 
-lemma (in group) subgroups_Inter_pair :
-  assumes  "subgroup I G" 
-    and  "subgroup J G"
-  shows "subgroup (I\<inter>J) G" using subgroups_Inter[ where ?A = "{I,J}"] assms by auto
-
 theorem (in group) subgroups_complete_lattice:
   "complete_lattice \<lparr>carrier = {H. subgroup H G}, eq = op =, le = op \<subseteq>\<rparr>"
     (is "complete_lattice ?L")
