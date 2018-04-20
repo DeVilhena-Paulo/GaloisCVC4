@@ -1,7 +1,8 @@
 theory Group_Action
-  imports Bij Coset
-    
+imports Bij Coset
 begin
+
+section \<open>Group Actions\<close>
 
 locale group_action =
   fixes G (structure) and E and \<phi>
@@ -28,6 +29,11 @@ locale faithful_action = group_action +
 
 locale transitive_action = group_action +
   assumes unique_orbit: "\<lbrakk> x \<in> E; y \<in> E \<rbrakk> \<Longrightarrow> \<exists>g \<in> carrier G. (\<phi> g) x = y"
+
+
+subsection \<open>Prelimineries\<close>
+
+text \<open>Some simple lemmas to make group action's properties more explicit\<close>
 
 lemma (in group_action) id_eq_one: "(\<lambda>x \<in> E. x) = \<phi> \<one>"
   by (metis BijGroup_def group_hom group_hom.hom_one select_convs(2))
@@ -73,6 +79,11 @@ lemma (in group_action) element_image:
   shows "y \<in> E"
   using surj_prop assms by blast
 
+
+subsection \<open>Orbits\<close>
+
+text\<open>We prove here that orbits form an equivalence relation\<close>
+
 lemma (in group_action) orbit_sym_aux:
   assumes "g \<in> carrier G" and "x \<in> E" and "(\<phi> g) x = y"
   shows "(\<phi> (inv g)) y = x"
@@ -101,8 +112,8 @@ lemma (in group_action) orbit_refl:
 proof -
   assume "x \<in> E" hence "(\<phi> \<one>) x = x"
     using id_eq_one by (metis restrict_apply')
-  thus "x \<in> orbit G \<phi> x"
-    unfolding orbit_def using group.is_monoid group_hom group_hom.axioms(1) by force 
+  thus "x \<in> orbit G \<phi> x" unfolding orbit_def
+    using group.is_monoid group_hom group_hom.axioms(1) by force 
 qed
 
 lemma (in group_action) orbit_sym:
@@ -144,10 +155,15 @@ proof -
     using g1 g2 orbit_def by force 
 qed
 
-lemma (in group_action) orbit_partition:
+theorem (in group_action) orbit_partition:
   "equivalence \<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>"
   unfolding equivalence_def using orbit_refl orbit_sym orbit_trans
   by (metis eq_object.select_convs(1) partial_object.select_convs(1))
+
+(* ************************************************************************** *)
+(* ************************************************************************** *)
+(* FIXME: Transfer these lemmas to Congruence.thy. They should be
+   properties that derive immediately from equivalence relations. *)
 
 lemma (in group_action) orbits_coverture:
   "\<Union> (orbits G E \<phi>) = E"
@@ -179,10 +195,12 @@ next
     obtain y where y: "y \<in> orb1 \<inter> orb2"
       using S by blast
     hence y_E: "y \<in> E" using assms(1) orbits_coverture by auto
-    obtain z w where w: "w \<in> E \<and> orb1 = orbit G \<phi> w" and z: "z \<in> E \<and> orb2 = orbit G \<phi> z"
+    obtain z w where w: "w \<in> E \<and> orb1 = orbit G \<phi> w"
+                 and z: "z \<in> E \<and> orb2 = orbit G \<phi> z"
       using assms(1-2) unfolding orbits_def by blast
     hence "x \<in> orbit G \<phi> y"
-      using x x_E y y_E assms(1) orbit_trans by (metis (no_types, lifting) IntD1 orbit_sym)
+      using x x_E y y_E assms(1) orbit_trans
+      by (metis (no_types, lifting) IntD1 orbit_sym)
     moreover have "y \<in> orbit G \<phi> z"
       using y z by blast
     ultimately have "x \<in> orbit G \<phi> z"
@@ -197,6 +215,10 @@ lemma (in group_action) disjoint_union:
   shows "(orb1 = orb2) \<or> (orb1 \<inter> orb2) = {}"
   using disjoint_union_aux assms by auto
 
+(* ************************************************************************** *)
+(* ************************************************************************** *)
+
+
 lemma (in transitive_action) all_equivalent:
   "\<lbrakk> x \<in> E; y \<in> E \<rbrakk> \<Longrightarrow> x .=\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> y"
 proof -
@@ -209,25 +231,30 @@ proof -
 qed
 
 lemma (in transitive_action) one_orbit:
-  assumes "A \<inter> E \<noteq> {}"
-  shows "closure_of\<^bsub>\<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>\<^esub> A = E"
-proof
-  show "closure_of\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> A \<subseteq> E"
-    using closure_of_closed by fastforce
-next
-  show "E \<subseteq> closure_of\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> A"
-  proof
-    fix x assume x: "x \<in> E"
-    have "\<exists>y. y \<in> A \<inter> E" using assms(1) by auto
-    then obtain y where y: "y \<in> A \<inter> E"
-      by blast
-    hence "x .=\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> y"
-      using all_equivalent x by simp 
-    thus "x \<in> closure_of\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> A"
-      by (metis IntD1 closure_ofI2 partial_object.select_convs(1) x y)
+  assumes "E \<noteq> {}"
+  shows "card (orbits G E \<phi>) = 1"
+proof -
+  have "orbits G E \<phi> \<noteq> {}"
+    using assms orbits_coverture by auto
+  moreover have "\<And> orb1 orb2. \<lbrakk> orb1 \<in> (orbits G E \<phi>); orb2 \<in> (orbits G E \<phi>) \<rbrakk> \<Longrightarrow> orb1 = orb2"
+  proof -
+    fix orb1 orb2 assume orb1: "orb1 \<in> (orbits G E \<phi>)"
+                     and orb2: "orb2 \<in> (orbits G E \<phi>)"
+    then obtain x y where x: "orb1 = orbit G \<phi> x" and x_E: "x \<in> E" 
+                      and y: "orb2 = orbit G \<phi> y" and y_E: "y \<in> E"
+      unfolding orbits_def by blast
+    hence "x \<in> orbit G \<phi> y" using all_equivalent by auto
+    hence "orb1 \<inter> orb2 \<noteq> {}" using x y x_E orbit_refl by auto
+    thus "orb1 = orb2" using disjoint_union[of orb1 orb2] orb1 orb2 by auto
   qed
+  ultimately show "card (orbits G E \<phi>) = 1"
+    by (meson is_singletonI' is_singleton_altdef)
 qed
 
+
+subsection \<open>Stabilizers\<close>
+
+text \<open> \<close>
 lemma (in group_action) stabilizer_subset:
   "stabilizer G \<phi> x \<subseteq> carrier G"
   by (metis (no_types, lifting) mem_Collect_eq stabilizer_def subsetI)
