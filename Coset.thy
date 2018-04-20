@@ -42,8 +42,8 @@ abbreviation
 subsection \<open>Basic Properties of Cosets\<close>
 
 lemma (in group) coset_mult_assoc:
-     "[| M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G |]
-      ==> (M #> g) #> h = M #> (g \<otimes> h)"
+     "\<lbrakk> M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G \<rbrakk>
+      \<Longrightarrow> (M #> g) #> h = M #> (g \<otimes> h)"
 by (force simp add: r_coset_def m_assoc)
 
 lemma (in group) coset_mult_one [simp]: "M \<subseteq> carrier G ==> M #> \<one> = M"
