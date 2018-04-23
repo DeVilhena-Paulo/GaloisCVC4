@@ -11,20 +11,20 @@ begin
 section \<open>Cosets and Quotient Groups\<close>
 
 definition
-  set_mult  :: "[_, 'a set ,'a set] \<Rightarrow> 'a set" (infixl "<#>\<index>" 60)
-  where "H <#>\<^bsub>G\<^esub> K = (\<Union>h\<in>H. \<Union>k\<in>K. {h \<otimes>\<^bsub>G\<^esub> k})"
-
-definition
   r_coset    :: "[_, 'a set, 'a] \<Rightarrow> 'a set"    (infixl "#>\<index>" 60)
-  where "H #>\<^bsub>G\<^esub> a =H <#>\<^bsub>G\<^esub> {a}"
+  where "H #>\<^bsub>G\<^esub> a = (\<Union>h\<in>H. {h \<otimes>\<^bsub>G\<^esub> a})"
 
 definition
   l_coset    :: "[_, 'a, 'a set] \<Rightarrow> 'a set"    (infixl "<#\<index>" 60)
-  where "a <#\<^bsub>G\<^esub> H = {a} <#>\<^bsub>G\<^esub> H"
+  where "a <#\<^bsub>G\<^esub> H = (\<Union>h\<in>H. {a \<otimes>\<^bsub>G\<^esub> h})"
 
 definition
   RCOSETS  :: "[_, 'a set] \<Rightarrow> ('a set)set"   ("rcosets\<index> _" [81] 80)
   where "rcosets\<^bsub>G\<^esub> H = (\<Union>a\<in>carrier G. {H #>\<^bsub>G\<^esub> a})"
+
+definition
+  set_mult  :: "[_, 'a set ,'a set] \<Rightarrow> 'a set" (infixl "<#>\<index>" 60)
+  where "H <#>\<^bsub>G\<^esub> K = (\<Union>h\<in>H. \<Union>k\<in>K. {h \<otimes>\<^bsub>G\<^esub> k})"
 
 definition
   SET_INV :: "[_,'a set] \<Rightarrow> 'a set"  ("set'_inv\<index> _" [81] 80)
@@ -41,7 +41,7 @@ abbreviation
 
 subsection \<open>Basic Properties of set_mult\<close>
 
-lemma (in group) setmult_subset_G:
+lemma (in monoid) set_mult_closed:
      "\<lbrakk>H \<subseteq> carrier G; K \<subseteq> carrier G\<rbrakk> \<Longrightarrow> H <#> K \<subseteq> carrier G"
 by (auto simp add: set_mult_def subsetD)
 
@@ -82,21 +82,12 @@ proof
  qed
 
 
-
 subsection \<open>Basic Properties of Cosets\<close>
 
 lemma (in group) coset_mult_assoc:
      "\<lbrakk> M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G \<rbrakk>
       \<Longrightarrow> (M #> g) #> h = M #> (g \<otimes> h)"
-proof-
-  assume hp: " M \<subseteq> carrier G" "g \<in> carrier G" "h \<in> carrier G "
-  have "(M #> g) #> h = M <#> ({g} <#> {h})"
-    unfolding r_coset_def by (simp add: hp set_mult_assoc)
-  also have "... = M <#> {g\<otimes>h}" unfolding set_mult_def by blast
-  finally have "(M #> g) #> h = M #> (g\<otimes>h)" unfolding r_coset_def by blast
-  thus ?thesis by blast
-qed
-
+by (force simp add: r_coset_def m_assoc)
 
 lemma (in group) coset_mult_one [simp]: "M \<subseteq> carrier G ==> M #> \<one> = M"
 by (force simp add: r_coset_def)
@@ -336,24 +327,6 @@ proof -
 qed
 
 text \<open>Multiplication of general subsets\<close>
-lemma (in monoid) set_mult_closed:
-  assumes Acarr: "A \<subseteq> carrier G"
-      and Bcarr: "B \<subseteq> carrier G"
-  shows "A <#> B \<subseteq> carrier G"
-apply rule apply (simp add: set_mult_def, clarsimp)
-proof -
-  fix a b
-  assume "a \<in> A"
-  from this and Acarr
-      have acarr: "a \<in> carrier G" by fast
-
-  assume "b \<in> B"
-  from this and Bcarr
-      have bcarr: "b \<in> carrier G" by fast
-
-  from acarr bcarr
-      show "a \<otimes> b \<in> carrier G" by (rule m_closed)
-qed
 
 lemma (in comm_group) mult_subgroups:
   assumes subH: "subgroup H G"
@@ -564,6 +537,9 @@ proof
   show "y <# H \<subseteq> x <# H" by (rule l_repr_imp_subset [OF y x sb])
 qed
 
+lemma (in group) setmult_subset_G:
+     "\<lbrakk>H \<subseteq> carrier G; K \<subseteq> carrier G\<rbrakk> \<Longrightarrow> H <#> K \<subseteq> carrier G"
+by (auto simp add: set_mult_def subsetD)
 
 lemma (in group) subgroup_mult_id: "subgroup H G \<Longrightarrow> H <#> H = H"
 apply (auto simp add: subgroup.m_closed set_mult_def Sigma_def)
