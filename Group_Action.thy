@@ -170,6 +170,10 @@ theorem (in group_action) orbit_partition:
 (* FIXME: Transfer these lemmas to Congruence.thy. They should be
    properties that derive immediately from equivalence relations. *)
 
+lemma (in group_action) orbits_as_classes:
+  "orbits G E \<phi> = classes\<^bsub>\<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>\<^esub>"
+  unfolding eq_classes_def eq_class_of_def orbits_def apply simp sorry
+
 lemma (in group_action) orbits_coverture:
   "\<Union> (orbits G E \<phi>) = E"
   unfolding orbits_def
