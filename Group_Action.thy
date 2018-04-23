@@ -337,86 +337,18 @@ text \<open>In this subsection, we prove the Orbit-Stabilizer theorem.
       "rcosets (stabilizer G \<phi> x)" and "orbit G \<phi> x". Then we use
       Lagrange's theorem to find the cardinal of the first set.\<close>
 
-(* ************************************************************************** *)
-(* FIXME: Many of the lemmas bellow should be transferred to Coset.thy        *)
-
 subsubsection \<open>Rcosets - Supporting Lemmas\<close>
-
-lemma (in subgroup) rcosets_not_empty: (* <- *)
-  assumes "R \<in> rcosets H"
-  shows "R \<noteq> {}"
-proof -
-  obtain g where "g \<in> carrier G" "R = H #> g"
-    using assms unfolding RCOSETS_def by blast
-  hence "\<one> \<otimes> g \<in> R"
-    using one_closed unfolding r_coset_def by blast
-  thus ?thesis by blast
-qed
 
 corollary (in group_action) stab_rcosets_not_empty:
   assumes "x \<in> E" "R \<in> rcosets (stabilizer G \<phi> x)"
   shows "R \<noteq> {}"
   using subgroup.rcosets_not_empty[OF stabilizer_subgroup[OF assms(1)] assms(2)] by simp
 
-lemma (in group) diff_neutralizes: (* <- *)
-  assumes "subgroup H G" "R \<in> rcosets H"
-  shows "\<And>r1 r2. \<lbrakk> r1 \<in> R; r2 \<in> R \<rbrakk> \<Longrightarrow> r1 \<otimes> (inv r2) \<in> H"
-proof -
-  fix r1 r2 assume r1: "r1 \<in> R" and r2: "r2 \<in> R"
-  obtain g where g: "g \<in> carrier G" "R = H #> g"
-    using assms unfolding RCOSETS_def by blast
-  then obtain h1 h2 where h1: "h1 \<in> H" "r1 = h1 \<otimes> g"
-                      and h2: "h2 \<in> H" "r2 = h2 \<otimes> g"
-    using r1 r2 unfolding r_coset_def by blast
-  hence "r1 \<otimes> (inv r2) = (h1 \<otimes> g) \<otimes> ((inv g) \<otimes> (inv h2))"
-    using inv_mult_group is_group assms(1) g(1) subgroup.mem_carrier by fastforce 
-  also have " ... =  (h1 \<otimes> (g \<otimes> inv g) \<otimes> inv h2)"
-    using h1 h2 assms(1) g(1) inv_closed m_closed monoid.m_assoc
-          monoid_axioms subgroup.mem_carrier by smt
-  finally have "r1 \<otimes> inv r2 = h1 \<otimes> inv h2"
-    using assms(1) g(1) h1(1) subgroup.mem_carrier by fastforce
-  thus "r1 \<otimes> inv r2 \<in> H" by (metis assms(1) h1(1) h2(1) subgroup_def)
-qed
-
 corollary (in group_action) diff_stabilizes:
   assumes "x \<in> E" "R \<in> rcosets (stabilizer G \<phi> x)"
   shows "\<And>g1 g2. \<lbrakk> g1 \<in> R; g2 \<in> R \<rbrakk> \<Longrightarrow> g1 \<otimes> (inv g2) \<in> stabilizer G \<phi> x"
   using group.diff_neutralizes[of G "stabilizer G \<phi> x" R] stabilizer_subgroup[OF assms(1)]
         assms(2) group_hom group_hom.axioms(1) by blast
-
-lemma (in group) card_cosets_equal: (* <- *)
-  assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
-  shows "\<exists>f. bij_betw f H R"
-proof -
-  obtain g where g: "g \<in> carrier G" "R = H #> g"
-    using assms(1) unfolding RCOSETS_def by blast
-
-  let ?f = "\<lambda>h. h \<otimes> g"
-  have "\<And>r. r \<in> R \<Longrightarrow> \<exists>h \<in> H. ?f h = r"
-  proof -
-    fix r assume "r \<in> R"
-    then obtain h where "h \<in> H" "r = h \<otimes> g"
-      using g unfolding r_coset_def by blast
-    thus "\<exists>h \<in> H. ?f h = r" by blast
-  qed
-  hence "R \<subseteq> ?f ` H" by blast
-  moreover have "?f ` H \<subseteq> R"
-    using g unfolding r_coset_def by blast
-  ultimately show ?thesis using inj_on_g unfolding bij_betw_def
-    using assms(2) g(1) by auto 
-qed
-
-corollary (in group) card_rcosets_equal: (* <- *)
-  assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
-  shows "card H = card R"
-  using card_cosets_equal assms bij_betw_same_card by blast
-
-corollary (in group) rcosets_finite: (* <- *)
-  assumes "R \<in> rcosets H" "H \<subseteq> carrier G" "finite H"
-  shows "finite R"
-  using card_cosets_equal assms bij_betw_finite is_group by blast
-
-(* ************************************************************************** *)
 
 
 subsubsection \<open>Bijection Between Rcosets and an Orbit - Definition and Supporting Lemmas\<close>
@@ -569,38 +501,6 @@ qed
 
 subsubsection \<open>The Theorem\<close>
 
-theorem (in group) lagrange_strong: (* without "finite (carrier G)" assumption !!! *)
-  assumes "subgroup H G"
-  shows "card (rcosets H) * card H = order G"
-proof (cases "finite (carrier G)")
-  case True thus ?thesis using lagrange assms by simp
-next
-  case False note inf_G = this
-  thus ?thesis
-  proof (cases "finite H")
-    case False thus ?thesis using inf_G  by (simp add: order_def)  
-  next
-    case True note finite_H = this
-    have "infinite (rcosets H)"
-    proof (rule ccontr)
-      assume "\<not> infinite (rcosets H)"
-      hence finite_rcos: "finite (rcosets H)" by simp
-      hence "card (\<Union>(rcosets H)) = (\<Sum>R\<in>(rcosets H). card R)"
-        using card_Union_disjoint[of "rcosets H"] finite_H rcos_disjoint[OF assms(1)]
-              rcosets_finite[where ?H = H] by (simp add: assms subgroup_imp_subset)
-      hence "order G = (\<Sum>R\<in>(rcosets H). card R)"
-        by (simp add: assms order_def rcosets_part_G)
-      hence "order G = (\<Sum>R\<in>(rcosets H). card H)"
-        using card_rcosets_equal by (simp add: assms subgroup_imp_subset)
-      hence "order G = (card H) * (card (rcosets H))" by simp
-      hence "order G \<noteq> 0" using finite_rcos finite_H assms ex_in_conv
-                                rcosets_part_G subgroup.one_closed by fastforce
-      thus False using inf_G order_gt_0_iff_finite by blast 
-    qed
-    thus ?thesis using inf_G by (simp add: order_def)
-  qed
-qed
-
 theorem (in group_action) orbit_stabilizer_theorem:
   assumes "x \<in> E"
   shows "card (orbit G \<phi> x) * card (stabilizer G \<phi> x) = order G"
@@ -608,7 +508,7 @@ proof -
   have "card (rcosets stabilizer G \<phi> x) = card (orbit G \<phi> x)"
     using orbit_stab_fun_is_bij[OF assms(1)] bij_betw_same_card by blast
   moreover have "card (rcosets stabilizer G \<phi> x) * card (stabilizer G \<phi> x) = order G"
-    using stabilizer_subgroup assms group.lagrange_strong group_hom group_hom.axioms(1) by blast
+    using stabilizer_subgroup assms group.lagrange group_hom group_hom.axioms(1) by blast
   ultimately show ?thesis by auto
 qed
 
@@ -858,44 +758,10 @@ lemma (in group) subgroup_conjugation_is_inj:
   using subgroup_conjugation_is_inj_aux assms
         subgroup_imp_subset set_eq_subset by metis
 
-(* ************************************************************************** *)
-(* ************************************************************************** *)
-(* FIXME: Transfer this lemmas to Coset.thy *)
-
-lemma (in group) assoc_coset:
-  assumes "x \<in> carrier G" "y \<in> carrier G" "H \<subseteq> carrier G"
-  shows "x <# (H #> y) = (x <# H) #> y"
-proof
-  show "x <# (H #> y) \<subseteq> (x <# H) #> y"
-  proof
-    fix a assume "a \<in> x <# (H #> y)"
-    hence "\<exists> h \<in> H. a = x \<otimes> (h \<otimes> y)"
-      unfolding r_coset_def l_coset_def by blast
-    hence "\<exists>h \<in> H. a = x \<otimes> h \<otimes> y"
-      using assms m_assoc by (simp add: subset_eq) 
-    thus "a \<in> (x <# H) #> y"
-      unfolding r_coset_def l_coset_def by blast 
-  qed
-next
-  show "x <# H #> y \<subseteq> x <# (H #> y)"
-  proof
-    fix a assume "a \<in> x <# H #> y"
-    hence "\<exists>h \<in> H. a = x \<otimes> h \<otimes> y"
-      unfolding r_coset_def l_coset_def by blast
-    hence "\<exists>h \<in> H. a = x \<otimes> (h \<otimes> y)"
-      using assms m_assoc by blast
-    thus "a \<in> x <# (H #> y)"
-      unfolding r_coset_def l_coset_def by blast
-  qed
-qed
-
-(* ************************************************************************** *)
-(* ************************************************************************** *)
-
 lemma (in group) subgroup_conjugation_is_surj0:
   assumes "g \<in> carrier G" "subgroup H G"
   shows "g <# ((inv g) <# H #> g) #> (inv g) = H"
-  using assoc_coset assms coset_mult_assoc l_coset_subset_G lcos_m_assoc
+  using coset_assoc assms coset_mult_assoc l_coset_subset_G lcos_m_assoc
   by (simp add: lcos_mult_one subgroup_imp_subset)
 
 lemma (in group) subgroup_conjugation_is_surj1:
@@ -996,7 +862,8 @@ proof -
     have "(?\<phi> g1) ((?\<phi> g2) H) = g1 <# (g2 <# H #> (inv g2)) #> (inv g1)"
       by (simp add: H g2 subgroup_conjugation_is_surj2)
     also have " ... = g1 <# (g2 <# H) #> ((inv g2) \<otimes> (inv g1))"
-      by (simp add: H coset_mult_assoc g1 g2 group.assoc_coset is_group l_coset_subset_G subgroup_imp_subset)
+      by (simp add: H coset_mult_assoc g1 g2 group.coset_assoc
+                    is_group l_coset_subset_G subgroup_imp_subset)
     also have " ... = g1 <# (g2 <# H) #> inv (g1 \<otimes> g2)"
       using g1 g2 by (simp add: inv_mult_group)
     finally have "(?\<phi> g1) ((?\<phi> g2) H) = ?\<psi> (g1 \<otimes> g2) H"
