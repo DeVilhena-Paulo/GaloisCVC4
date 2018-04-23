@@ -29,100 +29,6 @@ proof
 qed
 
 
-
-
-
-proposition (in group) weak_snd_iso_thme :
-  assumes "subgroup  H G" 
-    and "H1\<lhd>G\<lparr>carrier := H\<rparr>"
-  shows "(G\<lparr>carrier := H1<#>H\<rparr> Mod H1 \<cong> G\<lparr>carrier:=H\<rparr> Mod (H1\<inter>H))\<noteq> {} "
-  sorry
-
-definition normalizer ::  "[('a, 'm) monoid_scheme,'a set] \<Rightarrow> 'a set"  ("Norm\<index>_" 60)
-  where " (Norm\<^bsub>G\<^esub> H) = {x\<in>(carrier G).  H  #>\<^bsub>G\<^esub>  x = x <#\<^bsub>G\<^esub> H}"
-
-lemma (in group) normalizer_group :
-  assumes "H\<subseteq>carrier G"
-  shows "subgroup (Norm H) G"
-  sorry
- (* show K:"(Norm H) \<subseteq> carrier G"
-    using normalizer_def by fastforce
-  show "\<And>x y. x \<in> Norm H \<Longrightarrow> y \<in> Norm H \<Longrightarrow> x \<otimes> y \<in> Norm H"
-  proof-
-    fix x y assume p: "x\<in> Norm H" "y\<in> Norm H"
-    have " (x \<otimes> y)<#H = H#>(x \<otimes> y)"
-    proof-
-      have " H#> (x \<otimes> y) = (H#>x) #> y"
-        using K p coset_mult_assoc assms by (simp add: subset_iff) 
-      also have "... = (x<#H) #> y" 
-        using p by (simp add: normalizer_def p(1)) 
-      also have "... = x <# (H#>y)" using r_coset_def l_coset_def m_assoc assms p
-*)
-
-lemma (in group) Idem_Norm: 
-  assumes "subgroup H G"
-  shows "normal H (G\<lparr>carrier:= (Norm H)\<rparr>)"
-  sorry
-  have " H \<subseteq>  (Norm H)" using normalizer_def coset_join2 assms
-    by (smt l_repr_independence lcos_mult_one mem_Collect_eq subgroup.one_closed subgroup.subset subset_iff)
-  hence "H\<subseteq> carrier (G\<lparr>carrier:= (Norm H)\<rparr>)" by simp
-  hence "subgroup H (G\<lparr>carrier := (Norm H)\<rparr>)" using assms subgroup_incl normalizer_group
-
-
-theorem (in group) snd_iso_thme :
-  assumes "subgroup H G"
-    and "subgroup N G"
-    and "subgroup H (G\<lparr>carrier:= (Norm H)\<rparr>)"
-  shows "(G\<lparr>carrier:= H<#>N\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
-  sorry
-
-lemma (in group) distinc :
-  assumes "subgroup  H G" 
-    and "H1\<lhd>G\<lparr>carrier := H\<rparr>" 
-    and  "subgroup K G" 
-    and "K1\<lhd>G\<lparr>carrier:=K\<rparr>"
-  shows "(H\<inter>K)\<lhd> (G\<lparr>carrier:=(Norm (H1<#>(H\<inter>K1))) \<rparr>)"
-  sorry
-
-
-lemma (in group) mult_norm_subgroup :
-  assumes "normal N G"
-  assumes "subgroup H G"
-  shows "subgroup (N<#>H) G"
-  sorry
-
-lemma (in group) mult_norm_subgroup2 :
-  assumes "normal N (G\<lparr>carrier:=K\<rparr>)"
-  assumes "subgroup H (G\<lparr>carrier:=K\<rparr>)"
-  assumes "subgroup K G"
-  shows  "subgroup (N<#>H) (G\<lparr>carrier:=K\<rparr>)"
-  sorry
-
-
-
-
-lemma (in group) commut_normal :
-  assumes "subgroup H G"
-    and "N\<lhd>G"
-  shows "H<#>N = N<#>H"
-  sorry
-
-lemma (in group) commut_normal_subgroup :
-  assumes "subgroup H G"
-    and "N\<lhd>(G\<lparr>carrier:=H\<rparr>)"
-    and "subgroup K (G\<lparr>carrier:=H\<rparr>)"
-  shows "K<#>N = N<#>K"
-  sorry
-
-lemma (in group) set_mult_assoc : "H1 <#> (H2<#>H3) = (H1<#>H2) <#> H3"
-  sorry
-
-lemma (in group) idem_set_mult :
-  assumes "subgroup H G"
-  shows "(carrier G)<#>H = carrier G"
-  sorry
-
-
 lemma (in group) set_mult_idem :
   assumes "subgroup H G"
 and "K1\<subseteq> H"
@@ -152,6 +58,180 @@ proof
     thus "h \<in> K1<#>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub>K2 " using Hyp by blast
   qed
 qed
+
+
+
+
+definition normalizer ::  "[('a, 'm) monoid_scheme,'a set] \<Rightarrow> 'a set"  ("Norm\<index>_" 60)
+  where " (Norm\<^bsub>G\<^esub> H) = {x\<in>(carrier G).  H  #>\<^bsub>G\<^esub>  x = x <#\<^bsub>G\<^esub> H}"
+
+lemma (in group) normalizer_group :
+  assumes "H\<subseteq>carrier G"
+  shows "subgroup (Norm H) G"
+  sorry
+ (* show K:"(Norm H) \<subseteq> carrier G"
+    using normalizer_def by fastforce
+  show "\<And>x y. x \<in> Norm H \<Longrightarrow> y \<in> Norm H \<Longrightarrow> x \<otimes> y \<in> Norm H"
+  proof-
+    fix x y assume p: "x\<in> Norm H" "y\<in> Norm H"
+    have " (x \<otimes> y)<#H = H#>(x \<otimes> y)"
+    proof-
+      have " H#> (x \<otimes> y) = (H#>x) #> y"
+        using K p coset_mult_assoc assms by (simp add: subset_iff) 
+      also have "... = (x<#H) #> y" 
+        using p by (simp add: normalizer_def p(1)) 
+      also have "... = x <# (H#>y)" using r_coset_def l_coset_def m_assoc assms p
+*)
+
+lemma (in group) Idem_Norm: 
+  assumes "subgroup H G"
+  shows "normal H (G\<lparr>carrier:= (Norm H)\<rparr>)"
+  sorry
+ (* have " H \<subseteq>  (Norm H)" using normalizer_def coset_join2 assms
+    by (smt l_repr_independence lcos_mult_one mem_Collect_eq subgroup.one_closed subgroup.subset subset_iff)
+  hence "H\<subseteq> carrier (G\<lparr>carrier:= (Norm H)\<rparr>)" by simp
+  hence "subgroup H (G\<lparr>carrier := (Norm H)\<rparr>)" using assms subgroup_incl normalizer_group
+*)
+
+subsection \<open>Second Isomorphism Theorem\<close>
+
+
+
+lemma (in group) mult_norm_subgroup :
+  assumes "normal N G"
+    and "subgroup H G"
+  shows "subgroup (N<#>H) G" unfolding subgroup_def
+proof-
+  have  A :"N <#> H \<subseteq> carrier G"
+    using assms  set_mult_closed by (simp add: normal_imp_subgroup subgroup_imp_subset)
+
+  have B :"\<And> x y. \<lbrakk>x \<in> (N <#> H); y \<in> (N <#> H)\<rbrakk> \<Longrightarrow> (x \<otimes> y) \<in> (N<#>H)"
+  proof-
+    fix x y assume B1a: "x \<in> (N <#> H)"  and B1b: "y \<in> (N <#> H)"
+    obtain n1 h1 where B2:"n1 \<in> N \<and> h1 \<in> H \<and> n1\<otimes>h1 = x"
+      using set_mult_def B1a by (metis (no_types, lifting) UN_E singletonD)
+    obtain n2 h2 where B3:"n2 \<in> N \<and> h2 \<in> H \<and> n2\<otimes>h2 = y"
+      using set_mult_def B1b by (metis (no_types, lifting) UN_E singletonD)
+    have B4:"N #> h1 = h1 <# N"
+      using normalI B2 assms normal.coset_eq subgroup_imp_subset by blast
+    hence B5: "h1\<otimes>n2 \<in> N #> h1" 
+      using B2 B3 assms l_coset_def by fastforce
+    obtain y2 where y2_def:"y2 \<in> N" and y2_prop:"y2\<otimes>h1 = h1\<otimes>n2" 
+      using B5 singletonD by (metis (no_types, lifting) UN_E r_coset_def) 
+    have B6: " x\<otimes>y =  n1 \<otimes> y2 \<otimes> h1 \<otimes> h2" using y2_def B2 B3
+      by (smt assms y2_prop m_assoc m_closed normal_imp_subgroup subgroup.mem_carrier)
+    have B7 :"n1 \<otimes> y2 \<in>N"
+      using B2 y2_def assms normal_imp_subgroup by (metis subgroup_def)
+    have "h1 \<otimes> h2 \<in>H" using B2 B3 assms by (simp add: subgroup.m_closed)
+    hence "(n1 \<otimes> y2) \<otimes> (h1 \<otimes> h2) \<in>(N<#>H) "
+      using B7  unfolding set_mult_def by auto
+    hence "n1 \<otimes> y2 \<otimes> h1 \<otimes> h2 \<in>(N<#>H)"
+      using m_assoc B2 B3 assms  normal_imp_subgroup by (metis B7 subgroup.mem_carrier)
+    thus "x \<otimes> y \<in> N <#> H" using B6 by auto
+  qed
+  have C :"\<And> x. x\<in>(N<#>H)  \<Longrightarrow> (inv x)\<in>(N<#>H)"
+
+  proof-
+    fix x assume C1 : "x \<in> (N<#>H)"
+    obtain n h where C2:"n \<in> N \<and> h \<in> H \<and> n\<otimes>h = x"
+      using set_mult_def C1 by (metis (no_types, lifting) UN_E singletonD)
+    have C3 :"inv(n\<otimes>h) = inv(h)\<otimes>inv(n)"
+      by (meson C2  assms inv_mult_group normal_imp_subgroup subgroup.mem_carrier)
+    hence "... \<otimes>h \<in> N"
+      using assms C2
+      by (meson normal.inv_op_closed1 normal_def subgroup.m_inv_closed subgroup.mem_carrier)
+    hence  C4:"(inv h \<otimes> inv n \<otimes> h) \<otimes> inv h \<in> (N<#>H)" 
+      using   C2 assms subgroup.m_inv_closed[of H G h] unfolding set_mult_def by auto
+    have "inv h \<otimes> inv n \<otimes> h \<otimes> inv h = inv h \<otimes> inv n"
+      using  subgroup_imp_subset[OF assms(2)] 
+      by (metis A C1 C2 C3 inv_closed inv_solve_right m_closed subsetCE)
+    thus "inv(x)\<in>N<#>H" using C4 C2 C3 by simp
+  qed
+
+  have D : "\<one> \<in> N <#> H"
+  proof-
+    have D1 : "\<one> \<in> N"
+      using assms by (simp add: normal_def subgroup.one_closed)
+     have D2 :"\<one> \<in> H"
+      using assms by (simp add: subgroup.one_closed)
+    thus "\<one> \<in> (N <#> H)"
+      using set_mult_def D1 assms by fastforce
+  qed
+  thus "(N <#> H \<subseteq> carrier G \<and> (\<forall>x y. x \<in> N <#> H \<longrightarrow> y \<in> N <#> H \<longrightarrow> x \<otimes> y \<in> N <#> H)) \<and>
+    \<one> \<in> N <#> H \<and> (\<forall>x. x \<in> N <#> H \<longrightarrow> inv x \<in> N <#> H)" using A B C D assms by blast
+qed
+    
+
+lemma (in group) mult_norm_subgroup2 :
+  assumes "normal N (G\<lparr>carrier:=K\<rparr>)"
+  assumes "subgroup H (G\<lparr>carrier:=K\<rparr>)"
+  assumes "subgroup K G"
+  shows  "subgroup (N<#>H) (G\<lparr>carrier:=K\<rparr>)"
+proof-
+  have Hyp:"subgroup (N <#>\<^bsub>G\<lparr>carrier := K\<rparr>\<^esub> H) (G\<lparr>carrier := K\<rparr>)"
+    using group.mult_norm_subgroup[where ?G = "G\<lparr>carrier := K\<rparr>"] assms subgroup_imp_group by auto
+  have "H \<subseteq> carrier(G\<lparr>carrier := K\<rparr>)" using assms subgroup_imp_subset by blast
+  also have "... \<subseteq> K" by simp
+  finally have Incl1:"H \<subseteq> K" by simp
+  have "N \<subseteq> carrier(G\<lparr>carrier := K\<rparr>)" using assms normal_imp_subgroup subgroup_imp_subset by blast
+  also have "... \<subseteq> K" by simp
+  finally have Incl2:"N \<subseteq> K" by simp
+  have "(N <#>\<^bsub>G\<lparr>carrier := K\<rparr>\<^esub> H) = (N <#> H)"
+    using set_mult_idem[of K] assms Incl1 Incl2 by simp
+  thus "subgroup (N<#>H) (G\<lparr>carrier:=K\<rparr>)" using Hyp by auto
+qed
+
+
+
+
+proposition (in group) weak_snd_iso_thme :
+  assumes "subgroup  H G" 
+    and "N\<lhd>G\<lparr>carrier := H\<rparr>"
+  shows "(G\<lparr>carrier := N<#>H\<rparr> Mod N \<cong> G\<lparr>carrier:=H\<rparr> Mod (N\<inter>H))\<noteq> {} "
+  sorry
+
+
+
+theorem (in group) snd_iso_thme :
+  assumes "subgroup H G"
+    and "subgroup N G"
+    and "subgroup H (G\<lparr>carrier:= (Norm H)\<rparr>)"
+  shows "(G\<lparr>carrier:= H<#>N\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
+  sorry
+
+
+lemma (in group) distinc :
+  assumes "subgroup  H G" 
+    and "H1\<lhd>G\<lparr>carrier := H\<rparr>" 
+    and  "subgroup K G" 
+    and "K1\<lhd>G\<lparr>carrier:=K\<rparr>"
+  shows "(H\<inter>K)\<lhd> (G\<lparr>carrier:=(Norm (H1<#>(H\<inter>K1))) \<rparr>)"
+  sorry
+
+
+
+
+lemma (in group) commut_normal :
+  assumes "subgroup H G"
+    and "N\<lhd>G"
+  shows "H<#>N = N<#>H"
+  sorry
+
+lemma (in group) commut_normal_subgroup :
+  assumes "subgroup H G"
+    and "N\<lhd>(G\<lparr>carrier:=H\<rparr>)"
+    and "subgroup K (G\<lparr>carrier:=H\<rparr>)"
+  shows "K<#>N = N<#>K"
+  sorry
+
+lemma (in group) set_mult_assoc : "H1 <#> (H2<#>H3) = (H1<#>H2) <#> H3"
+  sorry
+
+lemma (in group) idem_set_mult :
+  assumes "subgroup H G"
+  shows "(carrier G)<#>H = carrier G"
+  sorry
+
 
 
 
