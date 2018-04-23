@@ -1,5 +1,6 @@
 theory Group_Action
 imports Bij Coset
+
 begin
 
 section \<open>Group Actions\<close>
@@ -29,6 +30,7 @@ locale faithful_action = group_action +
 
 locale transitive_action = group_action +
   assumes unique_orbit: "\<lbrakk> x \<in> E; y \<in> E \<rbrakk> \<Longrightarrow> \<exists>g \<in> carrier G. (\<phi> g) x = y"
+
 
 
 subsection \<open>Prelimineries\<close>
@@ -80,12 +82,15 @@ lemma (in group_action) element_image:
   using surj_prop assms by blast
 
 
+
 subsection \<open>Orbits\<close>
 
 text\<open>We prove here that orbits form an equivalence relation\<close>
 
 lemma (in group_action) orbit_sym_aux:
-  assumes "g \<in> carrier G" and "x \<in> E" and "(\<phi> g) x = y"
+  assumes "g \<in> carrier G"
+    and "x \<in> E"
+    and "(\<phi> g) x = y"
   shows "(\<phi> (inv g)) y = x"
 proof -
   interpret group G
@@ -219,6 +224,10 @@ lemma (in group_action) disjoint_union:
 (* ************************************************************************** *)
 
 
+subsubsection \<open>Transitive Actions\<close>
+
+text \<open>Transitive actions have only one orbit\<close>
+
 lemma (in transitive_action) all_equivalent:
   "\<lbrakk> x \<in> E; y \<in> E \<rbrakk> \<Longrightarrow> x .=\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> y"
 proof -
@@ -230,7 +239,7 @@ proof -
   thus "x .=\<^bsub>\<lparr>carrier = E, eq = \<lambda>x y. y \<in> orbit G \<phi> x\<rparr>\<^esub> y" by simp
 qed
 
-lemma (in transitive_action) one_orbit:
+proposition (in transitive_action) one_orbit:
   assumes "E \<noteq> {}"
   shows "card (orbits G E \<phi>) = 1"
 proof -
@@ -252,9 +261,11 @@ proof -
 qed
 
 
+
 subsection \<open>Stabilizers\<close>
 
-text \<open> \<close>
+text \<open>We show that stabilizers are subgroups from the acting group\<close>
+
 lemma (in group_action) stabilizer_subset:
   "stabilizer G \<phi> x \<subseteq> carrier G"
   by (metis (no_types, lifting) mem_Collect_eq stabilizer_def subsetI)
@@ -310,96 +321,125 @@ proof -
   thus ?thesis by (simp add: inv_g stabilizer_def) 
 qed
 
-lemma (in group_action) stabilizer_subgroup:
+theorem (in group_action) stabilizer_subgroup:
   assumes "x \<in> E"
   shows "subgroup (stabilizer G \<phi> x) G"
   unfolding subgroup_def
   using stabilizer_subset stabilizer_m_closed stabilizer_one_closed
         stabilizer_m_inv_closed assms by simp
 
-lemma (in group_action) rcosets_not_empty:
-  assumes "x \<in> E" and "R \<in> rcosets (stabilizer G \<phi> x)"
+
+
+subsection \<open>The Orbit-Stabilizer Theorem\<close>
+
+text \<open>In this subsection, we prove the Orbit-Stabilizer theorem.
+      Our approach is to show the existence of a bijection between
+      "rcosets (stabilizer G \<phi> x)" and "orbit G \<phi> x". Then we use
+      Lagrange's theorem to find the cardinal of the first set.\<close>
+
+(* ************************************************************************** *)
+(* FIXME: Many of the lemmas bellow should be transferred to Coset.thy        *)
+
+subsubsection \<open>Rcosets - Supporting Lemmas\<close>
+
+lemma (in subgroup) rcosets_not_empty: (* <- *)
+  assumes "R \<in> rcosets H"
   shows "R \<noteq> {}"
 proof -
-  have "\<phi> \<one> x = x"
-    by (metis assms(1) id_eq_one restrict_apply')
-  hence "\<one> \<in> stabilizer G \<phi> x"
-    using group_def group_hom group_hom.axioms(1) stabilizer_def by fastforce
-  hence "\<And>g. g \<in> carrier G \<Longrightarrow> (\<one> \<otimes> g) \<in> (stabilizer G \<phi> x) #> g"
-    unfolding r_coset_def by blast
-
-  moreover have "\<exists>g \<in> carrier G. R = (stabilizer G \<phi> x) #> g"
+  obtain g where "g \<in> carrier G" "R = H #> g"
     using assms unfolding RCOSETS_def by blast
-  then obtain g where "g \<in> carrier G \<and> R = (stabilizer G \<phi> x) #> g" by blast
-
-  ultimately have "(\<one> \<otimes> g) \<in> R" by blast
-  thus ?thesis by auto
+  hence "\<one> \<otimes> g \<in> R"
+    using one_closed unfolding r_coset_def by blast
+  thus ?thesis by blast
 qed
 
-lemma (in group_action) rcosets_in_carrier:
-  assumes "R \<in> rcosets (stabilizer G \<phi> x)"
-  shows "R \<subseteq> carrier G"
+corollary (in group_action) stab_rcosets_not_empty:
+  assumes "x \<in> E" "R \<in> rcosets (stabilizer G \<phi> x)"
+  shows "R \<noteq> {}"
+  using subgroup.rcosets_not_empty[OF stabilizer_subgroup[OF assms(1)] assms(2)] by simp
+
+lemma (in group) diff_neutralizes: (* <- *)
+  assumes "subgroup H G" "R \<in> rcosets H"
+  shows "\<And>r1 r2. \<lbrakk> r1 \<in> R; r2 \<in> R \<rbrakk> \<Longrightarrow> r1 \<otimes> (inv r2) \<in> H"
 proof -
-  have "\<exists>g \<in> carrier G. R = (stabilizer G \<phi> x) #> g"
+  fix r1 r2 assume r1: "r1 \<in> R" and r2: "r2 \<in> R"
+  obtain g where g: "g \<in> carrier G" "R = H #> g"
     using assms unfolding RCOSETS_def by blast
-  then obtain g where "g \<in> carrier G \<and> R = (stabilizer G \<phi> x) #> g" by blast
-  thus "R \<subseteq> carrier G"
-    using monoid.r_coset_subset_G[of G "stabilizer G \<phi> x" g]
-    by (metis (no_types, lifting) group.axioms(1) group_hom group_hom.axioms(1)
-        mem_Collect_eq stabilizer_def subsetI)
+  then obtain h1 h2 where h1: "h1 \<in> H" "r1 = h1 \<otimes> g"
+                      and h2: "h2 \<in> H" "r2 = h2 \<otimes> g"
+    using r1 r2 unfolding r_coset_def by blast
+  hence "r1 \<otimes> (inv r2) = (h1 \<otimes> g) \<otimes> ((inv g) \<otimes> (inv h2))"
+    using inv_mult_group is_group assms(1) g(1) subgroup.mem_carrier by fastforce 
+  also have " ... =  (h1 \<otimes> (g \<otimes> inv g) \<otimes> inv h2)"
+    using h1 h2 assms(1) g(1) inv_closed m_closed monoid.m_assoc
+          monoid_axioms subgroup.mem_carrier by smt
+  finally have "r1 \<otimes> inv r2 = h1 \<otimes> inv h2"
+    using assms(1) g(1) h1(1) subgroup.mem_carrier by fastforce
+  thus "r1 \<otimes> inv r2 \<in> H" by (metis assms(1) h1(1) h2(1) subgroup_def)
 qed
 
-lemma (in group_action) diff_stabilizes:
+corollary (in group_action) diff_stabilizes:
   assumes "x \<in> E" "R \<in> rcosets (stabilizer G \<phi> x)"
   shows "\<And>g1 g2. \<lbrakk> g1 \<in> R; g2 \<in> R \<rbrakk> \<Longrightarrow> g1 \<otimes> (inv g2) \<in> stabilizer G \<phi> x"
-proof -
-  fix g1 g2 assume g1: "g1 \<in> R" and g2: "g2 \<in> R"
-  have "\<exists>g \<in> carrier G. R = (stabilizer G \<phi> x) #> g"
-    using assms unfolding RCOSETS_def by blast
-  then obtain g where g: "g \<in> carrier G \<and> R = (stabilizer G \<phi> x) #> g" by blast
-  hence "\<exists>s1 \<in> stabilizer G \<phi> x. \<exists>s2 \<in> stabilizer G \<phi> x. g1 = s1 \<otimes> g \<and> g2 = s2 \<otimes> g"
-    using assms g1 g2 unfolding RCOSETS_def r_coset_def by blast
-  then obtain s1 s2 where s1: "s1 \<in> stabilizer G \<phi> x \<and> g1 = s1 \<otimes> g" and
-                          s2: "s2 \<in> stabilizer G \<phi> x \<and> g2 = s2 \<otimes> g" by blast
-  note S12 = this
-  from S12 have s1_carr: "s1 \<in> carrier G"  by (simp add: stabilizer_def)
-  from S12 have s2_carr: "s2 \<in> carrier G"  by (simp add: stabilizer_def)
+  using group.diff_neutralizes[of G "stabilizer G \<phi> x" R] stabilizer_subgroup[OF assms(1)]
+        assms(2) group_hom group_hom.axioms(1) by blast
 
-  hence G12: "g1 \<in> carrier G \<and> g2 \<in> carrier G"
-    using rcosets_in_carrier[of R x] assms(2) g1 g2 by blast
-  hence inv_g2: "inv g2 = (inv g) \<otimes> (inv s2)"
-    using g group.inv_mult_group group_hom group_hom.axioms(1) s2 s2_carr by fastforce
-  hence "(\<phi> (g1 \<otimes> (inv g2))) x = (\<phi> ((s1 \<otimes> g) \<otimes> ((inv g) \<otimes> (inv s2)))) x"
-    using g1 s1 s2_carr by simp
-  also have " ... = (\<phi> (s1 \<otimes> g)) (\<phi> ((inv g) \<otimes> (inv s2)) x)"
-    using G12 inv_g2 assms(1) composition_rule group.inv_closed
-          group_hom group_hom.axioms(1) s1 by fastforce
-  also have " ... = (\<phi> (s1 \<otimes> g)) (\<phi> (inv g) (\<phi> (inv s2) x))"
-    using assms(1) composition_rule g group_hom group_hom.axioms(1) s2_carr by fastforce
-  also have " ... = (\<phi> (s1 \<otimes> g)) (\<phi> (inv g) x)"
-    by (metis (mono_tags, lifting) assms(1) mem_Collect_eq orbit_sym_aux s2 stabilizer_def)
-  also have " ... = \<phi> ((s1 \<otimes> g) \<otimes> (inv g)) x"
-    using G12 assms(1) composition_rule g group_hom group_hom.axioms(1) s1 by fastforce
-  also have " ... = \<phi> (s1 \<otimes> (g \<otimes> (inv g))) x"
-    using Group.group_def g group_hom group_hom.axioms(1) monoid.m_assoc s1_carr by fastforce
-  also have " ... = \<phi> s1 x"
-    using group_def g group.r_inv group_hom group_hom.axioms(1) s1_carr by fastforce
-  finally have "(\<phi> (g1 \<otimes> (inv g2))) x = x"
-    using s1 stabilizer_def by fastforce
-  thus "g1 \<otimes> inv g2 \<in> stabilizer G \<phi> x" unfolding stabilizer_def
-    using G12 group_def group_hom group_hom.axioms(1) monoid.m_closed by fastforce
+lemma (in group) card_cosets_equal: (* <- *)
+  assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
+  shows "\<exists>f. bij_betw f H R"
+proof -
+  obtain g where g: "g \<in> carrier G" "R = H #> g"
+    using assms(1) unfolding RCOSETS_def by blast
+
+  let ?f = "\<lambda>h. h \<otimes> g"
+  have "\<And>r. r \<in> R \<Longrightarrow> \<exists>h \<in> H. ?f h = r"
+  proof -
+    fix r assume "r \<in> R"
+    then obtain h where "h \<in> H" "r = h \<otimes> g"
+      using g unfolding r_coset_def by blast
+    thus "\<exists>h \<in> H. ?f h = r" by blast
+  qed
+  hence "R \<subseteq> ?f ` H" by blast
+  moreover have "?f ` H \<subseteq> R"
+    using g unfolding r_coset_def by blast
+  ultimately show ?thesis using inj_on_g unfolding bij_betw_def
+    using assms(2) g(1) by auto 
 qed
+
+corollary (in group) card_rcosets_equal: (* <- *)
+  assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
+  shows "card H = card R"
+  using card_cosets_equal assms bij_betw_same_card by blast
+
+corollary (in group) rcosets_finite: (* <- *)
+  assumes "R \<in> rcosets H" "H \<subseteq> carrier G" "finite H"
+  shows "finite R"
+  using card_cosets_equal assms bij_betw_finite is_group by blast
+
+(* ************************************************************************** *)
+
+
+subsubsection \<open>Bijection Between Rcosets and an Orbit - Definition and Supporting Lemmas\<close>
+
+(* This definition could be easier if lcosets were available, and it's indeed a considerable
+   modification at Coset theory, since we could derive it easily from the definition of rcosets
+   following the same idea we use here: f: rcosets \<rightarrow> lcosets, s.t. f R = (\<lambda>g. inv g) ` R
+   is a bijection. *)
+
+definition
+  orb_stab_fun :: "[_, ('a \<Rightarrow> 'b \<Rightarrow> 'b), 'a set, 'b] \<Rightarrow> 'b"
+  where "orb_stab_fun G \<phi> R x = (\<phi> (inv\<^bsub>G\<^esub> (SOME h. h \<in> R))) x"
 
 lemma (in group_action) orbit_stab_fun_is_well_defined0:
   assumes "x \<in> E" "R \<in> rcosets (stabilizer G \<phi> x)"
   shows "\<And>g1 g2. \<lbrakk> g1 \<in> R; g2 \<in> R \<rbrakk> \<Longrightarrow> (\<phi> (inv g1)) x = (\<phi> (inv g2)) x"
 proof -
   fix g1 g2 assume g1: "g1 \<in> R" and g2: "g2 \<in> R"
-
-  have g1_carr: "g1 \<in> carrier G"
-    using rcosets_in_carrier[of R x] assms(2) g1 by blast
-  have g2_carr: "g2 \<in> carrier G"
-    using rcosets_in_carrier[of R x] assms(2) g2 by blast
+  have R_carr: "R \<subseteq> carrier G"
+    using subgroup.rcosets_carrier[OF stabilizer_subgroup[OF assms(1)]]
+          assms(2) group_hom group_hom.axioms(1) by auto
+  from R_carr have g1_carr: "g1 \<in> carrier G" using g1 by blast
+  from R_carr have g2_carr: "g2 \<in> carrier G" using g2 by blast
 
   have "g1 \<otimes> (inv g2) \<in> stabilizer G \<phi> x"
     using diff_stabilizes[of x R g1 g2] assms g1 g2 by blast
@@ -415,7 +455,7 @@ proof -
     using group_def g1_carr g2_carr group.l_inv group_hom group_hom.axioms(1) by fastforce
 qed
 
-lemma (in group_action) orbit_stab_fun_well_defined1:
+lemma (in group_action) orbit_stab_fun_is_well_defined1:
   assumes "x \<in> E" "R \<in> rcosets (stabilizer G \<phi> x)"
   shows "\<And>g. g \<in> R \<Longrightarrow> (\<phi> (inv (SOME h. h \<in> R))) x = (\<phi> (inv g)) x"
   by (meson assms orbit_stab_fun_is_well_defined0 someI_ex)
@@ -428,28 +468,25 @@ lemma (in group_action) orbit_stab_fun_is_inj:
   shows "R1 = R2"
 proof -
   have "(\<exists>g1. g1 \<in> R1) \<and> (\<exists>g2. g2 \<in> R2)"
-    using assms(1-3) rcosets_not_empty by auto
+    using assms(1-3) stab_rcosets_not_empty by auto
   then obtain g1 g2 where g1: "g1 \<in> R1" and g2: "g2 \<in> R2" by blast
   hence g12_carr: "g1 \<in> carrier G \<and> g2 \<in> carrier G"
-    using rcosets_in_carrier assms(2-3) by blast 
+    using subgroup.rcosets_carrier assms(1-3) group_hom
+          group_hom.axioms(1) stabilizer_subgroup by blast
 
-  have "\<exists>r1 \<in> carrier G. \<exists>r2 \<in> carrier G.
-        R1 = (stabilizer G \<phi> x) #> r1 \<and> R2 = (stabilizer G \<phi> x) #> r2"
+  then obtain r1 r2 where r1: "r1 \<in> carrier G" "R1 = (stabilizer G \<phi> x) #> r1"
+                      and r2: "r2 \<in> carrier G" "R2 = (stabilizer G \<phi> x) #> r2"
     using assms(1-3) unfolding RCOSETS_def by blast
-  then obtain r1 r2 where r1: "r1 \<in> carrier G \<and> R1 = (stabilizer G \<phi> x) #> r1" and
-                          r2: "r2 \<in> carrier G \<and> R2 = (stabilizer G \<phi> x) #> r2" by blast
-
-  hence "\<exists>s1 \<in> (stabilizer G \<phi> x). \<exists>s2 \<in> (stabilizer G \<phi> x). g1 = s1 \<otimes> r1 \<and> g2 = s2 \<otimes> r2"
+  then obtain s1 s2 where s1: "s1 \<in> (stabilizer G \<phi> x)" "g1 = s1 \<otimes> r1"
+                      and s2: "s2 \<in> (stabilizer G \<phi> x)" "g2 = s2 \<otimes> r2"
     using g1 g2 unfolding r_coset_def by blast
-  then obtain s1 s2 where s1: "s1 \<in> (stabilizer G \<phi> x) \<and> g1 = s1 \<otimes> r1" and
-                          s2: "s2 \<in> (stabilizer G \<phi> x) \<and> g2 = s2 \<otimes> r2" by blast
 
   have "\<phi> (inv g1) x = \<phi> (inv (SOME h. h \<in> R1)) x"
-    using orbit_stab_fun_well_defined1[OF assms(1) assms(2) g1] by simp
+    using orbit_stab_fun_is_well_defined1[OF assms(1) assms(2) g1] by simp
   also have " ... = \<phi> (inv (SOME h. h \<in> R2)) x"
     using assms(4) by simp
   finally have "\<phi> (inv g1) x = \<phi> (inv g2) x"
-    using orbit_stab_fun_well_defined1[OF assms(1) assms(3) g2] by simp
+    using orbit_stab_fun_is_well_defined1[OF assms(1) assms(3) g2] by simp
 
   hence "\<phi> g2 (\<phi> (inv g1) x) = \<phi> g2 (\<phi> (inv g2) x)" by simp
   also have " ... = \<phi> (g2 \<otimes> (inv g2)) x"
@@ -462,8 +499,7 @@ proof -
   hence "g2 \<otimes> (inv g1) \<in> (stabilizer G \<phi> x)"
     using g12_carr group.subgroup_self group_hom group_hom.axioms(1)
           mem_Collect_eq stabilizer_def subgroup_def by (metis (mono_tags, lifting))
-  hence "\<exists>s \<in> (stabilizer G \<phi> x). s = g2 \<otimes> (inv g1)" by blast
-  then obtain s where s: "s \<in> (stabilizer G \<phi> x) \<and> s = g2 \<otimes> (inv g1)" by blast
+  then obtain s where s: "s \<in> (stabilizer G \<phi> x)" "s = g2 \<otimes> (inv g1)" by blast
 
   let ?h = "s \<otimes> g1"
   have "?h = s \<otimes> (s1 \<otimes> r1)" by (simp add: s1)
@@ -497,7 +533,7 @@ proof -
   moreover have "\<one> \<otimes> (inv g) \<in> ?R"
     unfolding r_coset_def using assms(1) stabilizer_one_closed by auto
   ultimately have "\<phi> (inv (SOME h. h \<in> ?R)) x = \<phi> (inv (\<one> \<otimes> (inv g))) x"
-    using orbit_stab_fun_well_defined1[OF assms(1)] by simp
+    using orbit_stab_fun_is_well_defined1[OF assms(1)] by simp
   also have " ... = (\<phi> g) x"
     using group_def g group_hom group_hom.axioms(1) monoid.l_one by fastforce
   finally have "\<phi> (inv (SOME h. h \<in> ?R)) x = y"
@@ -505,7 +541,7 @@ proof -
   thus ?thesis using R by blast 
 qed
 
-lemma (in group_action) orbit_stab_fun_is_bij:
+proposition (in group_action) orbit_stab_fun_is_bij:
   assumes "x \<in> E"
   shows "bij_betw (\<lambda>R. (\<phi> (inv (SOME h. h \<in> R))) x) (rcosets (stabilizer G \<phi> x)) (orbit G \<phi> x)"
   unfolding bij_betw_def
@@ -517,11 +553,12 @@ next
   proof -
     fix R assume R: "R \<in> (rcosets stabilizer G \<phi> x)"
     then obtain g where g: "g \<in> R"
-      using assms rcosets_not_empty by auto
+      using assms stab_rcosets_not_empty by auto
     hence "\<phi> (inv (SOME h. h \<in> R)) x = \<phi> (inv g) x"
-      using R  assms orbit_stab_fun_well_defined1 by blast
+      using R  assms orbit_stab_fun_is_well_defined1 by blast
     thus "\<phi> (inv (SOME h. h \<in> R)) x \<in> orbit G \<phi> x" unfolding orbit_def
-      using rcosets_in_carrier[OF R] g group_hom group_hom.axioms(1) by fastforce
+      using subgroup.rcosets_carrier group_hom group_hom.axioms(1)
+            g R assms stabilizer_subgroup by fastforce
   qed
   moreover have "orbit G \<phi> x \<subseteq> (\<lambda>R. \<phi> (inv (SOME h. h \<in> R)) x) ` (rcosets stabilizer G \<phi> x)"
     using assms orbit_stab_fun_is_surj by fastforce
@@ -529,49 +566,57 @@ next
     using assms set_eq_subset by blast
 qed
 
-lemma (in group_action) orbit_stabilizer_theorem:
-  assumes "x \<in> E" "finite (carrier G)"
+
+subsubsection \<open>The Theorem\<close>
+
+theorem (in group) lagrange_strong: (* without "finite (carrier G)" assumption !!! *)
+  assumes "subgroup H G"
+  shows "card (rcosets H) * card H = order G"
+proof (cases "finite (carrier G)")
+  case True thus ?thesis using lagrange assms by simp
+next
+  case False note inf_G = this
+  thus ?thesis
+  proof (cases "finite H")
+    case False thus ?thesis using inf_G  by (simp add: order_def)  
+  next
+    case True note finite_H = this
+    have "infinite (rcosets H)"
+    proof (rule ccontr)
+      assume "\<not> infinite (rcosets H)"
+      hence finite_rcos: "finite (rcosets H)" by simp
+      hence "card (\<Union>(rcosets H)) = (\<Sum>R\<in>(rcosets H). card R)"
+        using card_Union_disjoint[of "rcosets H"] finite_H rcos_disjoint[OF assms(1)]
+              rcosets_finite[where ?H = H] by (simp add: assms subgroup_imp_subset)
+      hence "order G = (\<Sum>R\<in>(rcosets H). card R)"
+        by (simp add: assms order_def rcosets_part_G)
+      hence "order G = (\<Sum>R\<in>(rcosets H). card H)"
+        using card_rcosets_equal by (simp add: assms subgroup_imp_subset)
+      hence "order G = (card H) * (card (rcosets H))" by simp
+      hence "order G \<noteq> 0" using finite_rcos finite_H assms ex_in_conv
+                                rcosets_part_G subgroup.one_closed by fastforce
+      thus False using inf_G order_gt_0_iff_finite by blast 
+    qed
+    thus ?thesis using inf_G by (simp add: order_def)
+  qed
+qed
+
+theorem (in group_action) orbit_stabilizer_theorem:
+  assumes "x \<in> E"
   shows "card (orbit G \<phi> x) * card (stabilizer G \<phi> x) = order G"
 proof -
   have "card (rcosets stabilizer G \<phi> x) = card (orbit G \<phi> x)"
     using orbit_stab_fun_is_bij[OF assms(1)] bij_betw_same_card by blast
   moreover have "card (rcosets stabilizer G \<phi> x) * card (stabilizer G \<phi> x) = order G"
-    using stabilizer_subgroup assms group.lagrange group_hom group_hom.axioms(1) by blast
+    using stabilizer_subgroup assms group.lagrange_strong group_hom group_hom.axioms(1) by blast
   ultimately show ?thesis by auto
 qed
 
-lemma (in group_action) card_stablizer_sum:
-  assumes "finite (carrier G)" "orb \<in> (orbits G E \<phi>)"
-  shows "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = order G"
-proof -
-  obtain x where x:"x \<in> E" and orb:"orb = orbit G \<phi> x"
-    using assms(2) unfolding orbits_def by blast
-  have "\<And>y. y \<in> orb \<Longrightarrow> card (stabilizer G \<phi> x) = card (stabilizer G \<phi> y)"
-  proof -
-    fix y assume "y \<in> orb"
-    hence y: "y \<in> E \<and> y \<in> orbit G \<phi> x"
-      using x orb assms(2) orbits_coverture by auto 
-    hence same_orbit: "(orbit G \<phi> x) = (orbit G \<phi> y)"
-      using disjoint_union[where ?orb1.0 = "orbit G \<phi> x" and ?orb2.0 = "orbit G \<phi> y"] orbit_refl x
-      unfolding orbits_def by auto
-    have "card (orbit G \<phi> x) * card (stabilizer G \<phi> x) =
-          card (orbit G \<phi> y) * card (stabilizer G \<phi> y)"
-      using y assms(1) x orbit_stabilizer_theorem by simp
-    hence "card (orbit G \<phi> x) * card (stabilizer G \<phi> x) =
-           card (orbit G \<phi> x) * card (stabilizer G \<phi> y)" using same_orbit by simp
-    moreover have "orbit G \<phi> x \<noteq> {} \<and> finite (orbit G \<phi> x)"
-      using y orbit_def[of G \<phi> x] assms(1) by auto
-    hence "card (orbit G \<phi> x) > 0"
-      by (simp add: card_gt_0_iff)
-    ultimately show "card (stabilizer G \<phi> x) = card (stabilizer G \<phi> y)" by auto
-  qed
-  hence "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = (\<Sum>y \<in> orb. card (stabilizer G \<phi> x))" by auto
-  also have " ... = card (stabilizer G \<phi> x) * (\<Sum>y \<in> orb. 1)" by simp
-  also have " ... = card (stabilizer G \<phi> x) * card (orbit G \<phi> x)"
-    using orb by auto
-  finally show "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = order G"
-    by (metis assms(1) mult.commute orbit_stabilizer_theorem x)
-qed
+
+
+subsection \<open>The Burnside's Lemma\<close>
+
+subsubsection \<open>Sums and Cardinals\<close>
 
 lemma card_as_sums:
   assumes "A = {x \<in> B. P x}" "finite B"
@@ -639,7 +684,7 @@ next
   case (insert a A')
   hence "(\<Sum>a\<in>(insert a A'). \<Sum>b\<in>a. f b) = (\<Sum>b\<in>a. f b) + (\<Sum>a\<in>A'. \<Sum>b\<in>a. f b)" by simp
   also have " ... = (\<Sum>b\<in>a. f b) + (\<Sum>b\<in>(\<Union>A'). f b)"
-    using insert.IH insert.prems(1) insert.prems(2) insert.prems(3) by force
+    using insert.IH insert.prems by force
   also have " ... = (\<Sum>b\<in>((\<Union>A') \<union> a). f b)"
     using disjoint_union_prop1[of a "insert a A'" B] insert.prems Sup_insert Un_commute
           Un_infinite insert.hyps(2) insert_partition sum.union_disjoint by metis
@@ -647,7 +692,43 @@ next
     using Union_insert insert.prems(3) sup.commute by metis
 qed
 
-lemma (in group_action) burnside:
+lemma (in group_action) card_stablizer_sum:
+  assumes "finite (carrier G)" "orb \<in> (orbits G E \<phi>)"
+  shows "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = order G"
+proof -
+  obtain x where x:"x \<in> E" and orb:"orb = orbit G \<phi> x"
+    using assms(2) unfolding orbits_def by blast
+  have "\<And>y. y \<in> orb \<Longrightarrow> card (stabilizer G \<phi> x) = card (stabilizer G \<phi> y)"
+  proof -
+    fix y assume "y \<in> orb"
+    hence y: "y \<in> E \<and> y \<in> orbit G \<phi> x"
+      using x orb assms(2) orbits_coverture by auto 
+    hence same_orbit: "(orbit G \<phi> x) = (orbit G \<phi> y)"
+      using disjoint_union[of "orbit G \<phi> x" "orbit G \<phi> y"] orbit_refl x
+      unfolding orbits_def by auto
+    have "card (orbit G \<phi> x) * card (stabilizer G \<phi> x) =
+          card (orbit G \<phi> y) * card (stabilizer G \<phi> y)"
+      using y assms(1) x orbit_stabilizer_theorem by simp
+    hence "card (orbit G \<phi> x) * card (stabilizer G \<phi> x) =
+           card (orbit G \<phi> x) * card (stabilizer G \<phi> y)" using same_orbit by simp
+    moreover have "orbit G \<phi> x \<noteq> {} \<and> finite (orbit G \<phi> x)"
+      using y orbit_def[of G \<phi> x] assms(1) by auto
+    hence "card (orbit G \<phi> x) > 0"
+      by (simp add: card_gt_0_iff)
+    ultimately show "card (stabilizer G \<phi> x) = card (stabilizer G \<phi> y)" by auto
+  qed
+  hence "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = (\<Sum>y \<in> orb. card (stabilizer G \<phi> x))" by auto
+  also have " ... = card (stabilizer G \<phi> x) * (\<Sum>y \<in> orb. 1)" by simp
+  also have " ... = card (stabilizer G \<phi> x) * card (orbit G \<phi> x)"
+    using orb by auto
+  finally show "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = order G"
+    by (metis mult.commute orbit_stabilizer_theorem x)
+qed
+
+
+subsubsection \<open>The Lemma\<close>
+
+theorem (in group_action) burnside:
   assumes "finite (carrier G)" "finite E"
   shows "card (orbits G E \<phi>) * order G = (\<Sum>g \<in> carrier G. card(invariants E \<phi> g))"
 proof -
@@ -665,6 +746,15 @@ proof -
   finally have "(\<Sum>g \<in> carrier G. card(invariants E \<phi> g)) = card (orbits G E \<phi>) * order G" by simp
   thus ?thesis by simp
 qed
+
+
+
+subsection \<open>Action by Conjugation\<close>
+
+
+subsubsection \<open>Action Over Itself\<close>
+
+text \<open>A Group Acts by Conjugation Over Itself\<close>
 
 lemma (in group) conjugation_is_inj:
   assumes "g \<in> carrier G" "h1 \<in> carrier G" "h2 \<in> carrier G"
@@ -734,10 +824,15 @@ proof -
     using Step1 Step2 by auto
 qed
 
-lemma (in group) action_by_conjugation:
+theorem (in group) action_by_conjugation:
   "group_action G (carrier G) (\<lambda>g. (\<lambda>h \<in> carrier G. g \<otimes> h \<otimes> (inv g)))"
   unfolding group_action_def group_hom_def using conjugation_is_hom
   by (simp add: group_BijGroup group_hom_axioms.intro is_group)
+
+
+subsubsection \<open>Action Over The Set of Subgroups\<close>
+
+text \<open>A Group Acts by Conjugation Over The Set of Subgroups\<close>
 
 lemma (in group) subgroup_conjugation_is_inj_aux:
   assumes "g \<in> carrier G" "H1 \<subseteq> carrier G" "H2 \<subseteq> carrier G"
@@ -762,6 +857,10 @@ lemma (in group) subgroup_conjugation_is_inj:
     shows "H1 = H2"
   using subgroup_conjugation_is_inj_aux assms
         subgroup_imp_subset set_eq_subset by metis
+
+(* ************************************************************************** *)
+(* ************************************************************************** *)
+(* FIXME: Transfer this lemmas to Coset.thy *)
 
 lemma (in group) assoc_coset:
   assumes "x \<in> carrier G" "y \<in> carrier G" "H \<subseteq> carrier G"
@@ -789,6 +888,9 @@ next
       unfolding r_coset_def l_coset_def by blast
   qed
 qed
+
+(* ************************************************************************** *)
+(* ************************************************************************** *)
 
 lemma (in group) subgroup_conjugation_is_surj0:
   assumes "g \<in> carrier G" "subgroup H G"
@@ -913,10 +1015,16 @@ proof -
     using Step1 Step2 by auto
 qed
 
-lemma (in group) action_by_conjugation_on_subgroups_set:
+theorem (in group) action_by_conjugation_on_subgroups_set:
   "group_action G {H. subgroup H G} (\<lambda>g. \<lambda>H \<in> {H. subgroup H G}. g <# H #> (inv g))"
   unfolding group_action_def group_hom_def using subgroup_conjugation_is_hom
   by (simp add: group_BijGroup group_hom_axioms.intro is_group)
+
+
+
+subsection \<open>Subgroup of an Acting Group\<close>
+
+text \<open>A Subgroup of an Acting Group Induces an Action\<close>
 
 lemma (in group_action) induced_homomorphism:
   assumes "subgroup H G"
@@ -930,7 +1038,7 @@ proof -
     by (simp add: S0  group_hom group_hom.hom_mult set_rev_mp)
 qed
 
-lemma (in group_action) induced_action:
+theorem (in group_action) induced_action:
   assumes "subgroup H G"
   shows "group_action (G \<lparr>carrier := H\<rparr>) E \<phi>"
   unfolding group_action_def group_hom_def
