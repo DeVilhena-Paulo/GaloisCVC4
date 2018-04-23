@@ -337,10 +337,12 @@ text \<open>In this subsection, we prove the Orbit-Stabilizer theorem.
       "rcosets (stabilizer G \<phi> x)" and "orbit G \<phi> x". Then we use
       Lagrange's theorem to find the cardinal of the first set.\<close>
 
+(* ************************************************************************** *)
+(* FIXME: Many of the lemmas bellow should be transferred to Coset.thy        *)
 
 subsubsection \<open>Rcosets - Supporting Lemmas\<close>
 
-lemma (in subgroup) rcosets_not_empty:
+lemma (in subgroup) rcosets_not_empty: (* <- *)
   assumes "R \<in> rcosets H"
   shows "R \<noteq> {}"
 proof -
@@ -356,7 +358,7 @@ corollary (in group_action) stab_rcosets_not_empty:
   shows "R \<noteq> {}"
   using subgroup.rcosets_not_empty[OF stabilizer_subgroup[OF assms(1)] assms(2)] by simp
 
-lemma (in group) diff_neutralizes:
+lemma (in group) diff_neutralizes: (* <- *)
   assumes "subgroup H G" "R \<in> rcosets H"
   shows "\<And>r1 r2. \<lbrakk> r1 \<in> R; r2 \<in> R \<rbrakk> \<Longrightarrow> r1 \<otimes> (inv r2) \<in> H"
 proof -
@@ -382,7 +384,7 @@ corollary (in group_action) diff_stabilizes:
   using group.diff_neutralizes[of G "stabilizer G \<phi> x" R] stabilizer_subgroup[OF assms(1)]
         assms(2) group_hom group_hom.axioms(1) by blast
 
-lemma (in group) card_cosets_equal:
+lemma (in group) card_cosets_equal: (* <- *)
   assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
   shows "\<exists>f. bij_betw f H R"
 proof -
@@ -404,15 +406,17 @@ proof -
     using assms(2) g(1) by auto 
 qed
 
-corollary (in group) card_rcosets_equal:
+corollary (in group) card_rcosets_equal: (* <- *)
   assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
   shows "card H = card R"
   using card_cosets_equal assms bij_betw_same_card by blast
 
-corollary (in group) rcosets_finite:
+corollary (in group) rcosets_finite: (* <- *)
   assumes "R \<in> rcosets H" "H \<subseteq> carrier G" "finite H"
   shows "finite R"
   using card_cosets_equal assms bij_betw_finite is_group by blast
+
+(* ************************************************************************** *)
 
 
 subsubsection \<open>Bijection Between Rcosets and an Orbit - Definition and Supporting Lemmas\<close>
