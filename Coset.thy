@@ -38,6 +38,49 @@ abbreviation
   normal_rel :: "['a set, ('a, 'b) monoid_scheme] \<Rightarrow> bool"  (infixl "\<lhd>" 60) where
   "H \<lhd> G \<equiv> normal H G"
 
+lemma l_coset_eq_set_mult:
+  fixes G (structure)
+  shows "x <# H = {x} <#> H"
+  unfolding l_coset_def set_mult_def by simp 
+
+lemma r_coset_eq_set_mult:
+  fixes G (structure)
+  shows "H #> x = H <#> {x}"
+  unfolding r_coset_def set_mult_def by simp
+
+(* ************************************************************************** *)
+lemma (in subgroup) rcosets_not_empty:
+  assumes "R \<in> rcosets H"
+  shows "R \<noteq> {}"
+proof -
+  obtain g where "g \<in> carrier G" "R = H #> g"
+    using assms unfolding RCOSETS_def by blast
+  hence "\<one> \<otimes> g \<in> R"
+    using one_closed unfolding r_coset_def by blast
+  thus ?thesis by blast
+qed
+
+lemma (in group) diff_neutralizes:
+  assumes "subgroup H G" "R \<in> rcosets H"
+  shows "\<And>r1 r2. \<lbrakk> r1 \<in> R; r2 \<in> R \<rbrakk> \<Longrightarrow> r1 \<otimes> (inv r2) \<in> H"
+proof -
+  fix r1 r2 assume r1: "r1 \<in> R" and r2: "r2 \<in> R"
+  obtain g where g: "g \<in> carrier G" "R = H #> g"
+    using assms unfolding RCOSETS_def by blast
+  then obtain h1 h2 where h1: "h1 \<in> H" "r1 = h1 \<otimes> g"
+                      and h2: "h2 \<in> H" "r2 = h2 \<otimes> g"
+    using r1 r2 unfolding r_coset_def by blast
+  hence "r1 \<otimes> (inv r2) = (h1 \<otimes> g) \<otimes> ((inv g) \<otimes> (inv h2))"
+    using inv_mult_group is_group assms(1) g(1) subgroup.mem_carrier by fastforce 
+  also have " ... =  (h1 \<otimes> (g \<otimes> inv g) \<otimes> inv h2)"
+    using h1 h2 assms(1) g(1) inv_closed m_closed monoid.m_assoc
+          monoid_axioms subgroup.mem_carrier by smt
+  finally have "r1 \<otimes> inv r2 = h1 \<otimes> inv h2"
+    using assms(1) g(1) h1(1) subgroup.mem_carrier by fastforce
+  thus "r1 \<otimes> inv r2 \<in> H" by (metis assms(1) h1(1) h2(1) subgroup_def)
+qed
+
+(* ************************************************************************** *)
 
 subsection \<open>Basic Properties of set_mult\<close>
 
@@ -88,6 +131,12 @@ lemma (in group) coset_mult_assoc:
      "\<lbrakk> M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G \<rbrakk>
       \<Longrightarrow> (M #> g) #> h = M #> (g \<otimes> h)"
 by (force simp add: r_coset_def m_assoc)
+
+lemma (in group) coset_assoc:
+  assumes "x \<in> carrier G" "y \<in> carrier G" "H \<subseteq> carrier G"
+  shows "x <# (H #> y) = (x <# H) #> y"
+  using set_mult_assoc[of "{x}" H "{y}"]
+  by (simp add: l_coset_eq_set_mult r_coset_eq_set_mult assms)
 
 lemma (in group) coset_mult_one [simp]: "M \<subseteq> carrier G ==> M #> \<one> = M"
 by (force simp add: r_coset_def)
@@ -618,7 +667,7 @@ subsubsection\<open>An Equivalence Relation\<close>
 
 definition
   r_congruent :: "[('a,'b)monoid_scheme, 'a set] \<Rightarrow> ('a*'a)set"  ("rcong\<index> _")
-  where "rcong\<^bsub>G\<^esub> H = {(x,y). x \<in> carrier G & y \<in> carrier G & inv\<^bsub>G\<^esub> x \<otimes>\<^bsub>G\<^esub> y \<in> H}"
+  where "(rcong\<^bsub>G\<^esub> H) = {(x,y). x \<in> carrier G & y \<in> carrier G & inv\<^bsub>G\<^esub> x \<otimes>\<^bsub>G\<^esub> y \<in> H}"
 
 
 lemma (in subgroup) equiv_rcong:
@@ -818,28 +867,47 @@ lemma (in group) inj_on_g:
     "\<lbrakk>H \<subseteq> carrier G;  a \<in> carrier G\<rbrakk> \<Longrightarrow> inj_on (\<lambda>y. y \<otimes> a) H"
 by (force simp add: inj_on_def subsetD)
 
+(* ************************************************************************** *)
+
 lemma (in group) card_cosets_equal:
-     "\<lbrakk>c \<in> rcosets H;  H \<subseteq> carrier G; finite(carrier G)\<rbrakk>
-      \<Longrightarrow> card c = card H"
-apply (auto simp add: RCOSETS_def)
-apply (rule card_bij_eq)
-     apply (rule inj_on_f, assumption+)
-    apply (force simp add: m_assoc subsetD r_coset_def)
-   apply (rule inj_on_g, assumption+)
-  apply (force simp add: m_assoc subsetD r_coset_def)
- txt\<open>The sets @{term "H #> a"} and @{term "H"} are finite.\<close>
- apply (simp add: r_coset_subset_G [THEN finite_subset])
-apply (blast intro: finite_subset)
-done
+  assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
+  shows "\<exists>f. bij_betw f H R"
+proof -
+  obtain g where g: "g \<in> carrier G" "R = H #> g"
+    using assms(1) unfolding RCOSETS_def by blast
+
+  let ?f = "\<lambda>h. h \<otimes> g"
+  have "\<And>r. r \<in> R \<Longrightarrow> \<exists>h \<in> H. ?f h = r"
+  proof -
+    fix r assume "r \<in> R"
+    then obtain h where "h \<in> H" "r = h \<otimes> g"
+      using g unfolding r_coset_def by blast
+    thus "\<exists>h \<in> H. ?f h = r" by blast
+  qed
+  hence "R \<subseteq> ?f ` H" by blast
+  moreover have "?f ` H \<subseteq> R"
+    using g unfolding r_coset_def by blast
+  ultimately show ?thesis using inj_on_g unfolding bij_betw_def
+    using assms(2) g(1) by auto 
+qed
+
+corollary (in group) card_rcosets_equal:
+  assumes "R \<in> rcosets H" "H \<subseteq> carrier G"
+  shows "card H = card R"
+  using card_cosets_equal assms bij_betw_same_card by blast
+
+corollary (in group) rcosets_finite:
+  assumes "R \<in> rcosets H" "H \<subseteq> carrier G" "finite H"
+  shows "finite R"
+  using card_cosets_equal assms bij_betw_finite is_group by blast
+
+(* ************************************************************************** *)
 
 lemma (in group) rcosets_subset_PowG:
      "subgroup H G  \<Longrightarrow> rcosets H \<subseteq> Pow(carrier G)"
-apply (simp add: RCOSETS_def)
-apply (blast dest: r_coset_subset_G subgroup.subset)
-done
+  using rcosets_part_G by auto
 
-
-theorem (in group) lagrange:
+proposition (in group) lagrange_finite:
      "\<lbrakk>finite(carrier G); subgroup H G\<rbrakk>
       \<Longrightarrow> card(rcosets H) * card(H) = order(G)"
 apply (simp (no_asm_simp) add: order_def rcosets_part_G [symmetric])
@@ -847,9 +915,41 @@ apply (subst mult.commute)
 apply (rule card_partition)
    apply (simp add: rcosets_subset_PowG [THEN finite_subset])
   apply (simp add: rcosets_part_G)
- apply (simp add: card_cosets_equal subgroup.subset)
+  apply (simp add: card_rcosets_equal subgroup_imp_subset)
 apply (simp add: rcos_disjoint)
 done
+
+theorem (in group) lagrange:
+  assumes "subgroup H G"
+  shows "card (rcosets H) * card H = order G"
+proof (cases "finite (carrier G)")
+  case True thus ?thesis using lagrange_finite assms by simp
+next
+  case False note inf_G = this
+  thus ?thesis
+  proof (cases "finite H")
+    case False thus ?thesis using inf_G  by (simp add: order_def)  
+  next
+    case True note finite_H = this
+    have "infinite (rcosets H)"
+    proof (rule ccontr)
+      assume "\<not> infinite (rcosets H)"
+      hence finite_rcos: "finite (rcosets H)" by simp
+      hence "card (\<Union>(rcosets H)) = (\<Sum>R\<in>(rcosets H). card R)"
+        using card_Union_disjoint[of "rcosets H"] finite_H rcos_disjoint[OF assms(1)]
+              rcosets_finite[where ?H = H] by (simp add: assms subgroup_imp_subset)
+      hence "order G = (\<Sum>R\<in>(rcosets H). card R)"
+        by (simp add: assms order_def rcosets_part_G)
+      hence "order G = (\<Sum>R\<in>(rcosets H). card H)"
+        using card_rcosets_equal by (simp add: assms subgroup_imp_subset)
+      hence "order G = (card H) * (card (rcosets H))" by simp
+      hence "order G \<noteq> 0" using finite_rcos finite_H assms ex_in_conv
+                                rcosets_part_G subgroup.one_closed by fastforce
+      thus False using inf_G order_gt_0_iff_finite by blast 
+    qed
+    thus ?thesis using inf_G by (simp add: order_def)
+  qed
+qed
 
 
 subsection \<open>Quotient Groups: Factorization of a Group\<close>
