@@ -1,5 +1,5 @@
 theory Group_Action
-imports Bij Coset
+imports Bij Coset Congruence
 
 begin
 
@@ -160,72 +160,37 @@ proof -
     using g1 g2 orbit_def by force 
 qed
 
-theorem (in group_action) orbit_partition:
-  "equivalence \<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>"
-  unfolding equivalence_def using orbit_refl orbit_sym orbit_trans
-  by (metis eq_object.select_convs(1) partial_object.select_convs(1))
-
-(* ************************************************************************** *)
-(* ************************************************************************** *)
-(* FIXME: Transfer these lemmas to Congruence.thy. They should be
-   properties that derive immediately from equivalence relations. *)
-
 lemma (in group_action) orbits_as_classes:
-  "orbits G E \<phi> = classes\<^bsub>\<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>\<^esub>"
-  unfolding eq_classes_def eq_class_of_def orbits_def apply simp sorry
+  "classes\<^bsub>\<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>\<^esub> = orbits G E \<phi>"
+  unfolding eq_classes_def eq_class_of_def orbits_def apply simp
+proof -
+  have "\<And>x. x \<in> E \<Longrightarrow> {y \<in> E. y \<in> orbit G \<phi> x} = orbit G \<phi> x"
+    by (smt Collect_cong element_image mem_Collect_eq orbit_def)
+  thus "{{y \<in> E. y \<in> orbit G \<phi> x} |x. x \<in> E} = {orbit G \<phi> x |x. x \<in> E}" by blast
+qed
 
-lemma (in group_action) orbits_coverture:
+theorem (in group_action) orbit_partition:
+  "partition E (orbits G E \<phi>)"
+proof -
+  have "equivalence \<lparr> carrier = E, eq = \<lambda>x. \<lambda>y. y \<in> orbit G \<phi> x \<rparr>"
+  unfolding equivalence_def apply simp
+  using orbit_refl orbit_sym orbit_trans by blast
+  thus ?thesis using equivalence.partition_from_equivalence orbits_as_classes by fastforce
+qed
+
+corollary (in group_action) orbits_coverture:
   "\<Union> (orbits G E \<phi>) = E"
-  unfolding orbits_def
-proof
-  show "\<Union>{orbit G \<phi> x |x. x \<in> E} \<subseteq> E"
-  proof
-    fix y assume "y \<in> \<Union>{orbit G \<phi> x |x. x \<in> E}"
-    hence "\<exists>x \<in> E. y \<in> orbit G \<phi> x" by blast
-    thus "y \<in> E" unfolding orbit_def
-      using element_image by blast
-  qed
-next
-  show "E \<subseteq> \<Union>{orbit G \<phi> x |x. x \<in> E}"
-    using orbit_refl by auto
-qed
+  using partition.partition_coverture[OF orbit_partition] by simp
 
-lemma (in group_action) disjoint_union_aux:
-  assumes "orb1 \<in> (orbits G E \<phi>)" "orb2 \<in> (orbits G E \<phi>)"
-  shows "(orb1 \<subseteq> orb2) \<or> (orb1 \<inter> orb2) = {}"
-proof (cases)
-  assume "(orb1 \<inter> orb2) = {}" thus ?thesis by simp
-next
-  assume S: "(orb1 \<inter> orb2) \<noteq> {}"
-  have "orb1 \<subseteq> orb2"
-  proof
-    fix x assume x: "x \<in> orb1"
-    hence x_E: "x \<in> E" using assms(1) orbits_coverture by auto
-    obtain y where y: "y \<in> orb1 \<inter> orb2"
-      using S by blast
-    hence y_E: "y \<in> E" using assms(1) orbits_coverture by auto
-    obtain z w where w: "w \<in> E \<and> orb1 = orbit G \<phi> w"
-                 and z: "z \<in> E \<and> orb2 = orbit G \<phi> z"
-      using assms(1-2) unfolding orbits_def by blast
-    hence "x \<in> orbit G \<phi> y"
-      using x x_E y y_E assms(1) orbit_trans
-      by (metis (no_types, lifting) IntD1 orbit_sym)
-    moreover have "y \<in> orbit G \<phi> z"
-      using y z by blast
-    ultimately have "x \<in> orbit G \<phi> z"
-      using orbit_trans[of z y x] x_E y_E z by blast
-    thus "x \<in> orb2" using z by simp
-  qed
-  thus ?thesis by simp
-qed
-
-lemma (in group_action) disjoint_union:
+corollary (in group_action) disjoint_union:
   assumes "orb1 \<in> (orbits G E \<phi>)" "orb2 \<in> (orbits G E \<phi>)"
   shows "(orb1 = orb2) \<or> (orb1 \<inter> orb2) = {}"
-  using disjoint_union_aux assms by auto
+  using partition.disjoint_union[OF orbit_partition] assms by auto
 
-(* ************************************************************************** *)
-(* ************************************************************************** *)
+corollary (in group_action) disjoint_sum:
+  assumes "finite E"
+  shows "(\<Sum>orb\<in>(orbits G E \<phi>). \<Sum>x\<in>orb. f x) = (\<Sum>x\<in>E. f x)"
+  using partition.disjoint_sum[OF orbit_partition] assms by auto
 
 
 subsubsection \<open>Transitive Actions\<close>
@@ -553,49 +518,6 @@ next
   thus ?case by simp
 qed
 
-lemma disjoint_union_prop:
-  assumes "\<Union>A = B"
-    and "\<And>a1 a2. \<lbrakk> a1 \<in> A; a2 \<in> A \<rbrakk> \<Longrightarrow> (a1 = a2 \<or> a1 \<inter> a2 = {})"
-  shows "\<And>b. b \<in> B \<Longrightarrow> \<exists>!a \<in> A. b \<in> a"
-proof -
-  fix b assume "b \<in> B"
-  then obtain a1 where a1: "a1 \<in> A \<and> b \<in> a1" using assms(1) by blast
-  hence "\<And>a2. \<lbrakk> a2 \<in> A; b \<in> a2 \<rbrakk> \<Longrightarrow> a1 = a2" using assms(2) by blast
-  thus "\<exists>!a \<in> A. b \<in> a" using a1 by blast
-qed
-
-lemma disjoint_union_prop1:
-  assumes "a \<in> A"
-    and "\<Union>A = B"
-    and "\<And>a1 a2. \<lbrakk> a1 \<in> A; a2 \<in> A \<rbrakk> \<Longrightarrow> (a1 = a2 \<or> a1 \<inter> a2 = {})"
-  shows "\<Union>(A - {a}) \<inter> a = {}"
-proof (rule ccontr)
-  assume "\<Union>(A - {a}) \<inter> a \<noteq> {}"
-  then obtain b where b: "b \<in> a \<and> b \<in> \<Union>(A - {a})" by blast
-  then obtain a' where a': "b \<in> a' \<and> a' \<in> A - {a}" by blast
-  have "a = a'"
-    using assms(3)[of a a'] assms(1) b a' by blast
-  hence "a \<in> A - {a}" using a' by simp
-  thus False by simp
-qed
-
-lemma disjoint_sum:
-  "\<lbrakk> finite A; finite B; (\<And>a1 a2. \<lbrakk> a1 \<in> A; a2 \<in> A \<rbrakk> \<Longrightarrow> (a1 = a2 \<or> a1 \<inter> a2 = {})); \<Union>A = B \<rbrakk> \<Longrightarrow>
-     (\<Sum>a\<in>A. \<Sum>b\<in>a. f b) = (\<Sum>b\<in>B. f b)"
-proof (induction arbitrary: B set: finite)
-  case empty thus ?case by simp
-next
-  case (insert a A')
-  hence "(\<Sum>a\<in>(insert a A'). \<Sum>b\<in>a. f b) = (\<Sum>b\<in>a. f b) + (\<Sum>a\<in>A'. \<Sum>b\<in>a. f b)" by simp
-  also have " ... = (\<Sum>b\<in>a. f b) + (\<Sum>b\<in>(\<Union>A'). f b)"
-    using insert.IH insert.prems by force
-  also have " ... = (\<Sum>b\<in>((\<Union>A') \<union> a). f b)"
-    using disjoint_union_prop1[of a "insert a A'" B] insert.prems Sup_insert Un_commute
-          Un_infinite insert.hyps(2) insert_partition sum.union_disjoint by metis
-  finally show "(\<Sum>a\<in>(insert a A'). \<Sum>b\<in>a. f b) = (\<Sum>b\<in>B. f b)"
-    using Union_insert insert.prems(3) sup.commute by metis
-qed
-
 lemma (in group_action) card_stablizer_sum:
   assumes "finite (carrier G)" "orb \<in> (orbits G E \<phi>)"
   shows "(\<Sum>x \<in> orb. card (stabilizer G \<phi> x)) = order G"
@@ -644,7 +566,7 @@ proof -
   also have " ... = (\<Sum>x \<in> E. card (stabilizer G \<phi> x))"
     by (simp add: assms(1) card_as_sums stabilizer_def)
   also have " ... = (\<Sum>orbit \<in> (orbits G E \<phi>). \<Sum>x \<in> orbit. card (stabilizer G \<phi> x))"
-    using disjoint_sum disjoint_union finite_UnionD orbits_coverture assms(2) by metis
+    using disjoint_sum orbits_coverture assms(2) by metis
   also have " ... = (\<Sum>orbit \<in> (orbits G E \<phi>). order G)"
     by (simp add: assms(1) card_stablizer_sum)
   finally have "(\<Sum>g \<in> carrier G. card(invariants E \<phi> g)) = card (orbits G E \<phi>) * order G" by simp

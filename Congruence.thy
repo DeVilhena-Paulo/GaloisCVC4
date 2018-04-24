@@ -73,6 +73,17 @@ locale equivalence =
     and trans [trans]:        "\<lbrakk> x \<in> carrier S; y \<in> carrier S; z \<in> carrier S \<rbrakk> \<Longrightarrow> 
                                  x .= y \<Longrightarrow> y .= z \<Longrightarrow> x .= z"
 
+(*
+locale partition =
+  fixes A :: "'a set" and f :: "'a \<Rightarrow> 'a set"
+  assumes equiv: "equivalence \<lparr> carrier = A, eq = \<lambda>x. \<lambda>y. y \<in> f x \<rparr>"
+      and  incl: "\<And>a. a \<in> A \<Longrightarrow> f a \<subseteq> A" *)
+
+locale partition =
+  fixes A :: "'a set" and B :: "('a set) set"
+  assumes unique_class: "\<And>a. a \<in> A \<Longrightarrow> \<exists>!b \<in> B. a \<in> b"
+    and incl: "\<And>b. b \<in> B \<Longrightarrow> b \<subseteq> A"
+
 lemma equivalence_subset:
   assumes "equivalence L" "A \<subseteq> carrier L"
   shows "equivalence (L\<lparr> carrier := A \<rparr>)"
@@ -257,6 +268,91 @@ lemma closure_ofE2:
 
 (* Lemmas by Paulo Emílio de Vilhena *)
 
+lemma (in partition) equivalence_from_partition:
+  "equivalence \<lparr> carrier = A, eq = (\<lambda>x y. y \<in> (THE b. b \<in> B \<and> x \<in> b))\<rparr>"
+  unfolding partition_def equivalence_def apply simp
+proof -
+  let ?f = "\<lambda>x. THE b. b \<in> B \<and> x \<in> b"
+  have "\<And>x. x \<in> A \<Longrightarrow> x \<in> ?f x"
+    using unique_class by (metis (mono_tags, lifting) theI')
+  moreover have "\<And>x y. \<lbrakk> x \<in> A; y \<in> A \<rbrakk> \<Longrightarrow> y \<in> ?f x \<Longrightarrow> x \<in> ?f y"
+    using unique_class by (metis (mono_tags, lifting) the_equality)
+  moreover have "\<And>x y z. \<lbrakk> x \<in> A; y \<in> A; z \<in> A \<rbrakk> \<Longrightarrow> y \<in> ?f x \<Longrightarrow> z \<in> ?f y \<Longrightarrow> z \<in> ?f x"
+    using unique_class by (metis (mono_tags, lifting) the_equality)
+  ultimately
+    show "(\<forall>x. x \<in> A \<longrightarrow> x \<in> ?f x) \<and>
+          (\<forall>x. x \<in> A \<longrightarrow> (\<forall>y. y \<in> A \<longrightarrow> y \<in> ?f x \<longrightarrow> x \<in> ?f y)) \<and>
+          (\<forall>x. x \<in> A \<longrightarrow> (\<forall>y. y \<in> A \<longrightarrow> (\<forall>z. z \<in> A \<longrightarrow>
+            y \<in> ?f x \<longrightarrow> z \<in> ?f y \<longrightarrow> z \<in> ?f x)))" by blast
+qed
+
+lemma (in partition) partition_coverture: "\<Union>B = A"
+  by (meson Sup_le_iff UnionI unique_class incl subsetI subset_antisym)
+
+lemma (in partition) disjoint_union:
+  assumes "b1 \<in> B" "b2 \<in> B"
+    and "b1 \<inter> b2 \<noteq> {}"
+  shows "b1 = b2"
+proof (rule ccontr)
+  assume "b1 \<noteq> b2"
+  obtain a where "a \<in> A" "a \<in> b1" "a \<in> b2"
+    using assms(2-3) incl by blast
+  thus False using unique_class \<open>b1 \<noteq> b2\<close> assms(1) assms(2) by blast
+qed
+
+lemma partitionI:
+  fixes A :: "'a set" and B :: "('a set) set"
+  assumes "\<Union>B = A"
+    and "\<And>b1 b2. \<lbrakk> b1 \<in> B; b2 \<in> B \<rbrakk> \<Longrightarrow> b1 \<inter> b2 \<noteq> {} \<Longrightarrow> b1 = b2"
+  shows "partition A B"
+proof
+  show "\<And>a. a \<in> A \<Longrightarrow> \<exists>!b. b \<in> B \<and> a \<in> b"
+  proof (rule ccontr)
+    fix a assume "a \<in> A" "\<nexists>!b. b \<in> B \<and> a \<in> b"
+    then obtain b1 b2 where "b1 \<in> B" "a \<in> b1"
+                        and "b2 \<in> B" "a \<in> b2" "b1 \<noteq> b2" using assms(1) by blast
+    thus False using assms(2) by blast
+  qed
+next
+  show "\<And>b. b \<in> B \<Longrightarrow> b \<subseteq> A" using assms(1) by blast
+qed
+
+lemma (in partition) remove_elem:
+  assumes "b \<in> B"
+  shows "partition (A - b) (B - {b})"
+proof
+  show "\<And>a. a \<in> A - b \<Longrightarrow> \<exists>!b'. b' \<in> B - {b} \<and> a \<in> b'"
+    using unique_class by fastforce
+next
+  show "\<And>b'. b' \<in> B - {b} \<Longrightarrow> b' \<subseteq> A - b"
+    using assms unique_class incl partition_axioms partition_coverture by fastforce
+qed
+
+lemma disjoint_sum:
+  "\<lbrakk> finite B; finite A; partition A B\<rbrakk> \<Longrightarrow> (\<Sum>b\<in>B. \<Sum>a\<in>b. f a) = (\<Sum>a\<in>A. f a)"
+proof (induct arbitrary: A set: finite)
+  case empty thus ?case using partition.unique_class by fastforce
+next
+  case (insert b B')
+  have "(\<Sum>b\<in>(insert b B'). \<Sum>a\<in>b. f a) = (\<Sum>a\<in>b. f a) + (\<Sum>b\<in>B'. \<Sum>a\<in>b. f a)"
+    by (simp add: insert.hyps(1) insert.hyps(2))
+  also have "... = (\<Sum>a\<in>b. f a) + (\<Sum>a\<in>(A - b). f a)"
+    using partition.remove_elem[of A "insert b B'" b] insert.hyps insert.prems
+    by (metis Diff_insert_absorb finite_Diff insert_iff)
+  finally show "(\<Sum>b\<in>(insert b B'). \<Sum>a\<in>b. f a) = (\<Sum>a\<in>A. f a)"
+    using partition.remove_elem[of A "insert b B'" b] insert.prems
+    by (metis add.commute insert_iff partition.incl sum.subset_diff)
+qed
+
+lemma (in partition) disjoint_sum:
+  assumes "finite A"
+  shows "(\<Sum>b\<in>B. \<Sum>a\<in>b. f a) = (\<Sum>a\<in>A. f a)"
+proof -
+  have "finite B"
+    by (simp add: assms finite_UnionD partition_coverture)
+  thus ?thesis using disjoint_sum assms partition_axioms by blast
+qed
+
 lemma (in equivalence) set_eq_insert_aux:
   assumes "A \<subseteq> carrier S"
     and "x \<in> carrier S" "x' \<in> carrier S" "x .= x'"
@@ -341,5 +437,24 @@ proof -
     unfolding eq_class_of_def using local.sym trans x y by blast
   thus ?thesis using x y by simp
 qed
-  
+
+lemma (in equivalence) partition_from_equivalence:
+  "partition (carrier S) classes"
+proof (intro partitionI)
+  show "\<Union>classes = carrier S" using classes_coverture by simp
+next
+  show "\<And>class1 class2. \<lbrakk> class1 \<in> classes; class2 \<in> classes \<rbrakk> \<Longrightarrow>
+                          class1 \<inter> class2 \<noteq> {} \<Longrightarrow> class1 = class2"
+    using disjoint_union by simp
+qed
+
+lemma (in equivalence) disjoint_sum:
+  assumes "finite (carrier S)"
+  shows "(\<Sum>c\<in>classes. \<Sum>x\<in>c. f x) = (\<Sum>x\<in>(carrier S). f x)"
+proof -
+  have "finite classes"
+    unfolding eq_classes_def using assms by auto
+  thus ?thesis using disjoint_sum assms partition_from_equivalence by blast
+qed
+
 end
