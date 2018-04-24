@@ -525,7 +525,7 @@ proof (rule weak_le_antisym)
     moreover have "f (f \<top>) \<in> carrier L"
       by (rule funcset_mem[of f "carrier L"], simp_all add: assms fb)
     ultimately show ?thesis
-      by (rule_tac GFP_upperbound, simp_all add: fb local.sym)
+      using GFP_upperbound fb local.sym by blast
   qed
   show "GFP f \<sqsubseteq> f \<top>"
   proof -
@@ -1094,8 +1094,8 @@ proof -
       by (auto)
 
     ultimately show ?thesis
-      using L.trans[OF Knaster_Tarski_top[of L f] L.GFP_idem[of f]]
-      by (simp_all add: assms)
+      using Knaster_Tarski_top L.GFP_idem L.trans L.weak_complete_lattice_axioms assms by blast
+
   qed
   show "\<bottom>\<^bsub>fpl L f\<^esub> .=\<^bsub>L\<^esub> f (\<bottom>\<^bsub>L\<^esub>)"
   proof -
@@ -1110,8 +1110,8 @@ proof -
       by (auto)
 
     ultimately show ?thesis
-      using L.trans[OF Knaster_Tarski_bottom[of L f] L.LFP_idem[of f]]
-      by (simp_all add: assms)
+      by (metis Knaster_Tarski_bottom L.trans L.weak_complete_lattice_axioms assms weak_complete_lattice.LFP_closed weak_complete_lattice.LFP_idem)
+
   qed
 qed
 

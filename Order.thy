@@ -259,7 +259,7 @@ lemma (in weak_partial_order) Lower_mem_cong:
     and aelem: "a \<in> Lower L A"
   shows "a' \<in> Lower L A"
 using assms Lower_closed[of L A]
-by (intro Lower_memI) (blast intro: le_cong_l[OF aa'[symmetric]])
+  using Lower_is_closed by blast
 
 lemma (in weak_partial_order) Lower_cong:
   assumes Acarr: "A \<subseteq> carrier L" and A'carr: "A' \<subseteq> carrier L"
@@ -283,10 +283,9 @@ proof -
       by auto
 
   from aA and subsetD[OF Acarr aA]
-      have "x \<sqsubseteq> a" by (rule aLxCond)
-  also note a'a[symmetric]
-  finally
-      show "x \<sqsubseteq> a'" by (simp add: carr subsetD[OF Acarr aA])
+  have "x \<sqsubseteq> a" by (rule aLxCond)
+  thus "x \<sqsubseteq> a'"
+    using \<open>a \<in> carrier L\<close> a'a carr(1) carr(2) le_cong by blast 
 next
   fix x a
   assume carr: "x \<in> carrier L" "a \<in> carrier L"
@@ -301,8 +300,8 @@ next
       by auto
   from a'A' and subsetD[OF A'carr a'A']
       have "x \<sqsubseteq> a'" by (rule a'LxCond)
-  also note aa'[symmetric]
-  finally show "x \<sqsubseteq> a" by (simp add: carr subsetD[OF A'carr a'A'])
+  thus "x \<sqsubseteq> a"
+    using \<open>a' \<in> carrier L\<close> aa' carr(1) carr(2) le_cong by blast 
 qed
 
 text \<open>Jacobson: Theorem 8.1\<close>

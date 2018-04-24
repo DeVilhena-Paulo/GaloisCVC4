@@ -143,7 +143,7 @@ lemma (in weak_upper_semilattice) join_cong_l:
 proof (rule joinI, rule joinI)
   fix a b
   from xx' carr
-      have seq: "{x, y} {.=} {x', y}" by (rule set_eq_pairI)
+      have seq: "{x, y} {.=} {x', y}" using set_eq_pairI by simp
 
   assume leasta: "least L a (Upper L {x, y})"
   assume "least L b (Upper L {x', y})"
@@ -356,10 +356,16 @@ proof -
   (* FIXME: could be simplified by improved simp: uniform use of .=,
      omit [symmetric] in last step. *)
   have "(x \<squnion> y) \<squnion> z = z \<squnion> (x \<squnion> y)" by (simp only: join_comm)
-  also from L have "... .= \<Squnion>{z, x, y}" by (simp add: weak_join_assoc_lemma)
-  also from L have "... = \<Squnion>{x, y, z}" by (simp add: insert_commute)
-  also from L have "... .= x \<squnion> (y \<squnion> z)" by (simp add: weak_join_assoc_lemma [symmetric])
-  finally show ?thesis by (simp add: L)
+  also have "... .= \<Squnion>{z, x, y}" using assms by (simp add: weak_join_assoc_lemma)
+  finally have 1: "(x \<squnion> y) \<squnion> z .= \<Squnion>{z, x, y}" by simp
+
+  have "\<Squnion>{z, x, y} = \<Squnion>{x, y, z}" using assms by (simp add: insert_commute)
+  also have "... .= x \<squnion> (y \<squnion> z)" using assms by (simp add: local.sym weak_join_assoc_lemma) 
+  finally have 2: "\<Squnion>{z, x, y} .= x \<squnion> (y \<squnion> z)" by simp
+
+  show ?thesis using 1 2
+    by (metis (no_types, hide_lams) assms(1) assms(2) assms(3) bot.extremum empty_not_insert
+        finite.emptyI finite_insert finite_sup_closed insert_subset join_closed local.trans) 
 qed
 
 
@@ -388,7 +394,7 @@ lemma (in weak_lower_semilattice) meet_cong_l:
 proof (rule meetI, rule meetI)
   fix a b
   from xx' carr
-      have seq: "{x, y} {.=} {x', y}" by (rule set_eq_pairI)
+      have seq: "{x, y} {.=} {x', y}" by (simp add: set_eq_pairI)
 
   assume greatesta: "greatest L a (Lower L {x, y})"
   assume "greatest L b (Lower L {x', y})"
@@ -599,10 +605,17 @@ lemma (in weak_lower_semilattice) weak_meet_assoc:
 proof -
   (* FIXME: improved simp, see weak_join_assoc above *)
   have "(x \<sqinter> y) \<sqinter> z = z \<sqinter> (x \<sqinter> y)" by (simp only: meet_comm)
-  also from L have "... .= \<Sqinter> {z, x, y}" by (simp add: weak_meet_assoc_lemma)
-  also from L have "... = \<Sqinter> {x, y, z}" by (simp add: insert_commute)
-  also from L have "... .= x \<sqinter> (y \<sqinter> z)" by (simp add: weak_meet_assoc_lemma [symmetric])
-  finally show ?thesis by (simp add: L)
+  also have "... .= \<Sqinter> {z, x, y}" using assms by (simp add: weak_meet_assoc_lemma)
+  finally have 1: "(x \<sqinter> y) \<sqinter> z .= \<Sqinter> {z, x, y}" by simp
+
+  have "\<Sqinter> {z, x, y} = \<Sqinter> {x, y, z}" by (simp add: insert_commute)
+  also have "... .= x \<sqinter> (y \<sqinter> z)" using assms
+    by (simp add: equivalence.sym equivalence_axioms weak_meet_assoc_lemma)
+  finally have "\<Sqinter> {z, x, y} .= x \<sqinter> (y \<sqinter> z)" by simp
+
+  show "(x \<sqinter> y) \<sqinter> z .= x \<sqinter> (y \<sqinter> z)" using equivalence.trans equivalence_axioms assms
+    by (simp add: \<open>\<And>za xa S. \<lbrakk>equivalence S; xa \<in> carrier S; \<Sqinter>{z, x, y} \<in> carrier S; za \<in> carrier S; xa .=\<^bsub>S\<^esub> \<Sqinter>{z, x, y}; \<Sqinter>{z, x, y} .=\<^bsub>S\<^esub> za\<rbrakk> \<Longrightarrow> xa .=\<^bsub>S\<^esub> za\<close> "1" \<open>\<Sqinter>{z, x, y} .= x \<sqinter> (y \<sqinter> z)\<close>)
+    
 qed
 
 text \<open>Total orders are lattices.\<close>
