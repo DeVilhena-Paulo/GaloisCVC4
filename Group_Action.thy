@@ -25,6 +25,11 @@ definition
   invariants :: "['b set, 'a \<Rightarrow> 'b \<Rightarrow> 'b, 'a] \<Rightarrow> 'b set"
   where "invariants E \<phi> g = {x \<in> E. (\<phi> g) x = x}"
 
+definition
+  normalizer :: "[_, 'a set] \<Rightarrow> 'a set"
+  where "normalizer G H =
+         stabilizer G (\<lambda>g. \<lambda>H \<in> {H. H \<subseteq> carrier G}. g <#\<^bsub>G\<^esub> H #>\<^bsub>G\<^esub> (inv\<^bsub>G\<^esub> g)) H"
+
 locale faithful_action = group_action +
   assumes faithful: "inj_on \<phi> (carrier G)"
 
@@ -678,17 +683,17 @@ proof
 qed
 
 lemma (in group) subgroup_conjugation_is_inj:
-  assumes "g \<in> carrier G" "subgroup H1 G" "subgroup H2 G"
+  assumes "g \<in> carrier G" "H1 \<subseteq> carrier G" "H2 \<subseteq> carrier G"
     and "g <# H1 #> (inv g) = g <# H2 #> (inv g)"
     shows "H1 = H2"
   using subgroup_conjugation_is_inj_aux assms
         subgroup_imp_subset set_eq_subset by metis
 
 lemma (in group) subgroup_conjugation_is_surj0:
-  assumes "g \<in> carrier G" "subgroup H G"
+  assumes "g \<in> carrier G" "H \<subseteq> carrier G"
   shows "g <# ((inv g) <# H #> g) #> (inv g) = H"
   using coset_assoc assms coset_mult_assoc l_coset_subset_G lcos_m_assoc
-  by (simp add: lcos_mult_one subgroup_imp_subset)
+  by (simp add: lcos_mult_one)
 
 lemma (in group) subgroup_conjugation_is_surj1:
   assumes "g \<in> carrier G" "subgroup H G"
@@ -756,11 +761,13 @@ lemma (in group) subgroup_conjugation_is_bij:
          (is "bij_betw ?\<phi> {H. subgroup H G} {H. subgroup H G}")
   unfolding bij_betw_def
 proof
-  show "inj_on ?\<phi> {H. subgroup H G}" using subgroup_conjugation_is_inj assms inj_on_def
+  show "inj_on ?\<phi> {H. subgroup H G}"
+    using subgroup_conjugation_is_inj assms inj_on_def subgroup_imp_subset
     by (metis (mono_tags, lifting) inj_on_restrict_eq mem_Collect_eq)
 next
   have "\<And>H. H \<in> {H. subgroup H G} \<Longrightarrow> ?\<phi> ((inv g) <# H #> g) = H"
-    by (simp add: assms subgroup_conjugation_is_surj0 subgroup_conjugation_is_surj1 is_group)
+    by (simp add: assms subgroup_imp_subset subgroup_conjugation_is_surj0
+                  subgroup_conjugation_is_surj1 is_group)
   hence "\<And>H. H \<in> {H. subgroup H G} \<Longrightarrow> \<exists>H' \<in> {H. subgroup H G}. ?\<phi> H' = H"
     using assms subgroup_conjugation_is_surj1 by fastforce
   thus "?\<phi> ` {H. subgroup H G} = {H. subgroup H G}"
@@ -813,6 +820,81 @@ theorem (in group) action_by_conjugation_on_subgroups_set:
   unfolding group_action_def group_hom_def using subgroup_conjugation_is_hom
   by (simp add: group_BijGroup group_hom_axioms.intro is_group)
 
+
+subsubsection \<open>Action Over The Power Set\<close>
+
+text \<open>A Group Acts by Conjugation Over The Power Set\<close>
+
+lemma (in group) subset_conjugation_is_bij:
+  assumes "g \<in> carrier G"
+  shows "bij_betw (\<lambda>H \<in> {H. H \<subseteq> carrier G}. g <# H #> (inv g)) {H. H \<subseteq> carrier G} {H. H \<subseteq> carrier G}"
+         (is "bij_betw ?\<phi> {H. H \<subseteq> carrier G} {H. H \<subseteq> carrier G}")
+  unfolding bij_betw_def
+proof
+  show "inj_on ?\<phi> {H. H \<subseteq> carrier G}"
+    using subgroup_conjugation_is_inj assms inj_on_def
+    by (metis (mono_tags, lifting) inj_on_restrict_eq mem_Collect_eq)
+next
+  have "\<And>H. H \<in> {H. H \<subseteq> carrier G} \<Longrightarrow> ?\<phi> ((inv g) <# H #> g) = H"
+    by (simp add: assms l_coset_subset_G r_coset_subset_G subgroup_conjugation_is_surj0)
+  hence "\<And>H. H \<in> {H. H \<subseteq> carrier G} \<Longrightarrow> \<exists>H' \<in> {H. H \<subseteq> carrier G}. ?\<phi> H' = H"
+    by (metis assms l_coset_subset_G mem_Collect_eq r_coset_subset_G subgroup_def subgroup_self)
+  hence "{H. H \<subseteq> carrier G} \<subseteq> ?\<phi> ` {H. H \<subseteq> carrier G}" by blast
+  moreover have "?\<phi> ` {H. H \<subseteq> carrier G} \<subseteq> {H. H \<subseteq> carrier G}"
+    by (smt assms image_subsetI inv_closed l_coset_subset_G
+            mem_Collect_eq r_coset_subset_G restrict_apply')
+  ultimately show "?\<phi> ` {H. H \<subseteq> carrier G} = {H. H \<subseteq> carrier G}" by simp
+qed
+
+lemma (in group) subset_conjugation_is_hom:
+  "(\<lambda>g. \<lambda>H \<in> {H. H \<subseteq> carrier G}. g <# H #> (inv g)) \<in> hom G (BijGroup {H. H \<subseteq> carrier G})"
+  unfolding hom_def
+proof -
+  (* We follow the exact same structure of conjugation_is_hom's proof *)
+  let ?\<psi> = "\<lambda>g. \<lambda>H. g <# H #> (inv g)"
+  let ?\<phi> = "\<lambda>g. restrict (?\<psi> g) {H. H \<subseteq> carrier G}"
+
+  have Step0: "\<And> g. g \<in> carrier G \<Longrightarrow> (?\<phi> g) \<in> Bij {H. H \<subseteq> carrier G}"
+    using Bij_def subset_conjugation_is_bij by fastforce
+  hence Step1: "?\<phi>: carrier G \<rightarrow> carrier (BijGroup {H. H \<subseteq> carrier G})"
+    unfolding BijGroup_def by simp
+
+  have "\<And> g1 g2. \<lbrakk> g1 \<in> carrier G; g2 \<in> carrier G \<rbrakk> \<Longrightarrow>
+                  (\<And> H. H \<in> {H. H \<subseteq> carrier G} \<Longrightarrow> ?\<psi> (g1 \<otimes> g2) H = (?\<phi> g1) ((?\<phi> g2) H))"
+  proof -
+    fix g1 g2 H assume g1: "g1 \<in> carrier G" and g2: "g2 \<in> carrier G" and H: "H \<in> {H. H \<subseteq> carrier G}"
+    hence "(?\<phi> g1) ((?\<phi> g2) H) = g1 <# (g2 <# H #> (inv g2)) #> (inv g1)"
+      using l_coset_subset_G r_coset_subset_G by auto
+    also have " ... = g1 <# (g2 <# H) #> ((inv g2) \<otimes> (inv g1))"
+      using H coset_assoc coset_mult_assoc g1 g2 l_coset_subset_G by auto
+    also have " ... = g1 <# (g2 <# H) #> inv (g1 \<otimes> g2)"
+      using g1 g2 by (simp add: inv_mult_group)
+    finally have "(?\<phi> g1) ((?\<phi> g2) H) = ?\<psi> (g1 \<otimes> g2) H"
+      using H g1 g2 lcos_m_assoc by force
+    thus "?\<psi> (g1 \<otimes> g2) H = (?\<phi> g1) ((?\<phi> g2) H)" by auto
+  qed
+  hence "\<And> g1 g2. \<lbrakk> g1 \<in> carrier G; g2 \<in> carrier G \<rbrakk> \<Longrightarrow>
+         (\<lambda>H \<in> {H. H \<subseteq> carrier G}. ?\<psi> (g1 \<otimes> g2) H) = (\<lambda>H \<in> {H. H \<subseteq> carrier G}. (?\<phi> g1) ((?\<phi> g2) H))"
+    by (meson restrict_ext)
+  hence Step2: "\<And> g1 g2. \<lbrakk> g1 \<in> carrier G; g2 \<in> carrier G \<rbrakk> \<Longrightarrow>
+                ?\<phi> (g1 \<otimes> g2) = (?\<phi> g1) \<otimes>\<^bsub>BijGroup {H. H \<subseteq> carrier G}\<^esub> (?\<phi> g2)"
+    unfolding BijGroup_def by (simp add: Step0 compose_def)
+
+  show "?\<phi> \<in> {h: carrier G \<rightarrow> carrier (BijGroup {H. H \<subseteq> carrier G}).
+              \<forall>x\<in>carrier G. \<forall>y\<in>carrier G. h (x \<otimes> y) = h x \<otimes>\<^bsub>BijGroup {H. H \<subseteq> carrier G}\<^esub> h y}"
+    using Step1 Step2 by auto
+qed
+
+theorem (in group) action_by_conjugation_on_power_set:
+  "group_action G {H. H \<subseteq> carrier G} (\<lambda>g. \<lambda>H \<in> {H. H \<subseteq> carrier G}. g <# H #> (inv g))"
+  unfolding group_action_def group_hom_def using subset_conjugation_is_hom
+  by (simp add: group_BijGroup group_hom_axioms.intro is_group)
+
+corollary (in group) normalizer_imp_subgroup:
+  assumes "H \<subseteq> carrier G"
+  shows "subgroup (normalizer G H) G"
+  unfolding normalizer_def
+  using group_action.stabilizer_subgroup[OF action_by_conjugation_on_power_set] assms by auto
 
 
 subsection \<open>Subgroup of an Acting Group\<close>
