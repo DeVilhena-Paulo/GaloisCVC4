@@ -686,8 +686,7 @@ lemma (in group) subgroup_conjugation_is_inj:
   assumes "g \<in> carrier G" "H1 \<subseteq> carrier G" "H2 \<subseteq> carrier G"
     and "g <# H1 #> (inv g) = g <# H2 #> (inv g)"
     shows "H1 = H2"
-  using subgroup_conjugation_is_inj_aux assms
-        subgroup_imp_subset set_eq_subset by metis
+  using subgroup_conjugation_is_inj_aux assms set_eq_subset by metis
 
 lemma (in group) subgroup_conjugation_is_surj0:
   assumes "g \<in> carrier G" "H \<subseteq> carrier G"

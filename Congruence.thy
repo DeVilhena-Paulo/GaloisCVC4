@@ -73,6 +73,15 @@ locale equivalence =
     and trans [trans]:        "\<lbrakk> x \<in> carrier S; y \<in> carrier S; z \<in> carrier S \<rbrakk> \<Longrightarrow> 
                                  x .= y \<Longrightarrow> y .= z \<Longrightarrow> x .= z"
 
+lemma equivalenceI:
+  fixes P :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and E :: "'a set"
+  assumes refl: "\<And>x.     \<lbrakk> x \<in> E \<rbrakk> \<Longrightarrow> P x x"
+    and    sym: "\<And>x y.   \<lbrakk> x \<in> E; y \<in> E \<rbrakk> \<Longrightarrow> P x y \<Longrightarrow> P y x"
+    and  trans: "\<And>x y z. \<lbrakk> x \<in> E; y \<in> E; z \<in> E \<rbrakk> \<Longrightarrow> P x y \<Longrightarrow> P y z \<Longrightarrow> P x z"
+  shows "equivalence \<lparr> carrier = E, eq = P \<rparr>"
+  unfolding equivalence_def using assms
+  by (metis eq_object.select_convs(1) partial_object.select_convs(1))  
+
 (*
 locale partition =
   fixes A :: "'a set" and f :: "'a \<Rightarrow> 'a set"
