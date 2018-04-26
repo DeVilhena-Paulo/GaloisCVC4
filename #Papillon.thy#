@@ -487,9 +487,11 @@ proof-
      f (x \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> y) =  f(x) \<otimes>\<^bsub>G\<lparr>carrier := N <#> H\<rparr> Mod N\<^esub> f(y))"
       by auto
   qed
+
   hence homomorphism : "group_hom (G\<lparr>carrier := H\<rparr>) (G\<lparr>carrier := N <#> H\<rparr> Mod N) f"
     unfolding group_hom_def group_hom_axioms_def using subgroup_imp_group[OF assms(1)]
              normal.factorgroup_is_group[OF normal_in_normal_set_mult[OF assms(2) assms(1)]] by auto
+
   moreover have im_f :  "(f  ` carrier(G\<lparr>carrier:=H\<rparr>)) = carrier(G\<lparr>carrier := N <#> H\<rparr> Mod N)"
   proof
     show  "f ` carrier (G\<lparr>carrier := H\<rparr>) \<subseteq> carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
@@ -519,6 +521,7 @@ proof-
       thus "x \<in> f ` carrier (G\<lparr>carrier := H\<rparr>)" using hH unfolding f_def by simp
     qed
   qed
+
   moreover have ker_f :"kernel (G\<lparr>carrier := H\<rparr>) (G\<lparr>carrier := N<#>H\<rparr> Mod N) f  = N\<inter>H"
     unfolding kernel_def f_def
     proof-
@@ -532,6 +535,7 @@ proof-
       finally show "{x \<in> carrier (G\<lparr>carrier := H\<rparr>). N#>x = \<one>\<^bsub>G\<lparr>carrier := N <#> H\<rparr> Mod N\<^esub>} = N \<inter> H"
         by simp
     qed
+
     ultimately have "(\<lambda>X. the_elem (f`X)) \<in>  (G\<lparr>carrier := H\<rparr> Mod N \<inter> H) \<cong> (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
       using group_hom.FactGroup_iso[OF homomorphism im_f] by auto
     hence "inv_into (carrier (G\<lparr>carrier := H\<rparr> Mod N \<inter> H)) (\<lambda>X. the_elem (f`X)) \<in>
