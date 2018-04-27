@@ -545,8 +545,39 @@ theorem (in group) snd_iso_thme :
   assumes "subgroup H G"
     and "subgroup N G"
     and "subgroup H (G\<lparr>carrier:= (normalizer G N)\<rparr>)"
-  shows "(G\<lparr>carrier:= H<#>N\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
+  shows "(G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
+proof-
+  have "G\<lparr>carrier := normalizer G N, carrier := H\<rparr>
+       = G\<lparr>carrier := H\<rparr>"  by simp
+  hence "G\<lparr>carrier := normalizer G N, carrier := H\<rparr> Mod N \<inter> H =
+         G\<lparr>carrier := H\<rparr> Mod N \<inter> H" by auto
+  moreover have "G\<lparr>carrier := normalizer G N,
+                    carrier := N <#>\<^bsub>G\<lparr>carrier := normalizer G N\<rparr>\<^esub> H\<rparr> =
+                G\<lparr>carrier := N <#>\<^bsub>G\<lparr>carrier := normalizer G N\<rparr>\<^esub> H\<rparr>" by simp
+  hence "G\<lparr>carrier := normalizer G N,
+          carrier := N <#>\<^bsub>G\<lparr>carrier := normalizer G N\<rparr>\<^esub> H\<rparr> Mod N =
+          G\<lparr>carrier := N <#>\<^bsub>G\<lparr>carrier := normalizer G N\<rparr>\<^esub> H\<rparr> Mod N" by auto
+  hence "G\<lparr>carrier := normalizer G N,
+          carrier := N <#>\<^bsub>G\<lparr>carrier := normalizer G N\<rparr>\<^esub> H\<rparr> Mod N  \<cong>
+         G\<lparr>carrier := normalizer G N, carrier := H\<rparr> Mod N \<inter> H =
+          (G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong>
+         G\<lparr>carrier := normalizer G N, carrier := H\<rparr> Mod N \<inter> H" unfolding iso_def
+using group.weak_snd_iso_thme[OF subgroup_imp_group[OF normalizer_imp_subgroup[OF
+subgroup_imp_subset[OF assms(2)]]] assms(3) subgroup_in_normalizer[OF assms(2)]]
+ 
+  
+
   sorry
+
+theorem (in group) snd_iso_thme_recip :
+  assumes "subgroup H G"
+    and "subgroup N G"
+    and "subgroup H (G\<lparr>carrier:= (normalizer G N)\<rparr>)"
+  shows "(G\<lparr>carrier:= H<#>N\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
+  using snd_iso_thme[OF assms]
+  by (metis assms(2) assms(3) commut_normal_subgroup group.subgroup_in_normalizer
+      is_group normalizer_imp_subgroup subgroup_imp_subset)
+
 
 
 lemma (in group) distinc :
@@ -625,7 +656,7 @@ proof-
     by (simp add: N1_def N_def assms distinc)
   have Hp:"(G\<lparr>carrier:= N<#>N1\<rparr> Mod N1)  \<cong> (G\<lparr>carrier:= N\<rparr> Mod (N\<inter>N1)) \<noteq> {}"
   by (metis N1_def N_def assms incl_subgroup inf_le1 mult_norm_subgroup_subset
-        normal_N_N1 normal_imp_subgroup snd_iso_thme subgroup_incl subgroups_Inter_pair)
+        normal_N_N1 normal_imp_subgroup snd_iso_thme_recip subgroup_incl subgroups_Inter_pair)
   have H_simp: "N<#>N1 = H1<#> (H\<inter>K)"
   proof-
     have H1_incl_G : "H1 \<subseteq> carrier G"
