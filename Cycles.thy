@@ -191,7 +191,6 @@ proof -
   proof -
     fix x assume "x \<in> I" hence x: "x \<in> set (supp cs)"
       using supp_eq_set[OF assms] by simp
-
     have "rotate (length (supp cs)) (supp cs) = (supp cs)" by auto
     hence "map ((cycle_of_list cs) ^^ (length (supp cs))) (supp cs) = (supp cs)"
       using cyclic_rotation2[OF assms] by simp
@@ -204,5 +203,114 @@ proof -
   ultimately show ?thesis
     by (meson eq_id_iff)
 qed
+
+lemma disjoint_cycles_commute_aux:
+  assumes "cycle I \<sigma>1" "cycle J \<sigma>2"
+    and "I \<inter> J = {}" "x \<in> I" "x \<notin> J"
+  shows "((cycle_of_list \<sigma>1) \<circ> (cycle_of_list \<sigma>2)) x = ((cycle_of_list \<sigma>2) \<circ> (cycle_of_list \<sigma>1)) x"
+proof -
+  have "((cycle_of_list \<sigma>1) \<circ> (cycle_of_list \<sigma>2)) x = (cycle_of_list \<sigma>1) x"
+    using id_outside_supp[OF assms(2) assms(5)] by simp
+  moreover have "(cycle_of_list \<sigma>1) x \<notin> J"
+    using assms permutes_in_image[OF cycle_permutes[OF assms(1)]] by fastforce
+  hence "((cycle_of_list \<sigma>2) \<circ> (cycle_of_list \<sigma>1)) x = (cycle_of_list \<sigma>1) x"
+    using id_outside_supp[OF assms(2)] by simp
+  ultimately show ?thesis by simp
+qed
+
+lemma disjoint_cycles_commute:
+  assumes "cycle I \<sigma>1" "cycle J \<sigma>2"
+    and "I \<inter> J = {}"
+  shows "(cycle_of_list \<sigma>1) \<circ> (cycle_of_list \<sigma>2) = (cycle_of_list \<sigma>2) \<circ> (cycle_of_list \<sigma>1)"
+proof -
+  let ?\<sigma>12 = "\<lambda>x. ((cycle_of_list \<sigma>1) \<circ> (cycle_of_list \<sigma>2)) x"
+  let ?\<sigma>21 = "\<lambda>x. ((cycle_of_list \<sigma>2) \<circ> (cycle_of_list \<sigma>1)) x"
+
+  show ?thesis
+  proof
+    fix x have "x \<in> I \<union> J \<or> x \<notin> I \<union> J" by blast
+    from this show "?\<sigma>12 x = ?\<sigma>21 x"
+    proof 
+      assume "x \<in> I \<union> J" hence "(x \<in> I \<and> x \<notin> J) \<or> (x \<notin> I \<and> x \<in> J)" using assms(3) by blast
+      from this show "?\<sigma>12 x = ?\<sigma>21 x"
+      proof
+        assume "x \<in> I \<and> x \<notin> J" thus ?thesis
+          using disjoint_cycles_commute_aux[OF assms(1-3)] by simp
+      next
+        assume "x \<notin> I \<and> x \<in> J" thus ?thesis
+          using assms disjoint_cycles_commute_aux inf_commute by metis
+      qed
+    next
+      assume "x \<notin> I \<union> J" thus ?thesis using id_outside_supp assms(1-2)
+        by (metis UnCI comp_apply)
+    qed
+  qed 
+qed
+
+
+subsection\<open>Cycles from Permutations\<close>
+
+text\<open>Some important properties of permutations before defining how to extract its cycles\<close>
+
+lemma exp_of_permutation1:
+  assumes "p permutes S"
+  shows "(p ^^ n) permutes S" using assms
+proof (induction n)
+  case 0 thus ?case by (simp add: permutes_def) 
+next
+  case (Suc n) thus ?case by (metis funpow_Suc_right permutes_compose) 
+qed
+
+lemma exp_of_permutation2:
+  assumes "p permutes S"
+    and "i < j" "(p ^^ j) = (p ^^ i)"
+  shows "(p ^^ (j - i)) = id" using assms
+proof -
+  have "(p ^^ i) \<circ> (p ^^ (j - i)) = (p ^^ j)"
+    by (metis add_diff_inverse_nat assms(2) funpow_add le_eq_less_or_eq not_le)
+  also have " ... = (p ^^ i)" using assms(3) by simp
+  finally have "(p ^^ i) \<circ> (p ^^ (j - i)) = (p ^^ i)" .
+  moreover have "bij (p ^^ i)" using exp_of_permutation1[OF assms(1)]
+    using permutes_bij by auto
+  ultimately show ?thesis
+    by (metis (no_types, lifting) bij_is_inj comp_assoc fun.map_id inv_o_cancel)
+qed
+
+lemma exp_of_permutation3:
+  assumes "p permutes S" "finite S"
+  shows "\<exists>n. (p ^^ n) = id \<and> n > 0"
+proof (rule ccontr)
+  assume "\<nexists>n. (p ^^ n) = id \<and> 0 < n"
+  hence S: "\<And>n. n > 0 \<Longrightarrow> (p ^^ n) \<noteq> id" by auto
+  hence "\<And>i j. \<lbrakk> i \<ge> 0; j \<ge> 0 \<rbrakk> \<Longrightarrow> i \<noteq> j \<Longrightarrow> (p ^^ i) \<noteq> (p ^^ j)"
+  proof -
+    fix i :: "nat" and j :: "nat" assume "i \<ge> 0" "j \<ge> 0" and Ineq: "i \<noteq> j"
+    show "(p ^^ i) \<noteq> (p ^^ j)"
+    proof (rule ccontr)
+      assume "\<not> (p ^^ i) \<noteq> (p ^^ j)" hence Eq: "(p ^^ i) = (p ^^ j)" by simp
+      have "(p ^^ (j - i)) = id" if "j > i"
+        using Eq exp_of_permutation2[OF assms(1) that] by simp
+      moreover have "(p ^^ (i - j)) = id" if "i > j"
+        using Eq exp_of_permutation2[OF assms(1) that] by simp
+      ultimately show False using Ineq S
+        by (meson le_eq_less_or_eq not_le zero_less_diff)
+    qed
+  qed
+  hence "bij_betw (\<lambda>i. (p ^^ i)) {i :: nat . i \<ge> 0} {(p ^^ i) | i :: nat . i \<ge> 0}"
+    unfolding bij_betw_def inj_on_def by blast
+  hence "infinite {(p ^^ i) | i :: nat . i \<ge> 0}"
+    using bij_betw_finite by auto
+  moreover have "{(p ^^ i) | i :: nat . i \<ge> 0} \<subseteq> {\<pi>. \<pi> permutes S}"
+    using exp_of_permutation1[OF assms(1)] by blast
+  hence "finite {(p ^^ i) | i :: nat . i \<ge> 0}"
+    by (simp add: assms(2) finite_permutations finite_subset)
+  ultimately show False ..
+qed
+
+
+fun extract_cycle :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> ('a \<times> 'a) list"
+  where "extract_cycle p np x =
+           (if np x = x then [] else Cons (np x, p (np x)) (extract_cycle p (np \<circ> p) x))"
+
 
 end
