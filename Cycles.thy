@@ -247,6 +247,46 @@ proof -
   qed 
 qed
 
+lemma conjugation_of_cycle1:
+  assumes "cycle I cs" "bij p"
+  shows "cycle (p ` I) (map (\<lambda>(x, y). (p x, p y)) cs)" using assms
+proof (induction rule: cycle.induct)
+  case (transp i j)
+  hence "p i \<noteq> p j" by (meson UNIV_I bij_betw_def inj_on_def) 
+  thus ?case by (simp add: cycle.transp)  
+next
+  case (dcycle I j k cs i)
+  hence "p i \<notin> (p ` I)" by (simp add: bij_is_inj inj_image_mem_iff)
+  thus ?case using assms(2) cycle.simps dcycle.IH by fastforce 
+qed
+
+lemma conjugation_of_transp:
+  assumes "bij p"
+  shows "p \<circ> (Fun.swap a b id) \<circ> (inv p) = Fun.swap (p a) (p b) id"
+  using surj_f_inv_f[OF bij_is_surj[OF \<open>bij p\<close>]] fun_eq_iff Fun.swap_def bij_inv_eq_iff[OF \<open>bij p\<close>]
+  by (smt assms bij_imp_bij_inv bij_is_surj bij_swap_comp comp_swap inv_inv_eq o_assoc surj_iff)
+
+lemma conjugation_of_cycle2:
+  assumes "cycle I cs" "bij p"
+  shows "p \<circ> (cycle_of_list cs) \<circ> (inv p) = cycle_of_list (map (\<lambda>(x, y). (p x, p y)) cs)" using assms
+proof (induction rule: cycle.induct)
+  case (transp i j) thus ?case
+    using conjugation_of_transp[OF assms(2), of i j] by (simp add: comp_swap) 
+next
+  case (dcycle I j k cs i)
+  have "p \<circ> cycle_of_list ((i, j) # (j, k) # cs) \<circ> inv p =
+        p \<circ> ((Fun.swap i j id) \<circ> (cycle_of_list ((j, k) # cs))) \<circ> inv p" by simp
+  also have " ... = (p \<circ> (Fun.swap i j id) \<circ> inv p) \<circ> (p \<circ> (cycle_of_list ((j, k) # cs))) \<circ> inv p"
+    by (simp add: bij_is_inj dcycle.prems o_assoc)
+  also have " ... = (Fun.swap (p i) (p j) id) \<circ> (p \<circ> (cycle_of_list ((j, k) # cs)) \<circ> inv p)"
+    by (simp add: conjugation_of_transp dcycle.prems o_assoc)
+  also have " ... = (Fun.swap (p i) (p j) id) \<circ> cycle_of_list (map (\<lambda>(x, y). (p x, p y)) ((j, k) # cs))"
+    using assms(2) dcycle.IH by fastforce
+  also have " ... = cycle_of_list (map (\<lambda>(x, y). (p x, p y)) ((i, j) # (j, k) # cs))"
+    by simp
+  finally show ?case . 
+qed
+
 
 subsection\<open>Cycles from Permutations\<close>
 
@@ -307,10 +347,11 @@ proof (rule ccontr)
   ultimately show False ..
 qed
 
-
 fun extract_cycle :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> ('a \<times> 'a) list"
   where "extract_cycle p np x =
            (if np x = x then [] else Cons (np x, p (np x)) (extract_cycle p (np \<circ> p) x))"
+
+fun cycle_decomp :: "('a \<Rightarrow> 'a) \<Rightarrow> 'a set \<Rightarrow> ('a \<Rightarrow> 'a)"
 
 
 end
