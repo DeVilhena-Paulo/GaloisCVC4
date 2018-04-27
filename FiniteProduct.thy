@@ -32,9 +32,8 @@ definition
   where "foldD D f e A = (THE x. (A, x) \<in> foldSetD D f e)"
 
 lemma foldSetD_closed:
-  "[| (A, z) \<in> foldSetD D f e ; e \<in> D; !!x y. [| x \<in> A; y \<in> D |] ==> f x y \<in> D 
-      |] ==> z \<in> D"
-  by (erule foldSetD.cases) auto
+  "(A, z) \<in> foldSetD D f e \<Longrightarrow> z \<in> D"
+  by (induction rule: foldSetD.induct)
 
 lemma Diff1_foldSetD:
   "[| (A - {x}, y) \<in> foldSetD D f e; x \<in> A; f x y \<in> D |] ==>
