@@ -84,9 +84,10 @@ qed
 
 subsection \<open>Basic Properties of set_mult\<close>
 
-lemma (in monoid) set_mult_closed:
+lemma (in group) setmult_subset_G:
      "\<lbrakk>H \<subseteq> carrier G; K \<subseteq> carrier G\<rbrakk> \<Longrightarrow> H <#> K \<subseteq> carrier G"
 by (auto simp add: set_mult_def subsetD)
+
 
 lemma (in group) set_mult_assoc :
 "\<lbrakk> M \<subseteq> carrier G; H \<subseteq> carrier G; K \<subseteq> carrier G \<rbrakk>
@@ -122,7 +123,7 @@ proof
      thus "x\<in> M<#>H <#> K"
        using p hp hp2 hp3 m_assoc by (metis (no_types, lifting) subset_eq)
    qed
- qed
+qed
 
 
 subsection \<open>Basic Properties of Cosets\<close>
@@ -382,7 +383,7 @@ lemma (in comm_group) mult_subgroups:
       and subK: "subgroup K G"
   shows "subgroup (H <#> K) G"
 apply (rule subgroup.intro)
-   apply (intro set_mult_closed subgroup.subset[OF subH] subgroup.subset[OF subK])
+   apply (intro setmult_subset_G subgroup.subset[OF subH] subgroup.subset[OF subK])
   apply (simp add: set_mult_def) apply clarsimp defer 1
   apply (simp add: set_mult_def) defer 1
   apply (simp add: set_mult_def, clarsimp) defer 1
@@ -586,9 +587,6 @@ proof
   show "y <# H \<subseteq> x <# H" by (rule l_repr_imp_subset [OF y x sb])
 qed
 
-lemma (in group) setmult_subset_G:
-     "\<lbrakk>H \<subseteq> carrier G; K \<subseteq> carrier G\<rbrakk> \<Longrightarrow> H <#> K \<subseteq> carrier G"
-by (auto simp add: set_mult_def subsetD)
 
 lemma (in group) subgroup_mult_id: "subgroup H G \<Longrightarrow> H <#> H = H"
 apply (auto simp add: subgroup.m_closed set_mult_def Sigma_def)
