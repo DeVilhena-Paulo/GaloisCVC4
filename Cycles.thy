@@ -622,10 +622,10 @@ qed
 
 subsubsection\<open>Decomposition\<close>
 
-inductive cycle_comp :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
-empty:  "cycle_comp {} id" |
-comp: "\<lbrakk> cycle_comp I p; cycle cs; set cs \<inter> I = {} \<rbrakk> \<Longrightarrow>
-         cycle_comp (set cs \<union> I) ((cycle_of_list cs) \<circ> p)"
+inductive cycle_decomp :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+empty:  "cycle_decomp {} id" |
+comp: "\<lbrakk> cycle_decomp I p; cycle cs; set cs \<inter> I = {} \<rbrakk> \<Longrightarrow>
+         cycle_decomp (set cs \<union> I) ((cycle_of_list cs) \<circ> p)"
 
 
 lemma semidecomposition:
@@ -676,7 +676,7 @@ qed
 
 lemma cycle_decomposition_aux:
   assumes "p permutes S" "finite S" "card S = k"
-  shows "cycle_comp S p" using assms
+  shows "cycle_decomp S p" using assms
 proof(induct arbitrary: S p rule: less_induct)
   case (less x) thus ?case
   proof (cases "S = {}")
@@ -694,7 +694,7 @@ proof(induct arbitrary: S p rule: less_induct)
           length_map length_upt less.prems(1) less.prems(2) nth_map_upt permutation_permutes)
     hence "card S' < card S"
       by (metis Diff_iff S' \<open>x \<in> S\<close> card_seteq leI less.prems(2) subsetI)
-    ultimately have "cycle_comp S' q"
+    ultimately have "cycle_decomp S' q"
       using S' less.hyps less.prems(2) less.prems(3) by blast
 
     moreover have "p = (cycle_of_list (support p x)) \<circ> q"
@@ -742,7 +742,7 @@ qed
 
 theorem cycle_decomposition:
   assumes "p permutes S" "finite S"
-  shows "cycle_comp S p"
+  shows "cycle_decomp S p"
   using assms cycle_decomposition_aux by blast
 
 end
