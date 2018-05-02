@@ -680,7 +680,8 @@ lemma cycle_decomposition_aux:
 proof(induct arbitrary: S p rule: less_induct)
   case (less x) thus ?case
   proof (cases "S = {}")
-    case True thus ?thesis (* using less empty by auto *)
+    case True thus ?thesis
+      (* using less empty by auto *)
       by (metis empty less.prems(1) permutes_empty) 
   next
     case False
