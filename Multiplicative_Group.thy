@@ -232,7 +232,7 @@ proof -
           by (simp add: gcd_mult_distrib_nat q ac_simps)
         hence "n div gcd (a * n div d) n = d*n div (d*(n div d))" using a by simp
         hence "a * n div d \<in> ?F"
-          using ge_1 le_n by (fastforce simp add: `d dvd n` dvd_mult_div_cancel)
+          using ge_1 le_n by (fastforce simp add: `d dvd n`)
       } thus "(\<lambda>a. a*n div d) ` ?RF \<subseteq> ?F" by blast
       { fix m l assume A: "m \<in> ?F" "l \<in> ?F" "m div gcd m n = l div gcd l n"
         hence "gcd m n = gcd l n" using dvd_div_eq_2[OF assms] by fastforce
@@ -256,7 +256,7 @@ proof -
     proof
       fix m assume m: "m \<in> ?R"
       thus "m \<in> ?L" using dvd_triv_right[of "n div gcd m n" "gcd m n"]
-        by (simp add: dvd_mult_div_cancel)
+        by (simp)
     qed
   qed fastforce
   finally show ?thesis by force

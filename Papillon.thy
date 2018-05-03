@@ -886,3 +886,5 @@ proof-
     by (metis assms Gmod1_def Gmod2_def preliminary2)
   thus ?thesis using Gmod1_def Gmod2_def by (simp add: inf_commute)
 qed
+
+end

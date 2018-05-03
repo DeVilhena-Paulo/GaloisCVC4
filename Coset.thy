@@ -1018,10 +1018,15 @@ qed
 
 text\<open>If @{term h} is a homomorphism from @{term G} onto @{term H}, then the
  quotient group @{term "G Mod (kernel G H h)"} is isomorphic to @{term H}.\<close>
-theorem (in group_hom) FactGroup_iso:
+theorem (in group_hom) FactGroup_iso_set:
   "h ` carrier G = carrier H
-   \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> (G Mod (kernel G H h)) \<cong> H"
+   \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> iso (G Mod (kernel G H h)) H"
 by (simp add: iso_def FactGroup_hom FactGroup_inj_on bij_betw_def 
               FactGroup_onto) 
+
+corollary (in group_hom) FactGroup_iso :
+  "h ` carrier G = carrier H
+   \<Longrightarrow> (G Mod (kernel G H h))\<cong> H"
+  using FactGroup_iso_set unfolding is_iso_def by auto
 
 end

@@ -627,13 +627,17 @@ by (rule group_hom.FactGroup_onto[OF a_group_hom,
 
 text\<open>If @{term h} is a homomorphism from @{term G} onto @{term H}, then the
  quotient group @{term "G Mod (kernel G H h)"} is isomorphic to @{term H}.\<close>
-theorem (in abelian_group_hom) A_FactGroup_iso:
+theorem (in abelian_group_hom) A_FactGroup_iso_set:
   "h ` carrier G = carrier H
-   \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> (G A_Mod (a_kernel G H h)) \<cong>
+   \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> iso (G A_Mod (a_kernel G H h))
           \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr>"
-by (rule group_hom.FactGroup_iso[OF a_group_hom,
+by (rule group_hom.FactGroup_iso_set[OF a_group_hom,
     folded a_kernel_def A_FactGroup_def, simplified ring_record_simps])
 
+corollary (in abelian_group_hom) A_FactGroup_iso :
+  "h ` carrier G = carrier H
+   \<Longrightarrow>  (G A_Mod (a_kernel G H h)) \<cong>  \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr>"
+  using A_FactGroup_iso_set unfolding is_iso_def by auto
 
 subsubsection \<open>Cosets\<close>
 
