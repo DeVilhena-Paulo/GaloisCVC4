@@ -167,8 +167,8 @@ text\<open>Really needed?\<close>
 lemma (in abelian_group) a_transpose_inv:
      "[| x \<oplus> y = z;  x \<in> carrier G;  y \<in> carrier G;  z \<in> carrier G |]
       ==> (\<ominus> x) \<oplus> z = y"
-by (rule group.transpose_inv [OF a_group,
-    folded a_r_coset_def a_inv_def, simplified monoid_record_simps])
+  using r_neg1 by blast
+
 
 (*
 --"duplicate"
@@ -326,12 +326,7 @@ by (rule group.l_coset_carrier [OF a_group,
 lemma (in abelian_group) a_l_repr_imp_subset:
   assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
   shows "y <+ H \<subseteq> x <+ H"
-apply (rule group.l_repr_imp_subset [OF a_group,
-    folded a_l_coset_def, simplified monoid_record_simps])
-apply (rule y)
-apply (rule x)
-apply (rule sb)
-done
+  by (metis a_l_coset_defs(1) add.l_repr_independence assms(3) set_eq_subset x y)
 
 lemma (in abelian_group) a_l_repr_independence:
   assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
@@ -427,8 +422,7 @@ by (rule group.cosets_finite [OF a_group,
 lemma (in abelian_group) a_card_cosets_equal:
      "\<lbrakk>c \<in> a_rcosets H;  H \<subseteq> carrier G; finite(carrier G)\<rbrakk>
       \<Longrightarrow> card c = card H"
-by (rule group.card_cosets_equal [OF a_group,
-    folded A_RCOSETS_def, simplified monoid_record_simps])
+  by (simp add: A_RCOSETS_defs(1) add.card_rcosets_equal)
 
 lemma (in abelian_group) rcosets_subset_PowG:
      "additive_subgroup H G  \<Longrightarrow> a_rcosets H \<subseteq> Pow(carrier G)"

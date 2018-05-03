@@ -572,6 +572,10 @@ lemma mult_DirProd [simp]:
      "(g, h) \<otimes>\<^bsub>(G \<times>\<times> H)\<^esub> (g', h') = (g \<otimes>\<^bsub>G\<^esub> g', h \<otimes>\<^bsub>H\<^esub> h')"
   by (simp add: DirProd_def)
 
+lemma DirProd_assoc :
+"(G \<times>\<times> H \<times>\<times> I) = (G \<times>\<times> (H \<times>\<times> I))"
+  by auto
+
 lemma inv_DirProd [simp]:
   assumes "group G" and "group H"
   assumes g: "g \<in> carrier G"
@@ -599,30 +603,49 @@ lemma (in group) hom_compose:
 by (fastforce simp add: hom_def compose_def)
 
 definition
-  iso :: "_ => _ => ('a => 'b) set" (infixr "\<cong>" 60)
-  where "G \<cong> H = {h. h \<in> hom G H & bij_betw h (carrier G) (carrier H)}"
+  iso :: "_ => _ => ('a => 'b) set"
+  where "iso G  H = {h. h \<in> hom G H & bij_betw h (carrier G) (carrier H)}"
 
-lemma iso_refl: "(%x. x) \<in> G \<cong> G"
-by (simp add: iso_def hom_def inj_on_def bij_betw_def Pi_def)
+definition
+is_iso :: "_ \<Rightarrow> _ \<Rightarrow> bool" (infixr "\<cong>" 60)
+where "G \<cong> H = (iso G H  \<noteq> {})" 
 
-lemma (in group) iso_sym:
-     "h \<in> G \<cong> H \<Longrightarrow> inv_into (carrier G) h \<in> H \<cong> G"
+lemma iso_set_refl: "(%x. x) \<in> iso G G"
+  by (simp add: iso_def hom_def inj_on_def bij_betw_def Pi_def)
+
+corollary iso_refl : "G \<cong> G"
+  using iso_set_refl unfolding is_iso_def by auto
+
+lemma (in group) iso_set_sym:
+     "h \<in> iso G H \<Longrightarrow> inv_into (carrier G) h \<in> (iso H G)"
 apply (simp add: iso_def bij_betw_inv_into) 
 apply (subgoal_tac "inv_into (carrier G) h \<in> carrier H \<rightarrow> carrier G") 
  prefer 2 apply (simp add: bij_betw_imp_funcset [OF bij_betw_inv_into]) 
 apply (simp add: hom_def bij_betw_def inv_into_f_eq f_inv_into_f Pi_def)
-done
+  done
 
-lemma (in group) iso_trans: 
-     "[|h \<in> G \<cong> H; i \<in> H \<cong> I|] ==> (compose (carrier G) i h) \<in> G \<cong> I"
-by (auto simp add: iso_def hom_compose bij_betw_compose)
+corollary (in group) iso_sym :
+"G \<cong> H \<Longrightarrow> H \<cong> G"
+  using iso_set_sym unfolding is_iso_def by auto
 
-lemma DirProd_commute_iso:
-  shows "(\<lambda>(x,y). (y,x)) \<in> (G \<times>\<times> H) \<cong> (H \<times>\<times> G)"
-by (auto simp add: iso_def hom_def inj_on_def bij_betw_def)
+lemma (in group) iso_set_trans: 
+     "[|h \<in> iso G H; i \<in> iso H I|] ==> (compose (carrier G) i h) \<in> iso G I"
+  by (auto simp add: iso_def hom_compose bij_betw_compose)
 
-lemma DirProd_assoc_iso:
-  shows "(\<lambda>(x,y,z). (x,(y,z))) \<in> (G \<times>\<times> H \<times>\<times> I) \<cong> (G \<times>\<times> (H \<times>\<times> I))"
+corollary (in group) iso_trans :
+"\<lbrakk>G \<cong> H ; H \<cong> I\<rbrakk> \<Longrightarrow> G \<cong> I"
+  using iso_set_trans unfolding is_iso_def by blast
+
+lemma DirProd_commute_iso_set:
+  shows "(\<lambda>(x,y). (y,x)) \<in> iso (G \<times>\<times> H) (H \<times>\<times> G)"
+  by (auto simp add: iso_def hom_def inj_on_def bij_betw_def)
+
+corollary DirProd_commute_iso :
+"(G \<times>\<times> H) \<cong> (H \<times>\<times> G)"
+  using DirProd_commute_iso_set unfolding is_iso_def by blast
+
+lemma DirProd_assoc_iso_set:
+  shows "(\<lambda>(x,y,z). (x,(y,z))) \<in> iso (G \<times>\<times> H \<times>\<times> I) (G \<times>\<times> (H \<times>\<times> I))"
 by (auto simp add: iso_def hom_def inj_on_def bij_betw_def)
 
 

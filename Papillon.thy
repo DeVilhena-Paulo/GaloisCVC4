@@ -454,7 +454,7 @@ qed
 proposition (in group) weak_snd_iso_thme :
   assumes "subgroup  H G" 
     and "N\<lhd>G"
-  shows "(G\<lparr>carrier := N<#>H\<rparr> Mod N \<cong> G\<lparr>carrier:=H\<rparr> Mod (N\<inter>H))\<noteq> {} "
+  shows "(G\<lparr>carrier := N<#>H\<rparr> Mod N \<cong> G\<lparr>carrier:=H\<rparr> Mod (N\<inter>H))"
 proof-
   define f where "f = op #> N"
   have GroupNH : "Group.group (G\<lparr>carrier := N<#>H\<rparr>)"
@@ -548,12 +548,11 @@ proof-
       finally show "{x \<in> carrier (G\<lparr>carrier := H\<rparr>). N#>x = \<one>\<^bsub>G\<lparr>carrier := N <#> H\<rparr> Mod N\<^esub>} = N \<inter> H"
         by simp
     qed
-    ultimately have "(\<lambda>X. the_elem (f`X)) \<in>  (G\<lparr>carrier := H\<rparr> Mod N \<inter> H) \<cong> (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
+    ultimately have "(G\<lparr>carrier := H\<rparr> Mod N \<inter> H) \<cong> (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
       using group_hom.FactGroup_iso[OF homomorphism im_f] by auto
-    hence "inv_into (carrier (G\<lparr>carrier := H\<rparr> Mod N \<inter> H)) (\<lambda>X. the_elem (f`X)) \<in>
-                      G\<lparr>carrier := N <#> H\<rparr> Mod N \<cong> G\<lparr>carrier := H\<rparr> Mod N \<inter> H"
+    hence "G\<lparr>carrier := N <#> H\<rparr> Mod N \<cong> G\<lparr>carrier := H\<rparr> Mod N \<inter> H"
       by (simp add: group.iso_sym assms normal.factorgroup_is_group normal_inter_subgroup)
-    thus "G\<lparr>carrier := N <#> H\<rparr> Mod N \<cong> G\<lparr>carrier := H\<rparr> Mod N \<inter> H \<noteq> {}" by auto
+    thus "G\<lparr>carrier := N <#> H\<rparr> Mod N \<cong> G\<lparr>carrier := H\<rparr> Mod N \<inter> H" by auto
 qed
 
 
@@ -561,7 +560,7 @@ theorem (in group) snd_iso_thme :
   assumes "subgroup H G"
     and "subgroup N G"
     and "subgroup H (G\<lparr>carrier:= (normalizer G N)\<rparr>)"
-  shows "(G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
+  shows "(G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N))"
 proof-
   have "G\<lparr>carrier := normalizer G N, carrier := H\<rparr>
        = G\<lparr>carrier := H\<rparr>"  by simp
@@ -588,12 +587,12 @@ proof-
                  (G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong>  G\<lparr>carrier := H\<rparr> Mod N \<inter> H" by auto
   moreover have "G\<lparr>carrier := normalizer G N,
                     carrier := N <#>\<^bsub>G\<lparr>carrier := normalizer G N\<rparr>\<^esub> H\<rparr> Mod N  \<cong>
-                  G\<lparr>carrier := normalizer G N, carrier := H\<rparr> Mod N \<inter> H \<noteq> {}"
+                  G\<lparr>carrier := normalizer G N, carrier := H\<rparr> Mod N \<inter> H"
     using group.weak_snd_iso_thme[OF subgroup_imp_group[OF normalizer_imp_subgroup[OF
           subgroup_imp_subset[OF assms(2)]]] assms(3) subgroup_in_normalizer[OF assms(2)]]
     by simp
   moreover have "H\<inter>N = N\<inter>H" using assms  by auto
-  ultimately show "(G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong>  G\<lparr>carrier := H\<rparr> Mod H \<inter> N \<noteq> {}" by auto
+  ultimately show "(G\<lparr>carrier:= N<#>H\<rparr> Mod N)  \<cong>  G\<lparr>carrier := H\<rparr> Mod H \<inter> N" by auto
 qed
  
 
@@ -601,10 +600,9 @@ corollary (in group) snd_iso_thme_recip :
   assumes "subgroup H G"
     and "subgroup N G"
     and "subgroup H (G\<lparr>carrier:= (normalizer G N)\<rparr>)"
-  shows "(G\<lparr>carrier:= H<#>N\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N)) \<noteq> {}"
-  using snd_iso_thme[OF assms]
-  by (metis assms(2) assms(3) commut_normal_subgroup group.subgroup_in_normalizer
-      is_group normalizer_imp_subgroup subgroup_imp_subset)
+  shows "(G\<lparr>carrier:= H<#>N\<rparr> Mod N)  \<cong> (G\<lparr>carrier:= H\<rparr> Mod (H\<inter>N))"
+  by (metis assms commut_normal_subgroup group.subgroup_in_normalizer is_group subgroup_imp_subset
+      normalizer_imp_subgroup snd_iso_thme)
 
 
 
@@ -814,14 +812,12 @@ proposition (in group)  Zassenhaus_1 :
     and "H1\<lhd>G\<lparr>carrier := H\<rparr>" 
     and  "subgroup K G" 
     and "K1\<lhd>G\<lparr>carrier:=K\<rparr>"
-  shows "(G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod (H1<#>(H\<inter>K1)))  \<cong> (G\<lparr>carrier:= (H\<inter>K)\<rparr> Mod  ((H1\<inter>K)<#>(H\<inter>K1))) \<noteq> {}"
+  shows "(G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod (H1<#>H\<inter>K1)) \<cong> (G\<lparr>carrier:= (H\<inter>K)\<rparr> Mod  ((H1\<inter>K)<#>(H\<inter>K1)))"
 proof-
   define N  and N1 where "N = (H\<inter>K)" and "N1 =H1<#>(H\<inter>K1)"
   have normal_N_N1 : "subgroup N (G\<lparr>carrier:=(normalizer G N1)\<rparr>)"
-
-
     by (simp add: N1_def N_def assms distinc normal_imp_subgroup)
-  have Hp:"(G\<lparr>carrier:= N<#>N1\<rparr> Mod N1)  \<cong> (G\<lparr>carrier:= N\<rparr> Mod (N\<inter>N1)) \<noteq> {}"
+  have Hp:"(G\<lparr>carrier:= N<#>N1\<rparr> Mod N1)  \<cong> (G\<lparr>carrier:= N\<rparr> Mod (N\<inter>N1))"
   by (metis N1_def N_def assms incl_subgroup inf_le1 mult_norm_sub_in_sub
         normal_N_N1 normal_imp_subgroup snd_iso_thme_recip subgroup_incl subgroups_Inter_pair)
   have H_simp: "N<#>N1 = H1<#> (H\<inter>K)"
@@ -843,11 +839,9 @@ proof-
     proof (intro set_mult_subgroup_idem[where ?H = "H\<inter>K" and ?N="H\<inter>K1",
              OF subgroups_Inter_pair[OF assms(1) assms(3)]])
       show "subgroup (H \<inter> K1) (G\<lparr>carrier := H \<inter> K\<rparr>)"
-        using subgroup_incl [where ?I = "H\<inter>K1" and ?J = "H\<inter>K",
-                             OF subgroups_Inter_pair[OF assms(1)
-                             incl_subgroup[of K K1, OF assms(3) normal_imp_subgroup[OF assms(4)]]]
-                            subgroups_Inter_pair[OF assms(1) assms(3)]]
-        using  normal_imp_subgroup assms by (metis inf_commute normal_inter)
+        using subgroup_incl[where ?I = "H\<inter>K1" and ?J = "H\<inter>K",OF subgroups_Inter_pair[OF assms(1)
+              incl_subgroup[OF assms(3) normal_imp_subgroup]] subgroups_Inter_pair] assms
+              normal_imp_subgroup by (metis inf_commute normal_inter)
     qed
     hence " H1 <#> ((H\<inter>K)<#>(H\<inter>K1)) =  H1 <#> ((H\<inter>K))" 
       by simp
@@ -857,7 +851,7 @@ proof-
 
   have "N\<inter>N1 = (H1\<inter>K)<#>(H\<inter>K1)" 
     using preliminary1 assms N_def N1_def by simp 
-  thus  "(G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod N1)  \<cong> (G\<lparr>carrier:= N\<rparr> Mod  ((H1\<inter>K)<#>(H\<inter>K1))) \<noteq> {}"
+  thus  "(G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod N1)  \<cong> (G\<lparr>carrier:= N\<rparr> Mod  ((H1\<inter>K)<#>(H\<inter>K1)))"
     using H_simp Hp by auto
 qed
 
@@ -867,50 +861,28 @@ theorem (in group) Zassenhaus :
     and  "subgroup K G" 
     and "K1\<lhd>G\<lparr>carrier:=K\<rparr>"
   shows "(G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod (H1<#>(H\<inter>K1)))  \<cong> 
-         (G\<lparr>carrier:= K1 <#> (H\<inter>K)\<rparr> Mod (K1<#>(K\<inter>H1)))  \<noteq> {}"
+         (G\<lparr>carrier:= K1 <#> (H\<inter>K)\<rparr> Mod (K1<#>(K\<inter>H1)))"
 proof-
-  define HK Gmod1 Gmod2 Gmod3 Gmod4  where "HK = K\<inter>H"
-                         and "Gmod1 = (G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod (H1<#>(H\<inter>K1))) "
-                         and "Gmod2 = (G\<lparr>carrier:= K1 <#> (K\<inter>H)\<rparr> Mod (K1<#>(K\<inter>H1)))"
-                         and "Gmod3 = (G\<lparr>carrier:= (H\<inter>K)\<rparr> Mod  ((H1\<inter>K)<#>(H\<inter>K1)))"
-                         and "Gmod4 = (G\<lparr>carrier:= (K\<inter>H)\<rparr> Mod  ((K1\<inter>H)<#>(K\<inter>H1)))"
-  have H1 :  "Gmod1  \<cong> Gmod3 \<noteq> {}"
-    using Zassenhaus_1 assms Gmod1_def Gmod3_def  by auto
-  have H2 :  "Gmod2  \<cong>  Gmod4 \<noteq> {}"
-    using Zassenhaus_1 assms Gmod2_def Gmod4_def  by auto
-  have Egal:"Gmod3 = Gmod4"
-  proof-
-    have permut1: "H\<inter>K = K\<inter>H" by blast
-    hence permut2: "H1\<inter>K = K\<inter>H1" by blast
-    hence  "H\<inter>K1 = K1\<inter>H" by blast
-    hence Hp : "Gmod3 =
-                G\<lparr>carrier:= (K\<inter>H)\<rparr> Mod ((K\<inter>H1)<#>(K1\<inter>H))"
-      by (simp add: Gmod3_def permut1 permut2)
-    have "(K\<inter>H1)<#>(K1\<inter>H) =(K1\<inter>H)<#>(K\<inter>H1)"
-    proof (intro commut_normal_subgroup[of HK ])
-      show  "subgroup HK G" using assms subgroups_Inter_pair HK_def by auto
-    next
-      show "K1 \<inter> H \<lhd> G\<lparr>carrier := HK\<rparr>" 
-        using normal_inter  HK_def assms by blast
-    next
-      have "subgroup H1 G" using normal_imp_subgroup assms incl_subgroup by blast
-      thus "subgroup (K \<inter> H1) (G\<lparr>carrier := HK\<rparr>)"
-        using subgroup_incl by (simp add: HK_def assms inf_commute normal_imp_subgroup normal_inter) 
-    qed
-    thus  "Gmod3  = Gmod4" using Hp Gmod4_def by simp
-    qed
-    obtain g where "g\<in>Gmod2  \<cong>  Gmod4" using H2 by blast
-    note g_def=this
-    define  h where "h = (inv_into (carrier(Gmod2)) g)"
-    from g_def have h_def: "h\<in> (Gmod4 \<cong>  Gmod2)"
-      using assms
-      by (simp add:Gmod4_def Gmod2_def group.iso_sym preliminary2 h_def normal.factorgroup_is_group)
-
-    obtain f where "f\<in>Gmod1  \<cong>  Gmod3" using H1 by blast
-    hence  "(compose (carrier(Gmod1)) h f) \<in> Gmod1 \<cong> Gmod2" using Egal h_def assms
-      by (simp add: Gmod1_def preliminary2 group.iso_trans is_group normal.factorgroup_is_group)
-    hence  "Gmod1 \<cong> Gmod2 \<noteq> {}" by auto
-    thus ?thesis 
-      using Gmod1_def Gmod2_def  by (simp add: inf_commute)
+  define Gmod1 Gmod2 Gmod3 Gmod4
+    where "Gmod1 = (G\<lparr>carrier:= H1 <#> (H\<inter>K)\<rparr> Mod (H1<#>(H\<inter>K1))) "
+      and "Gmod2 = (G\<lparr>carrier:= K1 <#> (K\<inter>H)\<rparr> Mod (K1<#>(K\<inter>H1)))"
+      and "Gmod3 = (G\<lparr>carrier:= (H\<inter>K)\<rparr> Mod  ((H1\<inter>K)<#>(H\<inter>K1)))"
+      and "Gmod4 = (G\<lparr>carrier:= (K\<inter>H)\<rparr> Mod  ((K1\<inter>H)<#>(K\<inter>H1)))"
+  have Hyp :  "Gmod1  \<cong> Gmod3" "Gmod2  \<cong>  Gmod4"
+    using Zassenhaus_1 assms Gmod1_def Gmod2_def Gmod3_def Gmod4_def by auto
+  have Hp : "Gmod3 = G\<lparr>carrier:= (K\<inter>H)\<rparr> Mod ((K\<inter>H1)<#>(K1\<inter>H))"
+    by (simp add: Gmod3_def inf_commute)
+  have "(K\<inter>H1)<#>(K1\<inter>H) = (K1\<inter>H)<#>(K\<inter>H1)"
+  proof (intro commut_normal_subgroup[OF subgroups_Inter_pair[OF assms(1)assms(3)]])
+    show "K1 \<inter> H \<lhd> G\<lparr>carrier := H \<inter> K\<rparr>"
+      using normal_inter[OF assms(3)assms(1)assms(4)] by (simp add: inf_commute)
+   next
+    show "subgroup (K \<inter> H1) (G\<lparr>carrier := H \<inter> K\<rparr>)"
+      using subgroup_incl by (simp add: assms inf_commute normal_imp_subgroup normal_inter) 
   qed
-
+  hence  "Gmod3  = Gmod4" using Hp Gmod4_def by simp
+  hence "Gmod1 \<cong> Gmod2"
+    using group.iso_sym group.iso_trans Hyp normal.factorgroup_is_group
+    by (metis assms Gmod1_def Gmod2_def preliminary2)
+  thus ?thesis using Gmod1_def Gmod2_def by (simp add: inf_commute)
+qed
