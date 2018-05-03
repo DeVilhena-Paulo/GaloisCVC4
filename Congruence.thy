@@ -80,13 +80,7 @@ lemma equivalenceI:
     and  trans: "\<And>x y z. \<lbrakk> x \<in> E; y \<in> E; z \<in> E \<rbrakk> \<Longrightarrow> P x y \<Longrightarrow> P y z \<Longrightarrow> P x z"
   shows "equivalence \<lparr> carrier = E, eq = P \<rparr>"
   unfolding equivalence_def using assms
-  by (metis eq_object.select_convs(1) partial_object.select_convs(1))  
-
-(*
-locale partition =
-  fixes A :: "'a set" and f :: "'a \<Rightarrow> 'a set"
-  assumes equiv: "equivalence \<lparr> carrier = A, eq = \<lambda>x. \<lambda>y. y \<in> f x \<rparr>"
-      and  incl: "\<And>a. a \<in> A \<Longrightarrow> f a \<subseteq> A" *)
+  by (metis eq_object.select_convs(1) partial_object.select_convs(1))
 
 locale partition =
   fixes A :: "'a set" and B :: "('a set) set"
@@ -279,7 +273,7 @@ lemma closure_ofE2:
 
 lemma (in partition) equivalence_from_partition:
   "equivalence \<lparr> carrier = A, eq = (\<lambda>x y. y \<in> (THE b. b \<in> B \<and> x \<in> b))\<rparr>"
-  unfolding partition_def equivalence_def apply simp
+  unfolding partition_def equivalence_def apply simp 
 proof -
   let ?f = "\<lambda>x. THE b. b \<in> B \<and> x \<in> b"
   have "\<And>x. x \<in> A \<Longrightarrow> x \<in> ?f x"
