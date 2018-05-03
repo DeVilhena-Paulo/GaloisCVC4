@@ -5,23 +5,6 @@ begin
 subsection "fundamental lemmas"
 
 
-lemma (in group) normal_invI :
-  assumes "subgroup N G"
-and "(\<forall>x\<in>carrier G. \<forall>h\<in>N. x \<otimes> h \<otimes> inv x \<in> N)"
-shows "N\<lhd>G"
-proof-
-  show ?thesis using normal_inv_iff assms by blast
-qed
-
-lemma (in group) normal_invE :
-  assumes"N\<lhd>G" 
-shows "subgroup N G" 
-and "(\<forall>x\<in>carrier G. \<forall>h\<in>N. x \<otimes> h \<otimes> inv x \<in> N)"
-proof-
-  show "subgroup N G" using normal_inv_iff assms by blast
-next
-  show "(\<forall>x\<in>carrier G. \<forall>h\<in>N. x \<otimes> h \<otimes> inv x \<in> N)"using normal_inv_iff assms by blast
-qed
 
 
 text "Lemmas about subgroups"
@@ -179,7 +162,7 @@ proof-
         thus "subgroup H1K GHK" using GHK_def by simp
 
   next
-    have "\<And> x h. x\<in>carrier GHK \<Longrightarrow> h\<in>H1K \<Longrightarrow> x \<otimes>\<^bsub>GHK\<^esub> h \<otimes>\<^bsub>GHK\<^esub> inv\<^bsub>GHK\<^esub> x\<in> H1K"
+    show "\<And> x h. x\<in>carrier GHK \<Longrightarrow> h\<in>H1K \<Longrightarrow> x \<otimes>\<^bsub>GHK\<^esub> h \<otimes>\<^bsub>GHK\<^esub> inv\<^bsub>GHK\<^esub> x\<in> H1K"
         proof-
           have invHK: "\<lbrakk>y\<in>HK\<rbrakk> \<Longrightarrow> inv\<^bsub>GHK\<^esub> y = inv\<^bsub>GH\<^esub> y"
             using subgroup_inv_equality assms HK_def GH_def GHK_def subgroups_Inter_pair by simp
@@ -212,8 +195,7 @@ proof-
             hence " x \<otimes>\<^bsub>GH\<^esub> h \<otimes>\<^bsub>GH\<^esub> inv\<^bsub>GH\<^esub> x \<in> K" using HK_def by simp
             hence " x \<otimes>\<^bsub>GH\<^esub> h \<otimes>\<^bsub>GH\<^esub> inv\<^bsub>GH\<^esub> x \<in> H1K" using INCL_1 H1K_def by auto
             thus  "x \<otimes>\<^bsub>GHK\<^esub> h \<otimes>\<^bsub>GHK\<^esub> inv\<^bsub>GHK\<^esub> x \<in> H1K" using xhx_egal by simp
-        qed
-        thus "\<forall>x\<in>carrier GHK. \<forall>h\<in>H1K. x \<otimes>\<^bsub>GHK\<^esub> h \<otimes>\<^bsub>GHK\<^esub> inv\<^bsub>GHK\<^esub> x \<in> H1K" by auto
+          qed
     qed
 qed
 
@@ -295,7 +277,7 @@ proof(intro group.normal_invI)
   qed
   thus "subgroup H (G\<lparr>carrier:= (normalizer G H)\<rparr>)"
     using subgroup_incl normalizer_imp_subgroup assms by (simp add: subgroup_imp_subset)
-    have  " \<And>x h. x \<in> carrier (G\<lparr>carrier := normalizer G H\<rparr>) \<Longrightarrow> h \<in> H \<Longrightarrow>
+  show  " \<And>x h. x \<in> carrier (G\<lparr>carrier := normalizer G H\<rparr>) \<Longrightarrow> h \<in> H \<Longrightarrow>
              x \<otimes>\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> h
                \<otimes>\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> inv\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> x \<in> H"
     proof-
@@ -320,9 +302,6 @@ proof(intro group.normal_invI)
                \<otimes>\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> inv\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> x \<in> H"
       using xhxegal hH xnorm by simp
   qed
-  thus "\<forall>x\<in>carrier (G\<lparr>carrier := normalizer G H\<rparr>). \<forall>h\<in>H.
-       x \<otimes>\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> h \<otimes>\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub>
-                                         inv\<^bsub>G\<lparr>carrier := normalizer G H\<rparr>\<^esub> x \<in> H " by simp
 qed
 
 
