@@ -18,36 +18,32 @@ text \<open>Instantiation of locale \<open>LC\<close> of theory \<open>Finite_Se
   \<open>D\<close>.\<close>
 
 inductive_set
-  foldSetD :: "['a set, 'b => 'a => 'a, 'a] => ('b set * 'a) set"
-  for D :: "'a set" and f :: "'b => 'a => 'a" and e :: 'a
-  where
-    emptyI [intro]: "e \<in> D ==> ({}, e) \<in> foldSetD D f e"
-  | insertI [intro]: "[| x ~: A; f x y \<in> D; (A, y) \<in> foldSetD D f e |] ==>
-                      (insert x A, f x y) \<in> foldSetD D f e"
+  foldSetD :: "['a set, 'b \<Rightarrow> 'a \<Rightarrow> 'a, 'a] \<Rightarrow> ('b set * 'a) set" for D and f and e where
+    emptyI [intro]:  "e \<in> D \<Longrightarrow> ({}, e) \<in> foldSetD D f e"
+  | insertI [intro]: "\<lbrakk> x \<notin> A; f x y \<in> D; (A, y) \<in> foldSetD D f e \<rbrakk> \<Longrightarrow>
+                       (insert x A, f x y) \<in> foldSetD D f e"
 
 inductive_cases empty_foldSetDE [elim!]: "({}, x) \<in> foldSetD D f e"
 
 definition
-  foldD :: "['a set, 'b => 'a => 'a, 'a, 'b set] => 'a"
+  foldD :: "['a set, 'b \<Rightarrow> 'a \<Rightarrow> 'a, 'a, 'b set] \<Rightarrow> 'a"
   where "foldD D f e A = (THE x. (A, x) \<in> foldSetD D f e)"
 
-lemma foldSetD_closed:
+lemma foldSetD_closed [dest]:
   "(A, z) \<in> foldSetD D f e \<Longrightarrow> z \<in> D"
   by (induction rule: foldSetD.induct)
 
-lemma Diff1_foldSetD:
-  "[| (A - {x}, y) \<in> foldSetD D f e; x \<in> A; f x y \<in> D |] ==>
-   (A, f x y) \<in> foldSetD D f e"
-  apply (erule insert_Diff [THEN subst], rule foldSetD.intros)
-    apply auto
-  done
-
-lemma foldSetD_imp_finite [simp]: "(A, x) \<in> foldSetD D f e ==> finite A"
+lemma foldSetD_imp_finite [simp]:
+  "(A, x) \<in> foldSetD D f e \<Longrightarrow> finite A"
   by (induct set: foldSetD) auto
 
+lemma Diff1_foldSetD:
+  "\<lbrakk> (A - {x}, y) \<in> foldSetD D f e; x \<in> A; f x y \<in> D \<rbrakk> \<Longrightarrow> (A, f x y) \<in> foldSetD D f e"
+  by (metis Diff_insert_absorb foldSetD.insertI mk_disjoint_insert)
+
 lemma finite_imp_foldSetD:
-  "[| finite A; e \<in> D; !!x y. [| x \<in> A; y \<in> D |] ==> f x y \<in> D |] ==>
-   EX x. (A, x) \<in> foldSetD D f e"
+  "\<lbrakk> finite A; e \<in> D; \<And>x y. \<lbrakk> x \<in> A; y \<in> D \<rbrakk> \<Longrightarrow> f x y \<in> D \<rbrakk> \<Longrightarrow>
+    \<exists> x. (A, x) \<in> foldSetD D f e"
 proof (induct set: finite)
   case empty then show ?case by auto
 next
@@ -59,165 +55,127 @@ next
   then show ?case ..
 qed
 
+lemma foldSetD_backwards:
+  assumes "A \<noteq> {}" "(A, z) \<in> foldSetD D f e"
+  shows "\<exists>x y. x \<in> A \<and> (A - {x}, y) \<in> foldSetD D f e \<and> z = f x y" using assms(2)
+proof (cases)
+  case emptyI thus ?thesis using assms(1) by simp
+next
+  case (insertI x A y) thus ?thesis
+    by (metis Diff_insert_absorb insertI1) 
+qed
+
 
 text \<open>Left-Commutative Operations\<close>
 
 locale LCD =
   fixes B :: "'b set"
-  and D :: "'a set"
-  and f :: "'b => 'a => 'a"    (infixl "\<cdot>" 70)
-  assumes left_commute:
-    "[| x \<in> B; y \<in> B; z \<in> D |] ==> x \<cdot> (y \<cdot> z) = y \<cdot> (x \<cdot> z)"
-  and f_closed [simp, intro!]: "!!x y. [| x \<in> B; y \<in> D |] ==> f x y \<in> D"
-
-lemma (in LCD) foldSetD_closed [dest]:
-  "(A, z) \<in> foldSetD D f e ==> z \<in> D"
-  by (erule foldSetD.cases) auto
+    and D :: "'a set"
+    and f :: "'b \<Rightarrow> 'a \<Rightarrow> 'a" (infixl "\<cdot>" 70)
+  assumes left_commute: "\<lbrakk> x \<in> B; y \<in> B; z \<in> D \<rbrakk> \<Longrightarrow> x \<cdot> (y \<cdot> z) = y \<cdot> (x \<cdot> z)"
+  and f_closed [simp, intro!]: "\<And>x y. \<lbrakk> x \<in> B; y \<in> D \<rbrakk> \<Longrightarrow> f x y \<in> D"
 
 lemma (in LCD) Diff1_foldSetD:
-  "[| (A - {x}, y) \<in> foldSetD D f e; x \<in> A; A \<subseteq> B |] ==>
-  (A, f x y) \<in> foldSetD D f e"
-  apply (subgoal_tac "x \<in> B")
-   prefer 2 apply fast
-  apply (erule insert_Diff [THEN subst], rule foldSetD.intros)
-    apply auto
-  done
-
-lemma (in LCD) foldSetD_imp_finite [simp]:
-  "(A, x) \<in> foldSetD D f e ==> finite A"
-  by (induct set: foldSetD) auto
+  "\<lbrakk> (A - {x}, y) \<in> foldSetD D f e; x \<in> A; A \<subseteq> B \<rbrakk> \<Longrightarrow> (A, f x y) \<in> foldSetD D f e"
+  by (meson Diff1_foldSetD f_closed foldSetD_closed subsetCE)
 
 lemma (in LCD) finite_imp_foldSetD:
-  "[| finite A; A \<subseteq> B; e \<in> D |] ==> EX x. (A, x) \<in> foldSetD D f e"
-proof (induct set: finite)
-  case empty then show ?case by auto
-next
-  case (insert x F)
-  then obtain y where y: "(F, y) \<in> foldSetD D f e" by auto
-  with insert have "y \<in> D" by auto
-  with y and insert have "(insert x F, f x y) \<in> foldSetD D f e"
-    by (intro foldSetD.intros) auto
-  then show ?case ..
-qed
+  "\<lbrakk> finite A; A \<subseteq> B; e \<in> D \<rbrakk> \<Longrightarrow> \<exists>x. (A, x) \<in> foldSetD D f e"
+  by (meson f_closed finite_imp_foldSetD subsetCE)
 
 lemma (in LCD) foldSetD_determ_aux:
-  "e \<in> D ==> \<forall>A x. A \<subseteq> B & card A < n --> (A, x) \<in> foldSetD D f e -->
-    (\<forall>y. (A, y) \<in> foldSetD D f e --> y = x)"
-  apply (induct n)
-   apply (auto simp add: less_Suc_eq) (* slow *)
-  apply (erule foldSetD.cases)
-   apply blast
-  apply (erule foldSetD.cases)
-   apply blast
-  apply clarify
-  txt \<open>force simplification of \<open>card A < card (insert ...)\<close>.\<close>
-  apply (erule rev_mp)
-  apply (simp add: less_Suc_eq_le)
-  apply (rule impI)
-  apply (rename_tac xa Aa ya xb Ab yb, case_tac "xa = xb")
-   apply (subgoal_tac "Aa = Ab")
-    prefer 2 apply (blast elim!: equalityE)
-   apply blast
-  txt \<open>case @{prop "xa \<notin> xb"}.\<close>
-  apply (subgoal_tac "Aa - {xb} = Ab - {xa} & xb \<in> Aa & xa \<in> Ab")
-   prefer 2 apply (blast elim!: equalityE)
-  apply clarify
-  apply (subgoal_tac "Aa = insert xb Ab - {xa}")
-   prefer 2 apply blast
-  apply (subgoal_tac "card Aa \<le> card Ab")
-   prefer 2
-   apply (rule Suc_le_mono [THEN subst])
-   apply (simp add: card_Suc_Diff1)
-  apply (rule_tac A1 = "Aa - {xb}" in finite_imp_foldSetD [THEN exE])
-     apply (blast intro: foldSetD_imp_finite)
-    apply best
-   apply assumption
-  apply (frule (1) Diff1_foldSetD)
-   apply best
-  apply (subgoal_tac "ya = f xb x")
-   prefer 2
-   apply (subgoal_tac "Aa \<subseteq> B")
-    prefer 2 apply best (* slow *)
-   apply (blast del: equalityCE)
-  apply (subgoal_tac "(Ab - {xa}, x) \<in> foldSetD D f e")
-   prefer 2 apply simp
-  apply (subgoal_tac "yb = f xa x")
-   prefer 2 
-   apply (blast del: equalityCE dest: Diff1_foldSetD)
-  apply (simp (no_asm_simp))
-  apply (rule left_commute)
-    apply assumption
-   apply best (* slow *)
-  apply best
-  done
+  assumes "e \<in> D" "A \<subseteq> B" "card A = n"
+    and "(A, x) \<in> foldSetD D f e" "(A, y) \<in> foldSetD D f e"
+  shows "x = y" using assms
+proof (induction n arbitrary: A x y)
+  case 0 thus ?case by auto
+next
+  case (Suc n)
+  hence "A \<noteq> {}" by auto
+  then obtain xa ya z1 z2 where x: "xa \<in> A" "(A - {xa}, z1) \<in> foldSetD D f e" "x = xa \<cdot> z1"
+                            and y: "ya \<in> A" "(A - {ya}, z2) \<in> foldSetD D f e" "y = ya \<cdot> z2"
+      by (meson foldSetD_backwards Suc)
+  thus ?case
+  proof (cases)
+    assume Eq: "xa = ya" hence "z1 = z2"
+      by (smt Suc.IH Suc.prems assms(1) card.remove foldSetD_imp_finite
+          insert_Diff insert_subset nat.inject x y)
+    thus ?thesis using x(3) y(3) Eq by simp
+  next
+    assume In: "xa \<noteq> ya"
+    hence "finite (A - {xa, ya})" using Suc.prems(4) by auto
+    then obtain w where "w \<in> D" "(A - {xa, ya}, w) \<in> foldSetD D f e"
+      using finite_imp_foldSetD Suc.prems by (meson Diff_subset foldSetD_closed order_trans)
+    note w = this
+    from w have "(A - {xa}, ya \<cdot> w) \<in> foldSetD D f e"
+      by (smt Diff_eq_empty_iff Diff_iff Diff_insert2 In insert_Diff insert_Diff_single
+              insert_iff Suc.prems(2) local.Diff1_foldSetD x(1) y(1))
+    hence "ya \<cdot> w = z1"
+      by (smt Suc.IH Suc.prems assms(1) card_Suc_Diff1 foldSetD_imp_finite
+          insert_Diff insert_subset nat.inject x(1) x(2))
+    moreover have "insert xa (A - {xa, ya}) = (A - {ya})"
+      using In x(1) by blast
+    hence "(A - {ya}, xa \<cdot> w) \<in> foldSetD D f e"
+      using w foldSetD.insertI[of xa "A - {xa, ya}" f w D e] Suc.prems(2) by fastforce
+    hence "xa \<cdot> w = z2"
+      by (smt Diff_subset Suc.IH Suc.prems Suc_inject assms(1) card.remove
+          foldSetD_imp_finite infinite_remove subset_trans y(1) y(2))
+    ultimately show ?thesis using Suc.prems(2) w(1) x y left_commute by blast
+  qed
+qed
 
 lemma (in LCD) foldSetD_determ:
-  "[| (A, x) \<in> foldSetD D f e; (A, y) \<in> foldSetD D f e; e \<in> D; A \<subseteq> B |]
-  ==> y = x"
+  "\<lbrakk> (A, x) \<in> foldSetD D f e; (A, y) \<in> foldSetD D f e; e \<in> D; A \<subseteq> B \<rbrakk> \<Longrightarrow> y = x"
   by (blast intro: foldSetD_determ_aux [rule_format])
 
 lemma (in LCD) foldD_equality:
-  "[| (A, y) \<in> foldSetD D f e; e \<in> D; A \<subseteq> B |] ==> foldD D f e A = y"
+  "\<lbrakk> (A, y) \<in> foldSetD D f e; e \<in> D; A \<subseteq> B \<rbrakk> \<Longrightarrow> foldD D f e A = y"
   by (unfold foldD_def) (blast intro: foldSetD_determ)
 
 lemma foldD_empty [simp]:
-  "e \<in> D ==> foldD D f e {} = e"
+  "e \<in> D \<Longrightarrow> foldD D f e {} = e"
   by (unfold foldD_def) blast
 
 lemma (in LCD) foldD_insert_aux:
-  "[| x ~: A; x \<in> B; e \<in> D; A \<subseteq> B |] ==>
-    ((insert x A, v) \<in> foldSetD D f e) =
-    (EX y. (A, y) \<in> foldSetD D f e & v = f x y)"
-  apply auto
-  apply (rule_tac A1 = A in finite_imp_foldSetD [THEN exE])
-     apply (fastforce dest: foldSetD_imp_finite)
-    apply assumption
-   apply assumption
-  apply (blast intro: foldSetD_determ)
-  done
+  "\<lbrakk> x \<notin> A; x \<in> B; e \<in> D; A \<subseteq> B \<rbrakk> \<Longrightarrow>
+    ((insert x A, v) \<in> foldSetD D f e) = (\<exists> y. (A, y) \<in> foldSetD D f e \<and> v = f x y)"
+  by (metis Diff_insert_absorb finite_insert foldD_equality foldSetD_imp_finite insertI1
+      insert_subset local.Diff1_foldSetD local.finite_imp_foldSetD)
 
 lemma (in LCD) foldD_insert:
-    "[| finite A; x ~: A; x \<in> B; e \<in> D; A \<subseteq> B |] ==>
-     foldD D f e (insert x A) = f x (foldD D f e A)"
-  apply (unfold foldD_def)
-  apply (simp add: foldD_insert_aux)
-  apply (rule the_equality)
-   apply (auto intro: finite_imp_foldSetD
-     cong add: conj_cong simp add: foldD_def [symmetric] foldD_equality)
-  done
+  "\<lbrakk> finite A; x \<notin> A; x \<in> B; e \<in> D; A \<subseteq> B \<rbrakk> \<Longrightarrow> foldD D f e (insert x A) = f x (foldD D f e A)"
+  by (metis Diff_insert_absorb LCD.foldD_equality LCD_axioms insertI1 insert_subsetI
+      local.Diff1_foldSetD local.finite_imp_foldSetD)
 
 lemma (in LCD) foldD_closed [simp]:
-  "[| finite A; e \<in> D; A \<subseteq> B |] ==> foldD D f e A \<in> D"
+  "\<lbrakk> finite A; e \<in> D; A \<subseteq> B \<rbrakk> \<Longrightarrow> foldD D f e A \<in> D"
 proof (induct set: finite)
-  case empty then show ?case by simp
+  case empty thus ?case by simp
 next
-  case insert then show ?case by (simp add: foldD_insert)
+  case insert thus ?case by (simp add: foldD_insert)
 qed
 
 lemma (in LCD) foldD_commute:
-  "[| finite A; x \<in> B; e \<in> D; A \<subseteq> B |] ==>
-   f x (foldD D f e A) = foldD D f (f x e) A"
+  "\<lbrakk> finite A; x \<in> B; e \<in> D; A \<subseteq> B \<rbrakk> \<Longrightarrow> f x (foldD D f e A) = foldD D f (f x e) A"
   apply (induct set: finite)
    apply simp
   apply (auto simp add: left_commute foldD_insert)
   done
 
-lemma Int_mono2:
-  "[| A \<subseteq> C; B \<subseteq> C |] ==> A Int B \<subseteq> C"
+lemma Int_mono2: "\<lbrakk> A \<subseteq> C; B \<subseteq> C \<rbrakk> \<Longrightarrow> A \<inter> B \<subseteq> C"
   by blast
 
 lemma (in LCD) foldD_nest_Un_Int:
-  "[| finite A; finite C; e \<in> D; A \<subseteq> B; C \<subseteq> B |] ==>
-   foldD D f (foldD D f e C) A = foldD D f (foldD D f e (A Int C)) (A Un C)"
+  "\<lbrakk> finite A; finite C; e \<in> D; A \<subseteq> B; C \<subseteq> B \<rbrakk> \<Longrightarrow>
+    foldD D f (foldD D f e C) A = foldD D f (foldD D f e (A \<inter> C)) (A \<union> C)"
   apply (induct set: finite)
    apply simp
-  apply (simp add: foldD_insert foldD_commute Int_insert_left insert_absorb
-    Int_mono2)
+  apply (simp add: foldD_insert foldD_commute Int_insert_left insert_absorb Int_mono2)
   done
 
 lemma (in LCD) foldD_nest_Un_disjoint:
-  "[| finite A; finite B; A Int B = {}; e \<in> D; A \<subseteq> B; C \<subseteq> B |]
-    ==> foldD D f e (A Un B) = foldD D f (foldD D f e B) A"
+  "\<lbrakk> finite A; finite B; A \<inter> B = {}; e \<in> D; A \<subseteq> B; C \<subseteq> B \<rbrakk> \<Longrightarrow>
+    foldD D f e (A \<union> B) = foldD D f (foldD D f e B) A"
   by (simp add: foldD_nest_Un_Int)
 
 \<comment> \<open>Delete rules to do with \<open>foldSetD\<close> relation.\<close>
@@ -232,43 +190,34 @@ declare (in LCD)
 text \<open>Commutative Monoids\<close>
 
 text \<open>
-  We enter a more restrictive context, with \<open>f :: 'a => 'a => 'a\<close>
-  instead of \<open>'b => 'a => 'a\<close>.
+  We enter a more restrictive context, with \<open>f :: 'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> instead of \<open>'b \<Rightarrow> 'a \<Rightarrow> 'a\<close>.
 \<close>
 
 locale ACeD =
   fixes D :: "'a set"
-    and f :: "'a => 'a => 'a"    (infixl "\<cdot>" 70)
     and e :: 'a
-  assumes ident [simp]: "x \<in> D ==> x \<cdot> e = x"
-    and commute: "[| x \<in> D; y \<in> D |] ==> x \<cdot> y = y \<cdot> x"
-    and assoc: "[| x \<in> D; y \<in> D; z \<in> D |] ==> (x \<cdot> y) \<cdot> z = x \<cdot> (y \<cdot> z)"
+    and f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" (infixl "\<cdot>" 70)
+  assumes ident [simp]: "x \<in> D \<Longrightarrow> x \<cdot> e = x"
+    and commute: "\<lbrakk> x \<in> D; y \<in> D \<rbrakk> \<Longrightarrow> x \<cdot> y = y \<cdot> x"
+    and assoc: "\<lbrakk> x \<in> D; y \<in> D; z \<in> D \<rbrakk> \<Longrightarrow> (x \<cdot> y) \<cdot> z = x \<cdot> (y \<cdot> z)"
     and e_closed [simp]: "e \<in> D"
-    and f_closed [simp]: "[| x \<in> D; y \<in> D |] ==> x \<cdot> y \<in> D"
+    and f_closed [simp]: "\<lbrakk> x \<in> D; y \<in> D \<rbrakk> \<Longrightarrow> x \<cdot> y \<in> D"
 
 lemma (in ACeD) left_commute:
-  "[| x \<in> D; y \<in> D; z \<in> D |] ==> x \<cdot> (y \<cdot> z) = y \<cdot> (x \<cdot> z)"
-proof -
-  assume D: "x \<in> D" "y \<in> D" "z \<in> D"
-  then have "x \<cdot> (y \<cdot> z) = (y \<cdot> z) \<cdot> x" by (simp add: commute)
-  also from D have "... = y \<cdot> (z \<cdot> x)" by (simp add: assoc)
-  also from D have "z \<cdot> x = x \<cdot> z" by (simp add: commute)
-  finally show ?thesis .
-qed
+  "\<lbrakk> x \<in> D; y \<in> D; z \<in> D \<rbrakk> \<Longrightarrow> x \<cdot> (y \<cdot> z) = y \<cdot> (x \<cdot> z)"
+  using assoc commute by auto
+
+lemma (in ACeD) LCD_of_ACeD: "LCD D D f"
+  by (simp add: LCD_def left_commute)
 
 lemmas (in ACeD) AC = assoc commute left_commute
 
-lemma (in ACeD) left_ident [simp]: "x \<in> D ==> e \<cdot> x = x"
-proof -
-  assume "x \<in> D"
-  then have "x \<cdot> e = x" by (rule ident)
-  with \<open>x \<in> D\<close> show ?thesis by (simp add: commute)
-qed
+lemma (in ACeD) left_ident [simp]: "x \<in> D \<Longrightarrow> e \<cdot> x = x"
+  using commute ident by fastforce
 
 lemma (in ACeD) foldD_Un_Int:
-  "[| finite A; finite B; A \<subseteq> D; B \<subseteq> D |] ==>
-    foldD D f e A \<cdot> foldD D f e B =
-    foldD D f e (A Un B) \<cdot> foldD D f e (A Int B)"
+  "\<lbrakk> finite A; finite B; A \<subseteq> D; B \<subseteq> D \<rbrakk> \<Longrightarrow>
+     foldD D f e A \<cdot> foldD D f e B = foldD D f e (A \<union> B) \<cdot> foldD D f e (A \<inter> B)"
   apply (induct set: finite)
    apply (simp add: left_commute LCD.foldD_closed [OF LCD.intro [of D]])
   apply (simp add: AC insert_absorb Int_insert_left
@@ -278,16 +227,15 @@ lemma (in ACeD) foldD_Un_Int:
   done
 
 lemma (in ACeD) foldD_Un_disjoint:
-  "[| finite A; finite B; A Int B = {}; A \<subseteq> D; B \<subseteq> D |] ==>
-    foldD D f e (A Un B) = foldD D f e A \<cdot> foldD D f e B"
-  by (simp add: foldD_Un_Int
-    left_commute LCD.foldD_closed [OF LCD.intro [of D]])
+  "\<lbrakk> finite A; finite B; A \<inter> B = {}; A \<subseteq> D; B \<subseteq> D \<rbrakk> \<Longrightarrow>
+    foldD D f e (A \<union> B) = foldD D f e A \<cdot> foldD D f e B"
+  by (simp add: foldD_Un_Int left_commute LCD.foldD_closed [OF LCD.intro [of D]])
 
 
 subsubsection \<open>Products over Finite Sets\<close>
 
 definition
-  finprod :: "[('b, 'm) monoid_scheme, 'a => 'b, 'a set] => 'b"
+  finprod :: "[('b, 'm) monoid_scheme, 'a \<Rightarrow> 'b, 'a set] \<Rightarrow> 'b"
   where "finprod G f A =
    (if finite A
     then foldD (carrier G) (mult G o f) \<one>\<^bsub>G\<^esub> A
@@ -297,7 +245,7 @@ syntax
   "_finprod" :: "index => idt => 'a set => 'b => 'b"
       ("(3\<Otimes>__\<in>_. _)" [1000, 0, 51, 10] 10)
 translations
-  "\<Otimes>\<^bsub>G\<^esub>i\<in>A. b" \<rightleftharpoons> "CONST finprod G (%i. b) A"
+  "\<Otimes>\<^bsub>G\<^esub>i\<in>A. b" \<rightleftharpoons> "CONST finprod G (\<lambda>i. b) A"
   \<comment> \<open>Beware of argument permutation!\<close>
 
 lemma (in comm_monoid) finprod_empty [simp]: 
