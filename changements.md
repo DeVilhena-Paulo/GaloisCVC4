@@ -33,7 +33,7 @@ This file contains a brief description of important modifications of the library
  * [NEW] corollary (in group) iso_trans.
  * [NEW] corollary  DirProd_commute_iso.
 
-### FiniteProd.thy
+### FiniteProduct.thy
 
  * [SUP] lemma foldSetD_closed.
  * [NEW] lemma foldSetD_backwards.
