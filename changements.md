@@ -36,6 +36,8 @@ This file contains a brief description of important modifications of the library
 ### FiniteProd.thy
 
  * [SUP] lemma foldSetD_closed.
+ * [NEW] lemma foldSetD_backwards.
+ * [NEW] proof of lemma foldSetD_determ_aux written in Isar and shorter than the first.
  
 
 ### Coset.thy
@@ -43,7 +45,7 @@ This file contains a brief description of important modifications of the library
  * [REN] from `lemma lagrange` to `lemma lagrange_aux`.
  * [REN] from `lemma FactGroup_iso` to `lemma FactGroup_iso_set`, and suppression of the symbol "≅".
  * [NEW] lemma lagrange (Lagrange's theorem for both finite and infinite groups).
- * [NEW] corollary (in group_hom) FactGroup_iso.
+ * [NEW] corollry (in group_hom) FactGroup_iso.
  * [NEW] lemma l_coset_eq_set_mult.
  * [NEW] lemma r_coset_eq_set_mult.
  * [NEW] lemma (in subgroup) rcosets_not_empty.
