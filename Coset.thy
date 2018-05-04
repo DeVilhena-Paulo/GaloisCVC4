@@ -38,6 +38,9 @@ abbreviation
   normal_rel :: "['a set, ('a, 'b) monoid_scheme] \<Rightarrow> bool"  (infixl "\<lhd>" 60) where
   "H \<lhd> G \<equiv> normal H G"
 
+(* ************************************************************************** *)
+(* Next two lemmas contributed by Martin Baillon.                                  *)
+
 lemma l_coset_eq_set_mult:
   fixes G (structure)
   shows "x <# H = {x} <#> H"
@@ -47,6 +50,8 @@ lemma r_coset_eq_set_mult:
   fixes G (structure)
   shows "H #> x = H <#> {x}"
   unfolding r_coset_def set_mult_def by simp
+
+(* ************************************************************************** *)
 
 
 (* ************************************************************************** *)
@@ -93,13 +98,13 @@ lemma (in group) setmult_subset_G:
   shows "H <#> K \<subseteq> carrier G" using assms
   by (auto simp add: set_mult_def subsetD)
 
-(* ************************************************************************** *)
-(* Next two lemmas contributed by Martin Baillon.                             *)
-
 lemma (in monoid) set_mult_closed:
   assumes "H \<subseteq> carrier G" "K \<subseteq> carrier G"
   shows "H <#> K \<subseteq> carrier G"
   using assms by (auto simp add: set_mult_def subsetD)
+
+(* ************************************************************************** *)
+(* Next lemma contributed by Martin Baillon.                                  *)
 
 lemma (in group) set_mult_assoc:
   assumes "M \<subseteq> carrier G" "H \<subseteq> carrier G" "K \<subseteq> carrier G"
