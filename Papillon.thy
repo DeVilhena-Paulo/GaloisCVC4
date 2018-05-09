@@ -800,11 +800,83 @@ proof-
     unfolding normal_def normal_axioms_def by auto
 qed
 
-      
-  
+
+lemma (in normal) FactGroup_DirProd_l_inv :
+"G \<cong> ((G Mod H) \<times>\<times> G\<lparr>carrier := H\<rparr>)" unfolding FactGroup_def group_def DirProd_def
+  sorry
+
+lemma (in group) DirProd_normal :
+  assumes "group K"
+    and "H \<lhd> G"
+    and "N \<lhd> K"
+  shows "H \<times> N \<lhd> G \<times>\<times> K"
+proof (intro group.normal_invI[OF DirProd_group[OF group_axioms assms(1)]])
+  show sub : "subgroup (H \<times> N) (G \<times>\<times> K)"
+    using DirProd_subgroups[OF group_axioms normal_imp_subgroup[OF assms(2)]assms(1)
+         normal_imp_subgroup[OF assms(3)]].
+  show "\<And>x h. x \<in> carrier (G\<times>\<times>K) \<Longrightarrow> h \<in> H\<times>N \<Longrightarrow> x \<otimes>\<^bsub>G\<times>\<times>K\<^esub> h \<otimes>\<^bsub>G\<times>\<times>K\<^esub> inv\<^bsub>G\<times>\<times>K\<^esub> x \<in> H\<times>N"
+  proof-
+    fix x h assume xGK : "x \<in> carrier (G \<times>\<times> K)" and hHN : " h \<in> H \<times> N"
+    hence hGK : "h \<in> carrier (G \<times>\<times> K)" using subgroup_imp_subset[OF sub] by auto
+    from xGK obtain x1 x2 where x1x2 :"x1 \<in> carrier G" "x2 \<in> carrier K" "x = (x1,x2)"
+      unfolding DirProd_def by fastforce
+    from hHN obtain h1 h2 where h1h2 : "h1 \<in> H" "h2 \<in> N" "h = (h1,h2)"
+      unfolding DirProd_def by fastforce
+    hence h1h2GK : "h1 \<in> carrier G" "h2 \<in> carrier K"
+      using normal_imp_subgroup subgroup_imp_subset assms apply blast+.
+    have "inv\<^bsub>G \<times>\<times> K\<^esub> x = (inv\<^bsub>G\<^esub> x1,inv\<^bsub>K\<^esub> x2)"
+      using inv_DirProd[OF group_axioms assms(1) x1x2(1)x1x2(2)] x1x2 by auto
+    hence "x \<otimes>\<^bsub>G \<times>\<times> K\<^esub> h \<otimes>\<^bsub>G \<times>\<times> K\<^esub> inv\<^bsub>G \<times>\<times> K\<^esub> x = (x1 \<otimes> h1 \<otimes> inv x1,x2 \<otimes>\<^bsub>K\<^esub> h2 \<otimes>\<^bsub>K\<^esub> inv\<^bsub>K\<^esub> x2)"
+      using h1h2 x1x2 h1h2GK by auto
+    moreover have "x1 \<otimes> h1 \<otimes> inv x1 \<in> H" "x2 \<otimes>\<^bsub>K\<^esub> h2 \<otimes>\<^bsub>K\<^esub> inv\<^bsub>K\<^esub> x2 \<in> N"
+      using normal_invE group.normal_invE[OF assms(1)] assms x1x2 h1h2 apply auto.
+    hence "(x1 \<otimes> h1 \<otimes> inv x1, x2 \<otimes>\<^bsub>K\<^esub> h2 \<otimes>\<^bsub>K\<^esub> inv\<^bsub>K\<^esub> x2)\<in> H \<times> N" by auto
+    ultimately show " x \<otimes>\<^bsub>G \<times>\<times> K\<^esub> h \<otimes>\<^bsub>G \<times>\<times> K\<^esub> inv\<^bsub>G \<times>\<times> K\<^esub> x \<in> H \<times> N" by auto
+  qed
+qed
+
+lemma (in group) FactGroup_DirProd_multiplication_rule :
+  assumes "group K"
+    and "H \<lhd> G"
+    and "N \<lhd> K"
+  shows "G \<times>\<times> K Mod H \<times> N \<cong> (G Mod H) \<times>\<times> (K Mod N)"
+  unfolding DirProd_def FactGroup_def apply simp
+  sorry
 
 
+lemma (in group) trivial_factor_iso_set:
+  shows "the_elem \<in> iso (G Mod {\<one>}) G"
+proof -
+  have "group_hom G G (\<lambda>x. x)" unfolding group_hom_def group_hom_axioms_def hom_def using is_group by simp
+  moreover have "(\<lambda>x. x) ` carrier G = carrier G" by simp
+  moreover have "kernel G G (\<lambda>x. x) = {\<one>}" unfolding kernel_def by auto
+  ultimately show ?thesis using group_hom.FactGroup_iso_set by force
+qed
 
+corollary (in group) trivial_factor_iso :
+  "G \<cong> (G Mod {\<one>})"
+  using trivial_factor_iso_set group.iso_set_sym normal.factorgroup_is_group one_is_normal
+  unfolding is_iso_def by fastforce
+
+
+lemma (in normal) FatGroup_DirProd_r_inv :
+"G \<cong> G \<times>\<times> G\<lparr>carrier := H\<rparr> Mod H \<times> {\<one>}"
+proof-
+  have one_in_H : "{\<one>} \<lhd> (G\<lparr>carrier := H\<rparr>)" using normal_inter_subgroup one_is_normal
+    by (metis bot.extremum insert_subset le_iff_inf normal_axioms normal_def subgroup_def)
+  hence "(G Mod H) \<times>\<times> (G\<lparr>carrier := H\<rparr> Mod {\<one>}) \<cong> G \<times>\<times> G\<lparr>carrier := H\<rparr> Mod H \<times> {\<one>}"
+    using FactGroup_DirProd_multiplication_rule[OF subgroup_imp_group normal_axioms one_in_H]
+          group.iso_sym[OF normal.factorgroup_is_group[OF DirProd_normal]]
+         DirProd_iso_trans subgroup_imp_group normal_axioms normal_imp_subgroup
+    by blast
+  moreover have "(G Mod H) \<times>\<times> G\<lparr>carrier := H\<rparr> \<cong> (G Mod H) \<times>\<times> (G\<lparr>carrier := H\<rparr> Mod {\<one>})"
+    using group.DirProd_iso_trans[OF factorgroup_is_group iso_refl] group.trivial_factor_iso
+    by (smt is_group normal_imp_subgroup one_in_H singletonD subgroup.one_closed subgroup_is_group)
+  hence "G \<cong> (G Mod H) \<times>\<times> (G\<lparr>carrier := H\<rparr> Mod {\<one>})"
+    using FactGroup_DirProd_l_inv iso_trans by blast
+  ultimately show  "G \<cong> G \<times>\<times> G\<lparr>carrier := H\<rparr> Mod H \<times> {\<one>}"
+    using iso_trans by blast
+qed
 
 
 proposition (in group)  Zassenhaus_1 :
@@ -877,7 +949,7 @@ proof-
     show "K1 \<inter> H \<lhd> G\<lparr>carrier := H \<inter> K\<rparr>"
       using normal_inter[OF assms(3)assms(1)assms(4)] by (simp add: inf_commute)
    next
-    show "subgroup (K \<inter> H1) (G\<lparr>carrier := H \<inter> K\<rparr>)"
+    show "subgroup (K \<inter> H1) (G\<lparr>carrier := H \<inter> K\<rparr>)" 
       using subgroup_incl by (simp add: assms inf_commute normal_imp_subgroup normal_inter) 
   qed
   hence  "Gmod3  = Gmod4" using Hp Gmod4_def by simp

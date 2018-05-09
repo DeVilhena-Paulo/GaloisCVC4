@@ -522,11 +522,35 @@ proof (rule classical)
   with subgroup_nonempty show ?thesis by contradiction
 qed
 
+lemma (in group) group_incl_imp_subgroup :
+  assumes "H \<subseteq> carrier G"
+and "group (G\<lparr>carrier := H\<rparr>)"
+shows "subgroup H G"
+proof (intro subgroupI[OF assms(1)])
+  have "carrier  (G\<lparr>carrier := H\<rparr>) \<noteq> {}" using assms
+    using Group.group.axioms(1) by blast
+  thus "H \<noteq> {}" by simp
+  have ab_eq : "\<And> a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> b = a \<otimes> b" using assms by simp
+  fix a b assume aH : "a \<in> H" and bH : "b \<in> H"
+  have " inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a \<in> carrier G"
+    using assms aH group.inv_closed[OF assms(2)] by auto
+  moreover have "\<one>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> = \<one>" using assms monoid.one_closed ab_eq one_def by simp
+  hence "a \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a= \<one>"
+    using assms ab_eq aH  group.r_inv[OF assms(2)] by simp
+  hence "a \<otimes> inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a= \<one>"
+    using aH assms group.inv_closed[OF assms(2)] ab_eq by simp
+  ultimately have "inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a = inv a"
+    by (smt aH assms(1) contra_subsetD group.inv_inv is_group local.inv_equality)
+  moreover have "inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a \<in> H" using aH group.inv_closed[OF assms(2)] by auto
+  ultimately show "inv a \<in> H" by auto
+  have "\<And>a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes> b \<in> carrier (G\<lparr>carrier := H\<rparr>) "
+    using assms ab_eq unfolding group_def using monoid.m_closed by fastforce
+  thus "\<And>a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes> b \<in> H" by simp
+qed
 (*
 lemma (in monoid) Units_subgroup:
   "subgroup (Units G) G"
 *)
-
 
 subsection \<open>Direct Products\<close>
 
@@ -589,6 +613,22 @@ proof -
   show ?thesis by (simp add: Prod.inv_equality g h)
 qed
 
+lemma DirProd_subgroups :
+  assumes "group G"
+and "subgroup H G"
+and "group K"
+and "subgroup I K"
+shows "subgroup (H \<times> I) (G \<times>\<times> K)"
+proof (intro group.group_incl_imp_subgroup[OF DirProd_group[OF assms(1)assms(3)]])
+  have "H \<subseteq> carrier G" "I \<subseteq> carrier K" using subgroup_imp_subset assms apply blast+.
+  thus "(H \<times> I) \<subseteq> carrier (G \<times>\<times> K)" unfolding DirProd_def by auto
+  have "Group.group ((G\<lparr>carrier := H\<rparr>) \<times>\<times> (K\<lparr>carrier := I\<rparr>))"
+    using DirProd_group[OF subgroup.subgroup_is_group[OF assms(2)assms(1)]
+                           subgroup.subgroup_is_group[OF assms(4)assms(3)]].
+  moreover have "((G\<lparr>carrier := H\<rparr>) \<times>\<times> (K\<lparr>carrier := I\<rparr>)) = ((G \<times>\<times> K)\<lparr>carrier := H \<times> I\<rparr>)"
+    unfolding DirProd_def using assms apply simp.
+  ultimately show "Group.group ((G \<times>\<times> K)\<lparr>carrier := H \<times> I\<rparr>)" by simp
+qed
 
 subsection \<open>Homomorphisms and Isomorphisms\<close>
 
@@ -647,6 +687,27 @@ corollary DirProd_commute_iso :
 lemma DirProd_assoc_iso_set:
   shows "(\<lambda>(x,y,z). (x,(y,z))) \<in> iso (G \<times>\<times> H \<times>\<times> I) (G \<times>\<times> (H \<times>\<times> I))"
 by (auto simp add: iso_def hom_def inj_on_def bij_betw_def)
+
+lemma (in group) DirProd_iso_set_trans: 
+  assumes "g \<in> iso G G2"
+    and "h \<in> iso H I"
+  shows "(\<lambda>(x,y). (g x, h y)) \<in> iso (G \<times>\<times> H) (G2 \<times>\<times> I)"
+proof-
+  have "(\<lambda>(x,y). (g x, h y)) \<in> hom (G \<times>\<times> H) (G2 \<times>\<times> I)"
+    using assms unfolding iso_def hom_def by auto
+  moreover have " inj_on (\<lambda>(x,y). (g x, h y)) (carrier (G \<times>\<times> H))"
+    using assms unfolding iso_def DirProd_def bij_betw_def inj_on_def by auto
+  moreover have "(\<lambda>(x, y). (g x, h y)) ` carrier (G \<times>\<times> H) = carrier (G2 \<times>\<times> I)"
+    using assms unfolding iso_def bij_betw_def image_def DirProd_def by fastforce
+  ultimately show "(\<lambda>(x,y). (g x, h y)) \<in> iso (G \<times>\<times> H) (G2 \<times>\<times> I)"
+    unfolding iso_def bij_betw_def by auto
+qed
+
+corollary (in group) DirProd_iso_trans :
+  assumes "G \<cong> G2"
+    and "H \<cong> I"
+  shows "G \<times>\<times> H \<cong> G2 \<times>\<times> I"
+  using DirProd_iso_set_trans assms unfolding is_iso_def by blast
 
 
 text\<open>Basis for homomorphism proofs: we assume two groups @{term G} and

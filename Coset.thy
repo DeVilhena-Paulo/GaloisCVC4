@@ -426,6 +426,15 @@ corollary (in group) normal_invE:
   by (simp add: assms normal.inv_op_closed2) 
 
 
+lemma (in group) one_is_normal :
+   "{\<one>} \<lhd> G" 
+proof(intro normal_invI )
+  show "subgroup {\<one>} G"
+    by (simp add: subgroup_def)
+  show "\<And>x h. x \<in> carrier G \<Longrightarrow> h \<in> {\<one>} \<Longrightarrow> x \<otimes> h \<otimes> inv x \<in> {\<one>}" by simp
+qed
+
+
 subsection\<open>More Properties of Left Cosets\<close>
 
 lemma (in group) l_repr_independence:

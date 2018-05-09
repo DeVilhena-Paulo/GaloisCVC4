@@ -307,7 +307,6 @@ lemma (in cring) is_comm_monoid:
   "comm_monoid R"
   by (auto intro!: comm_monoidI m_assoc m_comm)
 *)
-
 lemma (in cring) is_cring:
   "cring R" by (rule cring_axioms)
 
