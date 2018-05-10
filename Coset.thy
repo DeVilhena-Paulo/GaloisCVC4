@@ -1043,4 +1043,6 @@ corollary (in group_hom) FactGroup_iso :
    \<Longrightarrow> (G Mod (kernel G H h))\<cong> H"
   using FactGroup_iso_set unfolding is_iso_def by auto
 
+
+
 end
