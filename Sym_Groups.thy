@@ -1,4 +1,4 @@
-theory More_Sym_Groups
+theory Sym_Groups
   imports Cycles Group Coset Generated_Groups Solvable_Groups
     
 begin
