@@ -506,6 +506,16 @@ proof (simp add: subgroup_def assms)
   show "\<one> \<in> H" by (rule one_in_subset) (auto simp only: assms)
 qed
 
+lemma (in group) subgroupE:
+  assumes "subgroup H G"
+  shows "H \<subseteq> carrier G"
+    and "H \<noteq> {}"
+    and "\<And>a. a \<in> H \<Longrightarrow> inv a \<in> H"
+    and "\<And>a b. \<lbrakk>a \<in> H; b \<in> H\<rbrakk> \<Longrightarrow> a \<otimes> b \<in> H"
+  using assms subgroup_imp_subset apply blast
+  using assms subgroup_def apply auto[1]
+  by (simp add: assms subgroup.m_closed subgroup.m_inv_closed)+
+
 declare monoid.one_closed [iff] group.inv_closed [simp]
   monoid.l_one [simp] monoid.r_one [simp] group.inv_inv [simp]
 
@@ -758,6 +768,14 @@ proof -
   with x show ?thesis by (simp del: H.r_inv H.Units_r_inv)
 qed
 
+(* Contributed by Paulo Emílio de Vilhena *)
+lemma (in group) canonical_inj_is_hom:
+  assumes "subgroup H G"
+  shows "group_hom (G \<lparr> carrier := H \<rparr>) G id"
+  unfolding group_hom_def group_hom_axioms_def hom_def
+  using subgroup.subgroup_is_group[OF assms is_group]
+        is_group subgroup_imp_subset[OF assms] by auto
+
 (* Contributed by Joachim Breitner *)
 lemma (in group) int_pow_is_hom:
   "x \<in> carrier G \<Longrightarrow> (op(^) x) \<in> hom \<lparr> carrier = UNIV, mult = op +, one = 0::int \<rparr> G "
@@ -847,6 +865,18 @@ lemma comm_groupI:
   shows "comm_group G"
   by (fast intro: group.group_comm_groupI groupI assms)
 
+lemma comm_groupE:
+  fixes G (structure)
+  assumes "comm_group G"
+  shows "\<And>x y. \<lbrakk> x \<in> carrier G; y \<in> carrier G \<rbrakk> \<Longrightarrow> x \<otimes> y \<in> carrier G"
+    and "\<one> \<in> carrier G"
+    and "\<And>x y z. \<lbrakk> x \<in> carrier G; y \<in> carrier G; z \<in> carrier G \<rbrakk> \<Longrightarrow> (x \<otimes> y) \<otimes> z = x \<otimes> (y \<otimes> z)"
+    and "\<And>x y. \<lbrakk> x \<in> carrier G; y \<in> carrier G \<rbrakk> \<Longrightarrow> x \<otimes> y = y \<otimes> x"
+    and "\<And>x. x \<in> carrier G \<Longrightarrow> \<one> \<otimes> x = x"
+    and "\<And>x. x \<in> carrier G \<Longrightarrow> \<exists>y \<in> carrier G. y \<otimes> x = \<one>"
+  apply (simp_all add: group.axioms assms comm_group.axioms comm_monoid.m_comm comm_monoid.m_ac(1))
+  by (simp_all add: Group.group.axioms(1) assms comm_group.axioms(2) monoid.m_closed group.r_inv_ex)
+
 lemma (in comm_group) inv_mult:
   "[| x \<in> carrier G; y \<in> carrier G |] ==> inv (x \<otimes> y) = inv x \<otimes> inv y"
   by (simp add: m_ac inv_mult_group)
@@ -879,7 +909,11 @@ apply (rule_tac inv_equality [THEN sym])
  apply (rule subsetD [OF subgroup.subset], assumption+)
 apply (rule subsetD [OF subgroup.subset], assumption)
 apply (rule_tac group.inv_closed [OF subgroup_imp_group, simplified], assumption+)
-done
+  done
+
+lemma (in group) subgroup_mult_equality:
+  "\<lbrakk> subgroup H G; h1 \<in> H; h2 \<in> H \<rbrakk> \<Longrightarrow>  h1 \<otimes>\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> h2 = h1 \<otimes> h2"
+  unfolding subgroup_def by simp
 
 theorem (in group) subgroups_Inter:
   assumes subgr: "(!!H. H \<in> A ==> subgroup H G)"

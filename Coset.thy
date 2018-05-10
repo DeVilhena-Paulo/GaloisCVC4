@@ -55,7 +55,7 @@ lemma r_coset_eq_set_mult:
 
 
 (* ************************************************************************** *)
-(* Next two lemmas contributed by Paulo Emílio de Vilhena.                    *)
+(* Next five lemmas contributed by Paulo Emílio de Vilhena.                    *)
 
 lemma (in subgroup) rcosets_not_empty:
   assumes "R \<in> rcosets H"
@@ -87,6 +87,24 @@ proof -
     using assms(1) g(1) h1(1) subgroup.mem_carrier by fastforce
   thus "r1 \<otimes> inv r2 \<in> H" by (metis assms(1) h1(1) h2(1) subgroup_def)
 qed
+
+
+subsection \<open>Stable Operations for Subgroups\<close>
+
+lemma (in group) subgroup_set_mult_equality[simp]:
+  assumes "subgroup H G" "I \<subseteq> H" "J \<subseteq> H"
+  shows "I <#>\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> J = I <#> J"
+  unfolding set_mult_def subgroup_mult_equality[OF assms(1)] by auto
+
+lemma (in group) subgroup_rcos_equality[simp]:
+  assumes "subgroup H G" "I \<subseteq> H" "h \<in> H"
+  shows "I #>\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> h = I #> h"
+  using subgroup_set_mult_equality by (simp add: r_coset_eq_set_mult assms)
+
+lemma (in group) subgroup_lcos_equality[simp]:
+  assumes "subgroup H G" "I \<subseteq> H" "h \<in> H"
+  shows "h <#\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> I = h <# I"
+  using subgroup_set_mult_equality by (simp add: l_coset_eq_set_mult assms)
 
 (* ************************************************************************** *)
                                  
