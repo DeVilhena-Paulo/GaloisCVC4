@@ -48,14 +48,14 @@ definition
   a_kernel :: "('a, 'm) ring_scheme \<Rightarrow> ('b, 'n) ring_scheme \<Rightarrow>  ('a \<Rightarrow> 'b) \<Rightarrow> 'a set"
     \<comment>\<open>the kernel of a homomorphism (additive)\<close>
   where "a_kernel G H h =
-    kernel \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>
-      \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr> h"
+           kernel \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>
+                  \<lparr> carrier = carrier H, mult = add H, one = zero H \<rparr> h"
 
 locale abelian_group_hom = G?: abelian_group G + H?: abelian_group H
     for G (structure) and H (structure) +
   fixes h
-  assumes a_group_hom: "group_hom \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>
-                                  \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr> h"
+  assumes a_group_hom: "group_hom \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>
+                                  \<lparr> carrier = carrier H, mult = add H, one = zero H \<rparr> h"
 
 lemmas a_r_coset_defs =
   a_r_coset_def r_coset_def
@@ -63,8 +63,7 @@ lemmas a_r_coset_defs =
 lemma a_r_coset_def':
   fixes G (structure)
   shows "H +> a \<equiv> \<Union>h\<in>H. {h \<oplus> a}"
-unfolding a_r_coset_defs
-by simp
+  unfolding a_r_coset_defs by simp
 
 lemmas a_l_coset_defs =
   a_l_coset_def l_coset_def
@@ -72,8 +71,7 @@ lemmas a_l_coset_defs =
 lemma a_l_coset_def':
   fixes G (structure)
   shows "a <+ H \<equiv> \<Union>h\<in>H. {a \<oplus> h}"
-unfolding a_l_coset_defs
-by simp
+  unfolding a_l_coset_defs by simp
 
 lemmas A_RCOSETS_defs =
   A_RCOSETS_def RCOSETS_def
@@ -81,8 +79,7 @@ lemmas A_RCOSETS_defs =
 lemma A_RCOSETS_def':
   fixes G (structure)
   shows "a_rcosets H \<equiv> \<Union>a\<in>carrier G. {H +> a}"
-unfolding A_RCOSETS_defs
-by (fold a_r_coset_def, simp)
+  unfolding A_RCOSETS_defs by (fold a_r_coset_def, simp)
 
 lemmas set_add_defs =
   set_add_def set_mult_def
@@ -90,8 +87,7 @@ lemmas set_add_defs =
 lemma set_add_def':
   fixes G (structure)
   shows "H <+> K \<equiv> \<Union>h\<in>H. \<Union>k\<in>K. {h \<oplus> k}"
-unfolding set_add_defs
-by simp
+  unfolding set_add_defs by simp
 
 lemmas A_SET_INV_defs =
   A_SET_INV_def SET_INV_def
@@ -99,17 +95,51 @@ lemmas A_SET_INV_defs =
 lemma A_SET_INV_def':
   fixes G (structure)
   shows "a_set_inv H \<equiv> \<Union>h\<in>H. {\<ominus> h}"
-unfolding A_SET_INV_defs
-by (fold a_inv_def)
+  unfolding A_SET_INV_defs by (fold a_inv_def)
 
 
 subsubsection \<open>Cosets\<close>
+
+sublocale abelian_group <
+        add: group "\<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
+  rewrites "carrier \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =   carrier G"
+       and "   mult \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =       add G"
+       and "    one \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =      zero G"
+       and "  m_inv \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =     a_inv G"
+       and "finprod \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =    finsum G"
+       and "r_coset \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = a_r_coset G"
+       and "l_coset \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = a_l_coset G"
+  by (rule a_group)
+     (auto simp: m_inv_def a_inv_def finsum_def a_r_coset_def a_l_coset_def)
+
+context abelian_group
+begin
+
+thm add.coset_mult_assoc
+lemmas a_repr_independence' = add.repr_independence
+
+(*
+lemmas a_coset_add_assoc = add.coset_mult_assoc
+lemmas a_coset_add_zero [simp] = add.coset_mult_one
+lemmas a_coset_add_inv1 = add.coset_mult_inv1
+lemmas a_coset_add_inv2 = add.coset_mult_inv2
+lemmas a_coset_join1 = add.coset_join1
+lemmas a_coset_join2 = add.coset_join2
+lemmas a_solve_equation = add.solve_equation
+lemmas a_repr_independence = add.repr_independence
+lemmas a_rcosI = add.rcosI
+lemmas a_rcosetsI = add.rcosetsI
+*)
+
+end
 
 lemma (in abelian_group) a_coset_add_assoc:
      "[| M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G |]
       ==> (M +> g) +> h = M +> (g \<oplus> h)"
 by (rule group.coset_mult_assoc [OF a_group,
     folded a_r_coset_def, simplified monoid_record_simps])
+
+thm abelian_group.a_coset_add_assoc
 
 lemma (in abelian_group) a_coset_add_zero [simp]:
   "M \<subseteq> carrier G ==> M +> \<zero> = M"
@@ -139,9 +169,9 @@ by (rule group.solve_equation [OF a_group,
     folded a_r_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_repr_independence:
-     "\<lbrakk>y \<in> H +> x;  x \<in> carrier G; subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> \<rbrakk> \<Longrightarrow> H +> x = H +> y"
-by (rule group.repr_independence [OF a_group,
-    folded a_r_coset_def, simplified monoid_record_simps])
+  "\<lbrakk> y \<in> H +> x; x \<in> carrier G; subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> \<rbrakk> \<Longrightarrow>
+     H +> x = H +> y"
+  using a_repr_independence' by (simp add: a_r_coset_def)
 
 lemma (in abelian_group) a_coset_join2:
      "\<lbrakk>x \<in> carrier G;  subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>; x\<in>H\<rbrakk> \<Longrightarrow> H +> x = H"

@@ -67,11 +67,7 @@ lemma abelian_monoidE:
     and "\<And>x y z. \<lbrakk> x \<in> carrier R; y \<in> carrier R; z \<in> carrier R \<rbrakk> \<Longrightarrow> (x \<oplus> y) \<oplus> z = x \<oplus> (y \<oplus> z)"
     and "\<And>x. x \<in> carrier R \<Longrightarrow> \<zero> \<oplus> x = x"
     and "\<And>x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> x \<oplus> y = y \<oplus> x"
-  using Group.comm_monoid.axioms(1) abelian_monoid.a_comm_monoid assms monoid.m_closed apply fastforce
-  using Group.comm_monoid.axioms(1) abelian_monoid.a_comm_monoid assms monoid.one_closed apply force
-  using abelian_monoid.a_comm_monoid assms comm_monoid.m_ac(1) apply fastforce
-  using Group.comm_monoid.axioms(1) abelian_monoid.a_comm_monoid assms monoid.l_one apply fastforce
-  using abelian_monoid.a_comm_monoid assms comm_monoid.m_comm by fastforce
+  using assms unfolding abelian_monoid_def comm_monoid_def comm_monoid_axioms_def monoid_def by auto
 
 lemma abelian_groupI:
   fixes R (structure)
@@ -278,7 +274,7 @@ lemma ringE:
     and "monoid R"
     and "\<And>x y z. \<lbrakk> x \<in> carrier R; y \<in> carrier R; z \<in> carrier R \<rbrakk> \<Longrightarrow> (x \<oplus> y) \<otimes> z = x \<otimes> z \<oplus> y \<otimes> z"
     and "\<And>x y z. \<lbrakk> x \<in> carrier R; y \<in> carrier R; z \<in> carrier R \<rbrakk> \<Longrightarrow> z \<otimes> (x \<oplus> y) = z \<otimes> x \<oplus> z \<otimes> y"
-  using assms ring_def by (auto simp add: ring_axioms_def ring_def)
+  using assms unfolding ring_def ring_axioms_def by auto
 
 context ring begin
 
@@ -291,7 +287,7 @@ lemma is_ring: "ring R"
   by (rule ring_axioms)
 
 end
-
+thm monoid_record_simps
 lemmas ring_record_simps = monoid_record_simps ring.simps
 
 lemma cringI:
@@ -677,6 +673,18 @@ lemma ring_hom_one:
   fixes R (structure) and S (structure)
   shows "h \<in> ring_hom R S \<Longrightarrow> h \<one> = \<one>\<^bsub>S\<^esub>"
   by (simp add: ring_hom_def)
+
+lemma ring_hom_zero:
+  fixes R (structure) and S (structure)
+  assumes "h \<in> ring_hom R S" "ring R" "ring S"
+  shows "h \<zero> = \<zero>\<^bsub>S\<^esub>"
+proof -
+  have "h \<zero> = h \<zero> \<oplus>\<^bsub>S\<^esub> h \<zero>"
+    using ring_hom_add[OF assms(1), of \<zero> \<zero>] assms(2)
+    by (simp add: ring.ring_simprules(2) ring.ring_simprules(15))
+  thus ?thesis
+    by (metis abelian_group.a_r_cancel abelian_groupE(5) assms ring.ring_simprules(2) ring_def ring_hom_closed) 
+qed
 
 locale ring_hom_cring =
   R?: cring R + S?: cring S for R (structure) and S (structure) + fixes h
