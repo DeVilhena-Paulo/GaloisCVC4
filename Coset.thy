@@ -1061,4 +1061,79 @@ corollary (in group_hom) FactGroup_iso :
    \<Longrightarrow> (G Mod (kernel G H h))\<cong> H"
   using FactGroup_iso_set unfolding is_iso_def by auto
 
+
+subsection\<open>Theorems about Factor Groups and Direct product\<close>
+
+
+lemma (in group) DirProd_normal :
+  assumes "group K"
+    and "H \<lhd> G"
+    and "N \<lhd> K"
+  shows "H \<times> N \<lhd> G \<times>\<times> K"
+proof (intro group.normal_invI[OF DirProd_group[OF group_axioms assms(1)]])
+  show sub : "subgroup (H \<times> N) (G \<times>\<times> K)"
+    using DirProd_subgroups[OF group_axioms normal_imp_subgroup[OF assms(2)]assms(1)
+         normal_imp_subgroup[OF assms(3)]].
+  show "\<And>x h. x \<in> carrier (G\<times>\<times>K) \<Longrightarrow> h \<in> H\<times>N \<Longrightarrow> x \<otimes>\<^bsub>G\<times>\<times>K\<^esub> h \<otimes>\<^bsub>G\<times>\<times>K\<^esub> inv\<^bsub>G\<times>\<times>K\<^esub> x \<in> H\<times>N"
+  proof-
+    fix x h assume xGK : "x \<in> carrier (G \<times>\<times> K)" and hHN : " h \<in> H \<times> N"
+    hence hGK : "h \<in> carrier (G \<times>\<times> K)" using subgroup_imp_subset[OF sub] by auto
+    from xGK obtain x1 x2 where x1x2 :"x1 \<in> carrier G" "x2 \<in> carrier K" "x = (x1,x2)"
+      unfolding DirProd_def by fastforce
+    from hHN obtain h1 h2 where h1h2 : "h1 \<in> H" "h2 \<in> N" "h = (h1,h2)"
+      unfolding DirProd_def by fastforce
+    hence h1h2GK : "h1 \<in> carrier G" "h2 \<in> carrier K"
+      using normal_imp_subgroup subgroup_imp_subset assms apply blast+.
+    have "inv\<^bsub>G \<times>\<times> K\<^esub> x = (inv\<^bsub>G\<^esub> x1,inv\<^bsub>K\<^esub> x2)"
+      using inv_DirProd[OF group_axioms assms(1) x1x2(1)x1x2(2)] x1x2 by auto
+    hence "x \<otimes>\<^bsub>G \<times>\<times> K\<^esub> h \<otimes>\<^bsub>G \<times>\<times> K\<^esub> inv\<^bsub>G \<times>\<times> K\<^esub> x = (x1 \<otimes> h1 \<otimes> inv x1,x2 \<otimes>\<^bsub>K\<^esub> h2 \<otimes>\<^bsub>K\<^esub> inv\<^bsub>K\<^esub> x2)"
+      using h1h2 x1x2 h1h2GK by auto
+    moreover have "x1 \<otimes> h1 \<otimes> inv x1 \<in> H" "x2 \<otimes>\<^bsub>K\<^esub> h2 \<otimes>\<^bsub>K\<^esub> inv\<^bsub>K\<^esub> x2 \<in> N"
+      using normal_invE group.normal_invE[OF assms(1)] assms x1x2 h1h2 apply auto.
+    hence "(x1 \<otimes> h1 \<otimes> inv x1, x2 \<otimes>\<^bsub>K\<^esub> h2 \<otimes>\<^bsub>K\<^esub> inv\<^bsub>K\<^esub> x2)\<in> H \<times> N" by auto
+    ultimately show " x \<otimes>\<^bsub>G \<times>\<times> K\<^esub> h \<otimes>\<^bsub>G \<times>\<times> K\<^esub> inv\<^bsub>G \<times>\<times> K\<^esub> x \<in> H \<times> N" by auto
+  qed
+qed
+
+lemma (in group) FactGroup_DirProd_multiplication_iso_set :
+  assumes "group K"
+    and "H \<lhd> G"
+    and "N \<lhd> K"
+  shows "(\<lambda> (X, Y). X \<times> Y) \<in> iso  ((G Mod H) \<times>\<times> (K Mod N)) (G \<times>\<times> K Mod H \<times> N)"
+
+proof-
+  have R :"(\<lambda>(X, Y). X \<times> Y) \<in> carrier (G Mod H) \<times> carrier (K Mod N) \<rightarrow> carrier (G \<times>\<times> K Mod H \<times> N)"
+    unfolding r_coset_def Sigma_def DirProd_def FactGroup_def RCOSETS_def apply simp by blast
+  moreover have "(\<forall>x\<in>carrier (G Mod H). \<forall>y\<in>carrier (K Mod N). \<forall>xa\<in>carrier (G Mod H).
+                \<forall>ya\<in>carrier (K Mod N). (x <#> xa) \<times> (y <#>\<^bsub>K\<^esub> ya) =  x \<times> y <#>\<^bsub>G \<times>\<times> K\<^esub> xa \<times> ya)"
+    unfolding set_mult_def apply auto apply blast+.
+  moreover have "(\<forall>x\<in>carrier (G Mod H). \<forall>y\<in>carrier (K Mod N). \<forall>xa\<in>carrier (G Mod H).
+                 \<forall>ya\<in>carrier (K Mod N).  x \<times> y = xa \<times> ya \<longrightarrow> x = xa \<and> y = ya)"
+    unfolding  FactGroup_def using times_eq_iff subgroup.rcosets_not_empty
+    by (metis assms(2) assms(3) normal_def partial_object.select_convs(1))
+  moreover have "(\<lambda>(X, Y). X \<times> Y) ` (carrier (G Mod H) \<times> carrier (K Mod N)) = 
+                                     carrier (G \<times>\<times> K Mod H \<times> N)"
+    unfolding image_def  apply auto using R apply force
+    unfolding DirProd_def FactGroup_def RCOSETS_def r_coset_def apply auto apply force.
+  ultimately show ?thesis
+    unfolding iso_def hom_def bij_betw_def inj_on_def by simp
+qed
+
+corollary (in group) FactGroup_DirProd_multiplication_iso_1 :
+  assumes "group K"
+    and "H \<lhd> G"
+    and "N \<lhd> K"
+  shows "  ((G Mod H) \<times>\<times> (K Mod N)) \<cong> (G \<times>\<times> K Mod H \<times> N)"
+  unfolding is_iso_def using FactGroup_DirProd_multiplication_iso_set assms by auto
+
+corollary (in group) FactGroup_DirProd_multiplication_iso_2 :
+  assumes "group K"
+    and "H \<lhd> G"
+    and "N \<lhd> K"
+  shows "(G \<times>\<times> K Mod H \<times> N) \<cong> ((G Mod H) \<times>\<times> (K Mod N))"
+  using FactGroup_DirProd_multiplication_iso_1 group.iso_sym assms
+        DirProd_group[OF normal.factorgroup_is_group normal.factorgroup_is_group]
+  by blast
+
+
 end
