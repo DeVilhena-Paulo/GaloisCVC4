@@ -15,11 +15,15 @@ record 'a ring = "'a monoid" +
   zero :: 'a ("\<zero>\<index>")
   add :: "['a, 'a] \<Rightarrow> 'a" (infixl "\<oplus>\<index>" 65)
 
+abbreviation
+  add_monoid :: "('a, 'm) ring_scheme \<Rightarrow> 'a monoid"
+  where "add_monoid R \<equiv> \<lparr> carrier = carrier R, mult = add R, one = zero R \<rparr>"
+
 text \<open>Derived operations.\<close>
 
 definition
   a_inv :: "[('a, 'm) ring_scheme, 'a ] \<Rightarrow> 'a" ("\<ominus>\<index> _" [81] 80)
-  where "a_inv R = m_inv \<lparr> carrier = carrier R, mult = add R, one = zero R \<rparr>"
+  where "a_inv R = m_inv (add_monoid R)"
 
 definition
   a_minus :: "[('a, 'm) ring_scheme, 'a, 'a] => 'a" (infixl "\<ominus>\<index>" 65)
@@ -28,11 +32,11 @@ definition
 locale abelian_monoid =
   fixes G (structure)
   assumes a_comm_monoid:
-     "comm_monoid \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
+     "comm_monoid (add_monoid G)"
 
 definition
   finsum :: "[('b, 'm) ring_scheme, 'a \<Rightarrow> 'b, 'a set] \<Rightarrow> 'b" where
-  "finsum G = finprod \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
+  "finsum G = finprod (add_monoid G)"
 
 syntax
   "_finsum" :: "index \<Rightarrow> idt \<Rightarrow> 'a set \<Rightarrow> 'b \<Rightarrow> 'b"
@@ -44,7 +48,7 @@ translations
 
 locale abelian_group = abelian_monoid +
   assumes a_comm_group:
-     "comm_group \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
+     "comm_group (add_monoid G)"
 
 
 subsection \<open>Basic Properties\<close>
@@ -94,11 +98,11 @@ lemma abelian_groupE:
   using abelian_group.a_comm_group assms comm_groupE by fastforce+
 
 lemma (in abelian_monoid) a_monoid:
-  "monoid \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
+  "monoid (add_monoid G)"
   by (rule comm_monoid.axioms, rule a_comm_monoid) 
 
 lemma (in abelian_group) a_group:
-  "group \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  "group (add_monoid G)"
   by (simp add: group_def a_monoid)
     (simp add: comm_group.axioms group.axioms a_comm_group)
 
@@ -107,10 +111,10 @@ lemmas monoid_record_simps = partial_object.simps monoid.simps
 text \<open>Transfer facts from multiplicative structures via interpretation.\<close>
 
 sublocale abelian_monoid <
-       add: monoid "\<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
-  rewrites "carrier \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = carrier G"
-       and "mult    \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = add G"
-       and "one     \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = zero G"
+       add: monoid "(add_monoid G)"
+  rewrites "carrier (add_monoid G) = carrier G"
+       and "mult    (add_monoid G) = add G"
+       and "one     (add_monoid G) = zero G"
   by (rule a_monoid) auto
 
 context abelian_monoid
@@ -126,11 +130,11 @@ lemmas minus_unique = add.inv_unique
 end
 
 sublocale abelian_monoid <
-  add: comm_monoid "\<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
-  rewrites "carrier \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = carrier G"
-       and "mult    \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = add G"
-       and "one     \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = zero G"
-       and "finprod \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = finsum G"
+  add: comm_monoid "(add_monoid G)"
+  rewrites "carrier (add_monoid G) = carrier G"
+       and "mult    (add_monoid G) = add G"
+       and "one     (add_monoid G) = zero G"
+       and "finprod (add_monoid G) = finsum G"
   by (rule a_comm_monoid) (auto simp: finsum_def)
 
 context abelian_monoid begin
@@ -182,11 +186,11 @@ lemmas finsum_singleton = add.finprod_singleton
 end
 
 sublocale abelian_group <
-        add: group "\<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
-  rewrites "carrier \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = carrier G"
-       and "mult    \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = add G"
-       and "one     \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = zero G"
-       and "m_inv   \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = a_inv G"
+        add: group "(add_monoid G)"
+  rewrites "carrier (add_monoid G) = carrier G"
+       and "mult    (add_monoid G) = add G"
+       and "one     (add_monoid G) = zero G"
+       and "m_inv   (add_monoid G) = a_inv G"
   by (rule a_group) (auto simp: m_inv_def a_inv_def)
 
 context abelian_group
@@ -210,12 +214,12 @@ lemmas minus_equality = add.inv_equality
 end
 
 sublocale abelian_group <
-   add: comm_group "\<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
-  rewrites "carrier \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = carrier G"
-       and "mult    \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = add G"
-       and "one     \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = zero G"
-       and "m_inv   \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = a_inv G"
-       and "finprod \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = finsum G"
+   add: comm_group "(add_monoid G)"
+  rewrites "carrier (add_monoid G) = carrier G"
+       and "mult    (add_monoid G) = add G"
+       and "one     (add_monoid G) = zero G"
+       and "m_inv   (add_monoid G) = a_inv G"
+       and "finprod (add_monoid G) = finsum G"
   by (rule a_comm_group) (auto simp: m_inv_def a_inv_def finsum_def)
 
 lemmas (in abelian_group) minus_add = add.inv_mult
@@ -224,10 +228,10 @@ text \<open>Derive an \<open>abelian_group\<close> from a \<open>comm_group\<clo
 
 lemma comm_group_abelian_groupI:
   fixes G (structure)
-  assumes cg: "comm_group \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes cg: "comm_group (add_monoid G)"
   shows "abelian_group G"
 proof -
-  interpret comm_group "\<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  interpret comm_group "(add_monoid G)"
     by (rule cg)
   show "abelian_group G" ..
 qed

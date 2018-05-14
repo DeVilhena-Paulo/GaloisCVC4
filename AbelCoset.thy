@@ -17,45 +17,42 @@ no_notation Sum_Type.Plus (infixr "<+>" 65)
 
 definition
   a_r_coset    :: "[_, 'a set, 'a] \<Rightarrow> 'a set"    (infixl "+>\<index>" 60)
-  where "a_r_coset G = r_coset \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  where "a_r_coset G = r_coset (add_monoid G)"
 
 definition
   a_l_coset    :: "[_, 'a, 'a set] \<Rightarrow> 'a set"    (infixl "<+\<index>" 60)
-  where "a_l_coset G = l_coset \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  where "a_l_coset G = l_coset (add_monoid G)"
 
 definition
   A_RCOSETS  :: "[_, 'a set] \<Rightarrow> ('a set)set"   ("a'_rcosets\<index> _" [81] 80)
-  where "A_RCOSETS G H = RCOSETS \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> H"
+  where "A_RCOSETS G H = RCOSETS (add_monoid G) H"
 
 definition
   set_add  :: "[_, 'a set ,'a set] \<Rightarrow> 'a set" (infixl "<+>\<index>" 60)
-  where "set_add G = set_mult \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  where "set_add G = set_mult (add_monoid G)"
 
 definition
   A_SET_INV :: "[_,'a set] \<Rightarrow> 'a set"  ("a'_set'_inv\<index> _" [81] 80)
-  where "A_SET_INV G H = SET_INV \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> H"
+  where "A_SET_INV G H = SET_INV (add_monoid G) H"
 
 definition
   a_r_congruent :: "[('a,'b)ring_scheme, 'a set] \<Rightarrow> ('a*'a)set"  ("racong\<index>")
-  where "a_r_congruent G = r_congruent \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  where "a_r_congruent G = r_congruent (add_monoid G)"
 
 definition
   A_FactGroup :: "[('a,'b) ring_scheme, 'a set] \<Rightarrow> ('a set) monoid" (infixl "A'_Mod" 65)
     \<comment>\<open>Actually defined for groups rather than monoids\<close>
-  where "A_FactGroup G H = FactGroup \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> H"
+  where "A_FactGroup G H = FactGroup (add_monoid G) H"
 
 definition
   a_kernel :: "('a, 'm) ring_scheme \<Rightarrow> ('b, 'n) ring_scheme \<Rightarrow>  ('a \<Rightarrow> 'b) \<Rightarrow> 'a set"
     \<comment>\<open>the kernel of a homomorphism (additive)\<close>
-  where "a_kernel G H h =
-           kernel \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>
-                  \<lparr> carrier = carrier H, mult = add H, one = zero H \<rparr> h"
+  where "a_kernel G H h = kernel (add_monoid G) (add_monoid H) h"
 
 locale abelian_group_hom = G?: abelian_group G + H?: abelian_group H
     for G (structure) and H (structure) +
   fixes h
-  assumes a_group_hom: "group_hom \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>
-                                  \<lparr> carrier = carrier H, mult = add H, one = zero H \<rparr> h"
+  assumes a_group_hom: "group_hom (add_monoid G) (add_monoid H) h"
 
 lemmas a_r_coset_defs =
   a_r_coset_def r_coset_def
@@ -101,14 +98,14 @@ lemma A_SET_INV_def':
 subsubsection \<open>Cosets\<close>
 
 sublocale abelian_group <
-        add: group "\<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr>"
-  rewrites "carrier \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =   carrier G"
-       and "   mult \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =       add G"
-       and "    one \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =      zero G"
-       and "  m_inv \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =     a_inv G"
-       and "finprod \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> =    finsum G"
-       and "r_coset \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = a_r_coset G"
-       and "l_coset \<lparr> carrier = carrier G, mult = add G, one = zero G \<rparr> = a_l_coset G"
+        add: group "(add_monoid G)"
+  rewrites "carrier (add_monoid G) =   carrier G"
+       and "   mult (add_monoid G) =       add G"
+       and "    one (add_monoid G) =      zero G"
+       and "  m_inv (add_monoid G) =     a_inv G"
+       and "finprod (add_monoid G) =    finsum G"
+       and "r_coset (add_monoid G) = a_r_coset G"
+       and "l_coset (add_monoid G) = a_l_coset G"
   by (rule a_group)
      (auto simp: m_inv_def a_inv_def finsum_def a_r_coset_def a_l_coset_def)
 
@@ -159,22 +156,22 @@ by (rule group.coset_mult_inv2 [OF a_group,
     folded a_r_coset_def a_inv_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_coset_join1:
-     "[| H +> x = H;  x \<in> carrier G;  subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> |] ==> x \<in> H"
+     "[| H +> x = H;  x \<in> carrier G;  subgroup H (add_monoid G) |] ==> x \<in> H"
 by (rule group.coset_join1 [OF a_group,
     folded a_r_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_solve_equation:
-    "\<lbrakk>subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>; x \<in> H; y \<in> H\<rbrakk> \<Longrightarrow> \<exists>h\<in>H. y = h \<oplus> x"
+    "\<lbrakk>subgroup H (add_monoid G); x \<in> H; y \<in> H\<rbrakk> \<Longrightarrow> \<exists>h\<in>H. y = h \<oplus> x"
 by (rule group.solve_equation [OF a_group,
     folded a_r_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_repr_independence:
-  "\<lbrakk> y \<in> H +> x; x \<in> carrier G; subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> \<rbrakk> \<Longrightarrow>
+  "\<lbrakk> y \<in> H +> x; x \<in> carrier G; subgroup H (add_monoid G) \<rbrakk> \<Longrightarrow>
      H +> x = H +> y"
   using a_repr_independence' by (simp add: a_r_coset_def)
 
 lemma (in abelian_group) a_coset_join2:
-     "\<lbrakk>x \<in> carrier G;  subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>; x\<in>H\<rbrakk> \<Longrightarrow> H +> x = H"
+     "\<lbrakk>x \<in> carrier G;  subgroup H (add_monoid G); x\<in>H\<rbrakk> \<Longrightarrow> H +> x = H"
 by (rule group.coset_join2 [OF a_group,
     folded a_r_coset_def, simplified monoid_record_simps])
 
@@ -203,7 +200,7 @@ lemma (in abelian_group) a_transpose_inv:
 (*
 --"duplicate"
 lemma (in abelian_group) a_rcos_self:
-     "[| x \<in> carrier G; subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> |] ==> x \<in> H +> x"
+     "[| x \<in> carrier G; subgroup H (add_monoid G) |] ==> x \<in> H +> x"
 by (rule group.rcos_self [OF a_group,
     folded a_r_coset_def, simplified monoid_record_simps])
 *)
@@ -213,7 +210,7 @@ subsubsection \<open>Subgroups\<close>
 
 locale additive_subgroup =
   fixes H and G (structure)
-  assumes a_subgroup: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes a_subgroup: "subgroup H (add_monoid G)"
 
 lemma (in additive_subgroup) is_additive_subgroup:
   shows "additive_subgroup H G"
@@ -221,7 +218,7 @@ by (rule additive_subgroup_axioms)
 
 lemma additive_subgroupI:
   fixes G (structure)
-  assumes a_subgroup: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes a_subgroup: "subgroup H (add_monoid G)"
   shows "additive_subgroup H G"
 by (rule additive_subgroup.intro) (rule a_subgroup)
 
@@ -251,18 +248,18 @@ subsubsection \<open>Additive subgroups are normal\<close>
 text \<open>Every subgroup of an \<open>abelian_group\<close> is normal\<close>
 
 locale abelian_subgroup = additive_subgroup + abelian_group G +
-  assumes a_normal: "normal H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes a_normal: "normal H (add_monoid G)"
 
 lemma (in abelian_subgroup) is_abelian_subgroup:
   shows "abelian_subgroup H G"
 by (rule abelian_subgroup_axioms)
 
 lemma abelian_subgroupI:
-  assumes a_normal: "normal H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes a_normal: "normal H (add_monoid G)"
       and a_comm: "!!x y. [| x \<in> carrier G; y \<in> carrier G |] ==> x \<oplus>\<^bsub>G\<^esub> y = y \<oplus>\<^bsub>G\<^esub> x"
   shows "abelian_subgroup H G"
 proof -
-  interpret normal "H" "\<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  interpret normal "H" "(add_monoid G)"
     by (rule a_normal)
 
   show "abelian_subgroup H G"
@@ -271,13 +268,13 @@ qed
 
 lemma abelian_subgroupI2:
   fixes G (structure)
-  assumes a_comm_group: "comm_group \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
-      and a_subgroup: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes a_comm_group: "comm_group (add_monoid G)"
+      and a_subgroup: "subgroup H (add_monoid G)"
   shows "abelian_subgroup H G"
 proof -
-  interpret comm_group "\<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  interpret comm_group "(add_monoid G)"
     by (rule a_comm_group)
-  interpret subgroup "H" "\<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  interpret subgroup "H" "(add_monoid G)"
     by (rule a_subgroup)
 
   show "abelian_subgroup H G"
@@ -294,13 +291,10 @@ qed
 
 lemma abelian_subgroupI3:
   fixes G (structure)
-  assumes asg: "additive_subgroup H G"
-      and ag: "abelian_group G"
+  assumes "additive_subgroup H G"
+    and "abelian_group G"
   shows "abelian_subgroup H G"
-apply (rule abelian_subgroupI2)
- apply (rule abelian_group.a_comm_group[OF ag])
-apply (rule additive_subgroup.a_subgroup[OF asg])
-done
+  using assms abelian_subgroupI2 abelian_group.a_comm_group additive_subgroup_def by blast
 
 lemma (in abelian_subgroup) a_coset_eq:
      "(\<forall>x \<in> carrier G. H +> x = x <+ H)"
@@ -319,17 +313,16 @@ by (rule normal.inv_op_closed2 [OF a_normal,
 
 text\<open>Alternative characterization of normal subgroups\<close>
 lemma (in abelian_group) a_normal_inv_iff:
-     "(N \<lhd> \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>) = 
-      (subgroup N \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> & (\<forall>x \<in> carrier G. \<forall>h \<in> N. x \<oplus> h \<oplus> (\<ominus> x) \<in> N))"
+     "(N \<lhd> (add_monoid G)) = 
+      (subgroup N (add_monoid G) & (\<forall>x \<in> carrier G. \<forall>h \<in> N. x \<oplus> h \<oplus> (\<ominus> x) \<in> N))"
       (is "_ = ?rhs")
 by (rule group.normal_inv_iff [OF a_group,
     folded a_inv_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_lcos_m_assoc:
-     "[| M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G |]
-      ==> g <+ (h <+ M) = (g \<oplus> h) <+ M"
-by (rule group.lcos_m_assoc [OF a_group,
-    folded a_l_coset_def, simplified monoid_record_simps])
+  "\<lbrakk> M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G \<rbrakk> \<Longrightarrow> g <+ (h <+ M) = (g \<oplus> h) <+ M"
+  by (rule group.lcos_m_assoc [OF a_group,
+      folded a_l_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_lcos_mult_one:
      "M \<subseteq> carrier G ==> \<zero> <+ M = M"
@@ -338,28 +331,28 @@ by (rule group.lcos_mult_one [OF a_group,
 
 
 lemma (in abelian_group) a_l_coset_subset_G:
-     "[| H \<subseteq> carrier G; x \<in> carrier G |] ==> x <+ H \<subseteq> carrier G"
-by (rule group.l_coset_subset_G [OF a_group,
-    folded a_l_coset_def, simplified monoid_record_simps])
+  "\<lbrakk> H \<subseteq> carrier G; x \<in> carrier G \<rbrakk> \<Longrightarrow> x <+ H \<subseteq> carrier G"
+  by (rule group.l_coset_subset_G [OF a_group,
+      folded a_l_coset_def, simplified monoid_record_simps])
 
 
 lemma (in abelian_group) a_l_coset_swap:
-     "\<lbrakk>y \<in> x <+ H;  x \<in> carrier G;  subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>\<rbrakk> \<Longrightarrow> x \<in> y <+ H"
+     "\<lbrakk>y \<in> x <+ H;  x \<in> carrier G;  subgroup H (add_monoid G)\<rbrakk> \<Longrightarrow> x \<in> y <+ H"
 by (rule group.l_coset_swap [OF a_group,
     folded a_l_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_l_coset_carrier:
-     "[| y \<in> x <+ H;  x \<in> carrier G;  subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> |] ==> y \<in> carrier G"
+     "[| y \<in> x <+ H;  x \<in> carrier G;  subgroup H (add_monoid G) |] ==> y \<in> carrier G"
 by (rule group.l_coset_carrier [OF a_group,
     folded a_l_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_l_repr_imp_subset:
-  assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H (add_monoid G)"
   shows "y <+ H \<subseteq> x <+ H"
   by (metis a_l_coset_defs(1) add.l_repr_independence assms(3) set_eq_subset x y)
 
 lemma (in abelian_group) a_l_repr_independence:
-  assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>"
+  assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H (add_monoid G)"
   shows "x <+ H = y <+ H"
 apply (rule group.l_repr_independence [OF a_group,
     folded a_l_coset_def, simplified monoid_record_simps])
@@ -373,7 +366,7 @@ lemma (in abelian_group) setadd_subset_G:
 by (rule group.setmult_subset_G [OF a_group,
     folded set_add_def, simplified monoid_record_simps])
 
-lemma (in abelian_group) subgroup_add_id: "subgroup H \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> \<Longrightarrow> H <+> H = H"
+lemma (in abelian_group) subgroup_add_id: "subgroup H (add_monoid G) \<Longrightarrow> H <+> H = H"
 by (rule group.subgroup_mult_id [OF a_group,
     folded set_add_def, simplified monoid_record_simps])
 
@@ -474,7 +467,7 @@ lemmas A_FactGroup_defs = A_FactGroup_def FactGroup_def
 
 lemma A_FactGroup_def':
   fixes G (structure)
-  shows "G A_Mod H \<equiv> \<lparr>carrier = a_rcosets\<^bsub>G\<^esub> H, mult = set_add G, one = H\<rparr>"
+  shows "G A_Mod H \<equiv> \<lparr> carrier = a_rcosets\<^bsub>G\<^esub> H, mult = set_add G, one = H \<rparr>"
 unfolding A_FactGroup_defs
 by (fold A_RCOSETS_def set_add_def)
 
@@ -533,7 +526,7 @@ by (rule normal.inv_FactGroup [OF a_normal,
 text\<open>The coset map is a homomorphism from @{term G} to the quotient group
   @{term "G Mod H"}\<close>
 lemma (in abelian_subgroup) a_r_coset_hom_A_Mod:
-  "(\<lambda>a. H +> a) \<in> hom \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr> (G A_Mod H)"
+  "(\<lambda>a. H +> a) \<in> hom (add_monoid G) (G A_Mod H)"
 by (rule normal.r_coset_hom_Mod [OF a_normal,
     folded A_FactGroup_def a_r_coset_def, simplified monoid_record_simps])
 
@@ -559,8 +552,8 @@ subsubsection \<open>Homomorphisms\<close>
 lemma abelian_group_homI:
   assumes "abelian_group G"
   assumes "abelian_group H"
-  assumes a_group_hom: "group_hom \<lparr>carrier = carrier G, mult = add G, one = zero G\<rparr>
-                                  \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr> h"
+  assumes a_group_hom: "group_hom (add_monoid G)
+                                  (add_monoid H) h"
   shows "abelian_group_hom G H h"
 proof -
   interpret G: abelian_group G by fact
@@ -638,7 +631,7 @@ by (rule group_hom.FactGroup_the_elem_mem[OF a_group_hom,
 
 lemma (in abelian_group_hom) A_FactGroup_hom:
      "(\<lambda>X. the_elem (h`X)) \<in> hom (G A_Mod (a_kernel G H h))
-          \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr>"
+          (add_monoid H)"
 by (rule group_hom.FactGroup_hom[OF a_group_hom,
     folded a_kernel_def A_FactGroup_def, simplified ring_record_simps])
 
@@ -660,13 +653,13 @@ text\<open>If @{term h} is a homomorphism from @{term G} onto @{term H}, then th
 theorem (in abelian_group_hom) A_FactGroup_iso_set:
   "h ` carrier G = carrier H
    \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> iso (G A_Mod (a_kernel G H h))
-          \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr>"
+          (add_monoid H)"
 by (rule group_hom.FactGroup_iso_set[OF a_group_hom,
     folded a_kernel_def A_FactGroup_def, simplified ring_record_simps])
 
 corollary (in abelian_group_hom) A_FactGroup_iso :
   "h ` carrier G = carrier H
-   \<Longrightarrow>  (G A_Mod (a_kernel G H h)) \<cong>  \<lparr>carrier = carrier H, mult = add H, one = zero H\<rparr>"
+   \<Longrightarrow>  (G A_Mod (a_kernel G H h)) \<cong>  (add_monoid H)"
   using A_FactGroup_iso_set unfolding is_iso_def by auto
 
 subsubsection \<open>Cosets\<close>

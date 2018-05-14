@@ -29,7 +29,7 @@ lemma (in ideal) is_ideal: "ideal I R"
 lemma idealI:
   fixes R (structure)
   assumes "ring R"
-  assumes a_subgroup: "subgroup I \<lparr>carrier = carrier R, mult = add R, one = zero R\<rparr>"
+  assumes a_subgroup: "subgroup I (add_monoid R)"
     and I_l_closed: "\<And>a x. \<lbrakk>a \<in> I; x \<in> carrier R\<rbrakk> \<Longrightarrow> x \<otimes> a \<in> I"
     and I_r_closed: "\<And>a x. \<lbrakk>a \<in> I; x \<in> carrier R\<rbrakk> \<Longrightarrow> a \<otimes> x \<in> I"
   shows "ideal I R"
