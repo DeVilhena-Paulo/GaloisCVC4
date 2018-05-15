@@ -841,7 +841,6 @@ proof -
   with x show ?thesis by (simp del: H.r_inv H.Units_r_inv)
 qed
 
-(* Contributed by Paulo Emílio de Vilhena *)
 lemma (in group) canonical_inj_is_hom:
   assumes "subgroup H G"
   shows "group_hom (G \<lparr> carrier := H \<rparr>) G id"
