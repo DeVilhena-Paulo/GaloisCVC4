@@ -450,6 +450,70 @@ by(simp add: inj_on_def)
 lemma (in group) inj_on_cmult: "c \<in> carrier G \<Longrightarrow> inj_on (\<lambda>x. c \<otimes> x) (carrier G)"
 by(simp add: inj_on_def)
 
+(*Following subsection contributed by Martin Baillon*)
+subsection \<open>Submonoids\<close>
+
+locale submonoid =
+  fixes H and G (structure)
+  assumes subset: "H \<subseteq> carrier G"
+    and m_closed [intro, simp]: "\<lbrakk>x \<in> H; y \<in> H\<rbrakk> \<Longrightarrow> x \<otimes> y \<in> H"
+    and one_closed [simp]: "\<one> \<in> H"
+
+lemma (in submonoid) is_subgroup:
+  "submonoid H G" by (rule submonoid_axioms)
+
+lemma (in submonoid) mem_carrier [simp]:
+  "x \<in> H \<Longrightarrow> x \<in> carrier G"
+  using subset by blast
+
+lemma submonoid_imp_subset:
+  "submonoid H G \<Longrightarrow> H \<subseteq> carrier G"
+  by (rule submonoid.subset)
+
+lemma (in submonoid) submonoid_is_monoid [intro]:
+  assumes "monoid G"
+  shows "monoid (G\<lparr>carrier := H\<rparr>)"
+proof -
+  interpret monoid G by fact
+  show ?thesis
+    by (simp add: monoid_def m_assoc)
+qed
+
+lemma (in group) submonoidE:
+  assumes "submonoid H G"
+  shows "H \<subseteq> carrier G"
+    and "H \<noteq> {}"
+    and "\<And>a b. \<lbrakk>a \<in> H; b \<in> H\<rbrakk> \<Longrightarrow> a \<otimes> b \<in> H"
+  using assms submonoid_imp_subset apply blast
+  using assms submonoid_def apply auto[1]
+  by (simp add: assms submonoid.m_closed)+
+
+lemma submonoid_nonempty:
+  "~ submonoid {} G"
+  by (blast dest: submonoid.one_closed)
+
+lemma (in submonoid) finite_monoid_imp_card_positive:
+  "finite (carrier G) ==> 0 < card H"
+proof (rule classical)
+  assume "finite (carrier G)" and a: "~ 0 < card H"
+  then have "finite H" by (blast intro: finite_subset [OF subset])
+  with is_subgroup a have "submonoid {} G" by simp
+  with submonoid_nonempty show ?thesis by contradiction
+qed
+
+
+lemma (in monoid) monoid_incl_imp_submonoid :
+  assumes "H \<subseteq> carrier G"
+and "monoid (G\<lparr>carrier := H\<rparr>)"
+shows "submonoid H G"
+proof (intro submonoid.intro[OF assms(1)])
+  have ab_eq : "\<And> a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> b = a \<otimes> b" using assms by simp
+  have "\<And>a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes> b \<in> carrier (G\<lparr>carrier := H\<rparr>) "
+    using assms ab_eq unfolding group_def using monoid.m_closed by fastforce
+  thus "\<And>a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes> b \<in> H" by simp
+  show "\<one> \<in> H " using monoid.one_closed[OF assms(2)] assms by simp
+qed
+
 subsection \<open>Subgroups\<close>
 
 locale subgroup =
@@ -506,6 +570,7 @@ proof (simp add: subgroup_def assms)
   show "\<one> \<in> H" by (rule one_in_subset) (auto simp only: assms)
 qed
 
+
 lemma (in group) subgroupE:
   assumes "subgroup H G"
   shows "H \<subseteq> carrier G"
@@ -532,16 +597,26 @@ proof (rule classical)
   with subgroup_nonempty show ?thesis by contradiction
 qed
 
+(*Following 3 lemmas contributed by Martin Baillon*)
+
+lemma (in subgroup) subgroup_is_submonoid :
+  "submonoid H G"
+  by (simp add: submonoid.intro subset)
+
+lemma (in group) submonoid_subgroupI :
+  assumes "submonoid H G"
+    and "\<And>a. a \<in> H \<Longrightarrow> inv a \<in> H"
+  shows "subgroup H G"
+  by (metis assms subgroup_def submonoid_def)
+
 lemma (in group) group_incl_imp_subgroup :
   assumes "H \<subseteq> carrier G"
 and "group (G\<lparr>carrier := H\<rparr>)"
 shows "subgroup H G"
-proof (intro subgroupI[OF assms(1)])
-  have "carrier  (G\<lparr>carrier := H\<rparr>) \<noteq> {}" using assms
-    using Group.group.axioms(1) by blast
-  thus "H \<noteq> {}" by simp
+proof (intro submonoid_subgroupI[OF monoid_incl_imp_submonoid[OF assms(1)]])
+  show "monoid (G\<lparr>carrier := H\<rparr>)" using group_def assms by blast
   have ab_eq : "\<And> a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> b = a \<otimes> b" using assms by simp
-  fix a b assume aH : "a \<in> H" and bH : "b \<in> H"
+  fix a  assume aH : "a \<in> H" 
   have " inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a \<in> carrier G"
     using assms aH group.inv_closed[OF assms(2)] by auto
   moreover have "\<one>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> = \<one>" using assms monoid.one_closed ab_eq one_def by simp
@@ -553,10 +628,8 @@ proof (intro subgroupI[OF assms(1)])
     by (smt aH assms(1) contra_subsetD group.inv_inv is_group local.inv_equality)
   moreover have "inv\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a \<in> H" using aH group.inv_closed[OF assms(2)] by auto
   ultimately show "inv a \<in> H" by auto
-  have "\<And>a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes> b \<in> carrier (G\<lparr>carrier := H\<rparr>) "
-    using assms ab_eq unfolding group_def using monoid.m_closed by fastforce
-  thus "\<And>a b. a \<in> H \<Longrightarrow> b \<in> H \<Longrightarrow> a \<otimes> b \<in> H" by simp
 qed
+
 (*
 lemma (in monoid) Units_subgroup:
   "subgroup (Units G) G"
