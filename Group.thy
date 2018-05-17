@@ -759,6 +759,57 @@ corollary (in group) iso_trans :
 "\<lbrakk>G \<cong> H ; H \<cong> I\<rbrakk> \<Longrightarrow> G \<cong> I"
   using iso_set_trans unfolding is_iso_def by blast
 
+lemma (in group) iso_imp_group:
+  assumes "G \<cong> H" and "monoid H"
+  shows "group H"
+proof -
+  obtain \<phi> where phi: "\<phi> \<in> iso G H" "inv_into (carrier G) \<phi> \<in> iso H G"
+    using iso_set_sym assms unfolding is_iso_def by blast
+  define \<psi> where psi_def: "\<psi> = inv_into (carrier G) \<phi>"
+  
+  from phi
+  have surj: "\<phi> ` (carrier G) = (carrier H)" "\<psi> ` (carrier H) = (carrier G)"
+   and inj: "inj_on \<phi> (carrier G)" "inj_on \<psi> (carrier H)"
+   and phi_hom: "\<And>g1 g2. \<lbrakk> g1 \<in> carrier G; g2 \<in> carrier G \<rbrakk> \<Longrightarrow> \<phi> (g1 \<otimes> g2) = (\<phi> g1) \<otimes>\<^bsub>H\<^esub> (\<phi> g2)"
+   and psi_hom: "\<And>h1 h2. \<lbrakk> h1 \<in> carrier H; h2 \<in> carrier H \<rbrakk> \<Longrightarrow> \<psi> (h1 \<otimes>\<^bsub>H\<^esub> h2) = (\<psi> h1) \<otimes> (\<psi> h2)"
+   using psi_def unfolding iso_def bij_betw_def hom_def by auto
+
+  have phi_one: "\<phi> \<one> = \<one>\<^bsub>H\<^esub>"
+  proof -
+    have "(\<phi> \<one>) \<otimes>\<^bsub>H\<^esub> \<one>\<^bsub>H\<^esub> = (\<phi> \<one>) \<otimes>\<^bsub>H\<^esub> (\<phi> \<one>)"
+      by (metis assms(2) image_eqI monoid.r_one one_closed phi_hom r_one surj(1))
+    thus ?thesis
+      by (metis (no_types, hide_lams) Units_eq Units_one_closed assms(2) f_inv_into_f imageI
+          monoid.l_one monoid.one_closed phi_hom psi_def r_one surj)
+  qed
+
+  have "carrier H \<subseteq> Units H"
+  proof
+    fix h assume h: "h \<in> carrier H"
+    let ?inv_h = "\<phi> (inv (\<psi> h))"
+    have "h \<otimes>\<^bsub>H\<^esub> ?inv_h = \<phi> (\<psi> h) \<otimes>\<^bsub>H\<^esub> ?inv_h"
+      by (simp add: f_inv_into_f h psi_def surj(1))
+    also have " ... = \<phi> ((\<psi> h) \<otimes> inv (\<psi> h))"
+      by (metis h imageI inv_closed phi_hom surj(2))
+    also have " ... = \<phi> \<one>"
+      by (simp add: h inv_into_into psi_def surj(1))
+    finally have 1: "h \<otimes>\<^bsub>H\<^esub> ?inv_h = \<one>\<^bsub>H\<^esub>"
+      using phi_one by simp
+
+    have "?inv_h \<otimes>\<^bsub>H\<^esub> h = ?inv_h \<otimes>\<^bsub>H\<^esub> \<phi> (\<psi> h)"
+      by (simp add: f_inv_into_f h psi_def surj(1))
+    also have " ... = \<phi> (inv (\<psi> h) \<otimes> (\<psi> h))"
+      by (metis h imageI inv_closed phi_hom surj(2))
+    also have " ... = \<phi> \<one>"
+      by (simp add: h inv_into_into psi_def surj(1))
+    finally have 2: "?inv_h \<otimes>\<^bsub>H\<^esub> h = \<one>\<^bsub>H\<^esub>"
+      using phi_one by simp
+
+    thus "h \<in> Units H" unfolding Units_def using 1 2 h surj by fastforce
+  qed
+  thus ?thesis unfolding group_def group_axioms_def using assms(2) by simp
+qed
+
 lemma DirProd_commute_iso_set:
   shows "(\<lambda>(x,y). (y,x)) \<in> iso (G \<times>\<times> H) (H \<times>\<times> G)"
   by (auto simp add: iso_def hom_def inj_on_def bij_betw_def)
