@@ -459,7 +459,7 @@ locale submonoid =
     and m_closed [intro, simp]: "\<lbrakk>x \<in> H; y \<in> H\<rbrakk> \<Longrightarrow> x \<otimes> y \<in> H"
     and one_closed [simp]: "\<one> \<in> H"
 
-lemma (in submonoid) is_subgroup:
+lemma (in submonoid) is_submonoid:
   "submonoid H G" by (rule submonoid_axioms)
 
 lemma (in submonoid) mem_carrier [simp]:
@@ -479,7 +479,7 @@ proof -
     by (simp add: monoid_def m_assoc)
 qed
 
-lemma (in group) submonoidE:
+lemma (in monoid) submonoidE:
   assumes "submonoid H G"
   shows "H \<subseteq> carrier G"
     and "H \<noteq> {}"
@@ -497,7 +497,7 @@ lemma (in submonoid) finite_monoid_imp_card_positive:
 proof (rule classical)
   assume "finite (carrier G)" and a: "~ 0 < card H"
   then have "finite H" by (blast intro: finite_subset [OF subset])
-  with is_subgroup a have "submonoid {} G" by simp
+  with is_submonoid a have "submonoid {} G" by simp
   with submonoid_nonempty show ?thesis by contradiction
 qed
 
@@ -913,6 +913,18 @@ lemma (in comm_monoid) nat_pow_distr:
   "[| x \<in> carrier G; y \<in> carrier G |] ==>
   (x \<otimes> y) (^) (n::nat) = x (^) n \<otimes> y (^) n"
   by (induct n) (simp, simp add: m_ac)
+
+lemma (in comm_monoid) submonoid_is_comm_monoid :
+  assumes "submonoid H G"
+  shows "comm_monoid (G\<lparr>carrier := H\<rparr>)"
+proof (intro monoid.monoid_comm_monoidI)
+  show "monoid (G\<lparr>carrier := H\<rparr>)"
+    using submonoid.submonoid_is_monoid assms comm_monoid_axioms comm_monoid_def by blast
+  show "\<And>x y. x \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow> y \<in> carrier (G\<lparr>carrier := H\<rparr>)
+        \<Longrightarrow> x \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> y = y \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> x" apply simp
+    using  assms comm_monoid_axioms_def submonoid.mem_carrier
+    by (metis m_comm)
+qed
 
 locale comm_group = comm_monoid + group
 

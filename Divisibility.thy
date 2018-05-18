@@ -25,9 +25,23 @@ lemma (in monoid) monoid_cancelI:
 
 lemma (in monoid_cancel) is_monoid_cancel: "monoid_cancel G" ..
 
+lemma (in monoid_cancel) submonoid_is_cancel :
+"submonoid H G \<Longrightarrow> monoid_cancel (G\<lparr>carrier := H\<rparr>)"
+proof (intro monoid.monoid_cancelI)
+  show "submonoid H G \<Longrightarrow> Group.monoid (G\<lparr>carrier := H\<rparr>)"
+    using submonoid.submonoid_is_monoid monoid_axioms by blast
+  show "\<And>a b c. submonoid H G \<Longrightarrow> c \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> a = c \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> b \<Longrightarrow>
+             a \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow> b \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow>
+             c \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow> a = b"
+    apply simp using l_cancel submonoid_imp_subset by blast
+  show "\<And>a b c. submonoid H G \<Longrightarrow> a \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> c = b \<otimes>\<^bsub>G\<lparr>carrier := H\<rparr>\<^esub> c \<Longrightarrow>
+             a \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow> b \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow>
+             c \<in> carrier (G\<lparr>carrier := H\<rparr>) \<Longrightarrow> a = b"
+    apply simp using r_cancel submonoid_imp_subset by blast
+qed
+
 sublocale group \<subseteq> monoid_cancel
   by standard simp_all
-
 
 locale comm_monoid_cancel = monoid_cancel + comm_monoid
 
@@ -44,6 +58,15 @@ qed
 
 lemma (in comm_monoid_cancel) is_comm_monoid_cancel: "comm_monoid_cancel G"
   by intro_locales
+
+lemma (in comm_monoid_cancel) submonoid_is_comm_cancel :
+"submonoid H G \<Longrightarrow> comm_monoid_cancel (G\<lparr>carrier := H\<rparr>)"
+proof (intro comm_monoid_cancel.intro)
+  show "submonoid H G \<Longrightarrow> monoid_cancel (G\<lparr>carrier := H\<rparr>)"
+    using monoid_cancel.submonoid_is_cancel monoid_cancel_axioms by auto
+  show "submonoid H G \<Longrightarrow> Group.comm_monoid (G\<lparr>carrier := H\<rparr>)"
+    using comm_monoid.submonoid_is_comm_monoid comm_monoid_axioms by auto
+qed
 
 sublocale comm_group \<subseteq> comm_monoid_cancel ..
 
@@ -3344,5 +3367,6 @@ next
   show "divisor_chain_condition_monoid G \<and> gcd_condition_monoid G"
     by rule unfold_locales
 qed
+
 
 end
