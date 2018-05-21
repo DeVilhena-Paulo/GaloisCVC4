@@ -652,8 +652,7 @@ text\<open>If @{term h} is a homomorphism from @{term G} onto @{term H}, then th
  quotient group @{term "G Mod (kernel G H h)"} is isomorphic to @{term H}.\<close>
 theorem (in abelian_group_hom) A_FactGroup_iso_set:
   "h ` carrier G = carrier H
-   \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> iso (G A_Mod (a_kernel G H h))
-          (add_monoid H)"
+   \<Longrightarrow> (\<lambda>X. the_elem (h`X)) \<in> iso (G A_Mod (a_kernel G H h)) (add_monoid H)"
 by (rule group_hom.FactGroup_iso_set[OF a_group_hom,
     folded a_kernel_def A_FactGroup_def, simplified ring_record_simps])
 
