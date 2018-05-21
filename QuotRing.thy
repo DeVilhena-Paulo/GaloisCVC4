@@ -317,6 +317,13 @@ definition
   is_ring_iso :: "_ \<Rightarrow> _ \<Rightarrow> bool" (infixr "\<simeq>" 60)
   where "R \<simeq> S = (ring_iso R S \<noteq> {})"
 
+definition
+  morphic_prop :: "_ \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool"
+  where "morphic_prop R P =
+           ((P \<one>\<^bsub>R\<^esub>) \<and>
+            (\<forall>r \<in> carrier R. P r) \<and>
+            (\<forall>r1 \<in> carrier R. \<forall>r2 \<in> carrier R. P (r1 \<otimes>\<^bsub>R\<^esub> r2)) \<and>
+            (\<forall>r1 \<in> carrier R. \<forall>r2 \<in> carrier R. P (r1 \<oplus>\<^bsub>R\<^esub> r2)))"
 
 lemma ring_iso_memI:
   fixes R (structure) and S (structure)
@@ -328,38 +335,107 @@ lemma ring_iso_memI:
   shows "h \<in> ring_iso R S"
   by (auto simp add: ring_hom_memI assms ring_iso_def)
 
-lemma ring_iso_refl: "R \<simeq> R"
-proof -
-  have "id \<in> ring_iso R R" by (rule ring_iso_memI) (auto)
-  thus ?thesis using is_ring_iso_def by auto 
+lemma ring_iso_memE:
+  fixes R (structure) and S (structure)
+  assumes "h \<in> ring_iso R S"
+  shows "\<And>x. x \<in> carrier R \<Longrightarrow> h x \<in> carrier S"
+   and "\<And>x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<otimes> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
+   and "\<And>x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<oplus> y) = h x \<oplus>\<^bsub>S\<^esub> h y"
+   and "h \<one> = \<one>\<^bsub>S\<^esub>"
+   and "bij_betw h (carrier R) (carrier S)"
+  using assms unfolding ring_iso_def ring_hom_def by auto
+
+lemma morphic_propI:
+  fixes R (structure)
+  assumes "P \<one>"
+    and "\<And>r. r \<in> carrier R \<Longrightarrow> P r"
+    and "\<And>r1 r2. \<lbrakk> r1 \<in> carrier R; r2 \<in> carrier R \<rbrakk> \<Longrightarrow> P (r1 \<otimes> r2)"
+    and "\<And>r1 r2. \<lbrakk> r1 \<in> carrier R; r2 \<in> carrier R \<rbrakk> \<Longrightarrow> P (r1 \<oplus> r2)"
+  shows "morphic_prop R P"
+  unfolding morphic_prop_def using assms by auto
+
+lemma morphic_propE:
+  fixes R (structure)
+  assumes "morphic_prop R P"
+  shows "P \<one>"
+    and "\<And>r. r \<in> carrier R \<Longrightarrow> P r"
+    and "\<And>r1 r2. \<lbrakk> r1 \<in> carrier R; r2 \<in> carrier R \<rbrakk> \<Longrightarrow> P (r1 \<otimes> r2)"
+    and "\<And>r1 r2. \<lbrakk> r1 \<in> carrier R; r2 \<in> carrier R \<rbrakk> \<Longrightarrow> P (r1 \<oplus> r2)"
+  using assms unfolding morphic_prop_def by auto
+
+lemma ring_iso_restrict:
+  assumes "f \<in> ring_iso R S"
+    and "\<And>r. r \<in> carrier R \<Longrightarrow> f r = g r"
+    and "ring R"
+  shows "g \<in> ring_iso R S"
+proof (rule ring_iso_memI)
+  show "bij_betw g (carrier R) (carrier S)"
+    using assms(1-2) bij_betw_cong ring_iso_memE(5) by blast
+  show "g \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>"
+    using assms ring.ring_simprules(6) ring_iso_memE(4) by force
+next
+  fix x y assume x: "x \<in> carrier R" and y: "y \<in> carrier R"
+  show "g x \<in> carrier S"
+    using assms(1-2) ring_iso_memE(1) x by fastforce
+  show "g (x \<otimes>\<^bsub>R\<^esub> y) = g x \<otimes>\<^bsub>S\<^esub> g y"
+    by (metis assms ring.ring_simprules(5) ring_iso_memE(2) x y)
+  show "g (x \<oplus>\<^bsub>R\<^esub> y) = g x \<oplus>\<^bsub>S\<^esub> g y"
+    by (metis assms ring.ring_simprules(1) ring_iso_memE(3) x y)
 qed
 
-lemma ring_iso_trans: "\<lbrakk> R \<simeq> S; S \<simeq> Q \<rbrakk> \<Longrightarrow> R \<simeq> Q"
+lemma ring_iso_morphic_prop:
+  assumes "f \<in> ring_iso R S"
+    and "morphic_prop R P"
+    and "\<And>r. P r \<Longrightarrow> f r = g r"
+  shows "g \<in> ring_iso R S"
 proof -
-  assume "R \<simeq> S" "S \<simeq> Q"
-  then obtain f g where f: "f \<in> ring_hom R S" "bij_betw f (carrier R) (carrier S)"
-                    and g: "g \<in> ring_hom S Q" "bij_betw g (carrier S) (carrier Q)"
-    unfolding is_ring_iso_def ring_iso_def by blast
+  have eq0: "\<And>r. r \<in> carrier R \<Longrightarrow> f r = g r"
+   and eq1: "f \<one>\<^bsub>R\<^esub> = g \<one>\<^bsub>R\<^esub>"
+   and eq2: "\<And>r1 r2. \<lbrakk> r1 \<in> carrier R; r2 \<in> carrier R \<rbrakk> \<Longrightarrow> f (r1 \<otimes>\<^bsub>R\<^esub> r2) = g (r1 \<otimes>\<^bsub>R\<^esub> r2)"
+   and eq3: "\<And>r1 r2. \<lbrakk> r1 \<in> carrier R; r2 \<in> carrier R \<rbrakk> \<Longrightarrow> f (r1 \<oplus>\<^bsub>R\<^esub> r2) = g (r1 \<oplus>\<^bsub>R\<^esub> r2)"
+    using assms(2-3) unfolding morphic_prop_def by auto
+  show ?thesis
+    apply (rule ring_iso_memI)
+    using assms(1) eq0 ring_iso_memE(1) apply fastforce
+    apply (metis assms(1) eq0 eq2 ring_iso_memE(2))
+    apply (metis assms(1) eq0 eq3 ring_iso_memE(3))
+    using assms(1) eq1 ring_iso_memE(4) apply fastforce
+    using assms(1) bij_betw_cong eq0 ring_iso_memE(5) by blast
+qed
+
+lemma ring_iso_set_refl: "id \<in> ring_iso R R"
+  by (rule ring_iso_memI) (auto)
+
+corollary ring_iso_refl: "R \<simeq> R"
+  using is_ring_iso_def ring_iso_set_refl by auto 
+
+lemma ring_iso_set_trans:
+  "\<lbrakk> f \<in> ring_iso R S; g \<in> ring_iso S Q \<rbrakk> \<Longrightarrow> (g \<circ> f) \<in> ring_iso R Q"
+proof -
+  assume "f \<in> ring_iso R S" "g \<in> ring_iso S Q"
+  hence f: "f \<in> ring_hom R S" "bij_betw f (carrier R) (carrier S)"
+    and g: "g \<in> ring_hom S Q" "bij_betw g (carrier S) (carrier Q)"
+    unfolding is_ring_iso_def ring_iso_def by simp_all 
   hence gof_bij: "bij_betw (g \<circ> f) (carrier R) (carrier Q)"
     using bij_betw_comp_iff by blast
 
-  have "g \<circ> f \<in> ring_iso R Q"
+  show "g \<circ> f \<in> ring_iso R Q"
     apply (rule ring_iso_memI)
     using gof_bij bij_betwE apply blast
     apply (smt bij_betwE comp_apply f g(1) ring_hom_mult)
     apply (smt bij_betwE comp_apply f g(1) ring_hom_add)
     apply (metis comp_def f(1) g(1) ring_hom_one)
     by (simp add: gof_bij)
-
-  thus ?thesis unfolding is_ring_iso_def by auto
 qed
 
-lemma ring_iso_sym:
+corollary ring_iso_trans: "\<lbrakk> R \<simeq> S; S \<simeq> Q \<rbrakk> \<Longrightarrow> R \<simeq> Q"
+  using ring_iso_set_trans unfolding is_ring_iso_def by blast 
+
+lemma ring_iso_set_sym:
   assumes "ring R"
-  shows "R \<simeq> S \<Longrightarrow> S \<simeq> R"
+  shows "h \<in> ring_iso R S \<Longrightarrow> (inv_into (carrier R) h) \<in> ring_iso S R"
 proof -
-  assume "R \<simeq> S" then obtain h where h: "h \<in> ring_iso R S"
-    unfolding is_ring_iso_def by blast
+  assume h: "h \<in> ring_iso R S"
   hence h_hom:  "h \<in> ring_hom R S"
     and h_surj: "h ` (carrier R) = (carrier S)"
     and h_inj:  "\<And> x1 x2. \<lbrakk> x1 \<in> carrier R; x2 \<in> carrier R \<rbrakk> \<Longrightarrow>  h x1 = h x2 \<Longrightarrow> x1 = x2"
@@ -368,7 +444,7 @@ proof -
   have h_inv_bij: "bij_betw (inv_into (carrier R) h) (carrier S) (carrier R)"
       using bij_betw_inv_into h ring_iso_def by fastforce
 
-  have "inv_into (carrier R) h \<in> ring_iso S R"
+  show "inv_into (carrier R) h \<in> ring_iso S R"
     apply (rule ring_iso_memI)
     apply (simp add: h_surj inv_into_into)
     apply (auto simp add: h_inv_bij)
@@ -378,9 +454,12 @@ proof -
            ring.ring_simprules(1) ring_hom_add ring_hom_closed)
     by (metis (no_types, hide_lams) assms f_inv_into_f h_hom h_inj
         imageI inv_into_into ring.ring_simprules(6) ring_hom_one)
-
-  thus ?thesis using is_ring_iso_def by auto 
 qed
+
+corollary ring_iso_sym:
+  assumes "ring R"
+  shows "R \<simeq> S \<Longrightarrow> S \<simeq> R"
+  using assms ring_iso_set_sym unfolding is_ring_iso_def by auto 
 
 theorem (in ring_hom_ring) FactRing_iso_set:
   assumes "h ` carrier R = carrier S"

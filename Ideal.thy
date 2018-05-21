@@ -74,7 +74,7 @@ subsubsection \<open>Maximal Ideals\<close>
 
 locale maximalideal = ideal +
   assumes I_notcarr: "carrier R \<noteq> I"
-    and I_maximal: "\<lbrakk>ideal J R; I \<subseteq> J; J \<subseteq> carrier R\<rbrakk> \<Longrightarrow> J = I \<or> J = carrier R"
+    and I_maximal: "\<lbrakk>ideal J R; I \<subseteq> J; J \<subseteq> carrier R\<rbrakk> \<Longrightarrow> (J = I) \<or> (J = carrier R)"
 
 lemma (in maximalideal) is_maximalideal: "maximalideal I R"
   by (rule maximalideal_axioms)
@@ -83,7 +83,7 @@ lemma maximalidealI:
   fixes R
   assumes "ideal I R"
     and I_notcarr: "carrier R \<noteq> I"
-    and I_maximal: "\<And>J. \<lbrakk>ideal J R; I \<subseteq> J; J \<subseteq> carrier R\<rbrakk> \<Longrightarrow> J = I \<or> J = carrier R"
+    and I_maximal: "\<And>J. \<lbrakk>ideal J R; I \<subseteq> J; J \<subseteq> carrier R\<rbrakk> \<Longrightarrow> (J = I) \<or> (J = carrier R)"
   shows "maximalideal I R"
 proof -
   interpret ideal I R by fact
@@ -648,6 +648,46 @@ proof -
 
   with iI show "\<exists>x\<in>I. I = carrier R #> x"
     by fast
+qed
+
+
+(* Next lemma contributed by Paulo Emílio de Vilhena. *)
+
+text \<open>This next lemma would be trivial if placed in a theory that imports QuotRing,
+      but it makes more sense to have it here (easier to find and coherent with the
+      previous developments).\<close>
+
+lemma (in cring) cgenideal_prod:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  shows "(PIdl a) <#> (PIdl b) = PIdl (a \<otimes> b)"
+proof -
+  have "(carrier R #> a) <#> (carrier R #> b) = carrier R #> (a \<otimes> b)"
+  proof
+    show "(carrier R #> a) <#> (carrier R #> b) \<subseteq> carrier R #> a \<otimes> b"
+    proof
+      fix x assume "x \<in> (carrier R #> a) <#> (carrier R #> b)"
+      then obtain r1 r2 where r1: "r1 \<in> carrier R" and r2: "r2 \<in> carrier R"
+                          and "x = (r1 \<otimes> a) \<otimes> (r2 \<otimes> b)"
+        unfolding set_mult_def r_coset_def by blast
+      hence "x = (r1 \<otimes> r2) \<otimes> (a \<otimes> b)"
+        by (simp add: assms local.ring_axioms m_lcomm ring.ring_simprules(11))
+      thus "x \<in> carrier R #> a \<otimes> b"
+        unfolding r_coset_def using r1 r2 assms by blast 
+    qed
+  next
+    show "carrier R #> a \<otimes> b \<subseteq> (carrier R #> a) <#> (carrier R #> b)"
+    proof
+      fix x assume "x \<in> carrier R #> a \<otimes> b"
+      then obtain r where r: "r \<in> carrier R" "x = r \<otimes> (a \<otimes> b)"
+        unfolding r_coset_def by blast
+      hence "x = (r \<otimes> a) \<otimes> (\<one> \<otimes> b)"
+        using assms by (simp add: m_assoc)
+      thus "x \<in> (carrier R #> a) <#> (carrier R #> b)"
+        unfolding set_mult_def r_coset_def using assms r by blast
+    qed
+  qed
+  thus ?thesis
+    using cgenideal_eq_rcos[of a] cgenideal_eq_rcos[of b] cgenideal_eq_rcos[of "a \<otimes> b"] by simp
 qed
 
 
