@@ -1,5 +1,5 @@
 theory Chinese_Remainder
-  imports QuotRing Ideal_Product "HOL-Library.FuncSet"
+  imports QuotRing Ideal_Product
     
 begin
 
@@ -8,7 +8,7 @@ section \<open>Chinese Remainder Theorem\<close>
 subsection \<open>Direct Product of Rings\<close>
 
 definition
-  RDirProd :: "[ 'a ring, 'b ring ]  \<Rightarrow> ('a \<times> 'b) ring"
+  RDirProd :: "[ ('a, 'n) ring_scheme, ('b, 'm) ring_scheme ]  \<Rightarrow> ('a \<times> 'b) ring"
   where "RDirProd R S =
            \<lparr> carrier = carrier R \<times> carrier S,
                 mult = (\<lambda>(r, s). \<lambda>(r', s'). (r \<otimes>\<^bsub>R\<^esub> r', s \<otimes>\<^bsub>S\<^esub> s')),
@@ -39,6 +39,40 @@ proof -
     apply (simp_all add: assms RDirProd_abelian_group RDirProd_monoid)
     by (auto simp add: RDirProd_def assms ring.ring_simprules)
 qed
+
+lemma RDirProd_isomorphism1:
+  "(\<lambda>(x, y). (y, x)) \<in> ring_iso (RDirProd R S) (RDirProd S R)"
+  unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def by auto
+
+lemma RDirProd_isomorphism2:
+  "(\<lambda>(x, (y, z)). ((x, y), z)) \<in> ring_iso (RDirProd R (RDirProd S T)) (RDirProd (RDirProd R S) T)"
+  unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+  by (auto simp add: image_iff)
+
+lemma RDirProd_isomorphism3:
+  "(\<lambda>((x, y), z). (x, (y, z))) \<in> ring_iso (RDirProd (RDirProd R S) T) (RDirProd R (RDirProd S T))"
+  unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+  by (auto simp add: image_iff)
+
+lemma RDirProd_isomorphism4:
+  assumes "f \<in> ring_iso R S"
+  shows "(\<lambda>(r, t). (f r, t)) \<in> ring_iso (RDirProd R T) (RDirProd S T)"
+  using assms unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+  by (auto simp add: image_iff)+
+
+lemma RDirProd_isomorphism5:
+  assumes "f \<in> ring_iso S T"
+  shows "(\<lambda>(r, s). (r, f s)) \<in> ring_iso (RDirProd R S) (RDirProd R T)"
+  using ring_iso_set_trans[OF ring_iso_set_trans[OF RDirProd_isomorphism1[of R S]
+                                                    RDirProd_isomorphism4[OF assms, of R]]
+                              RDirProd_isomorphism1[of T R]]
+  by (simp add: case_prod_unfold case_prod_unfold comp_def comp_def)
+
+lemma RDirProd_isomorphism6:
+  assumes "f \<in> ring_iso R R'" and "g \<in> ring_iso S S'"
+  shows "(\<lambda>(r, s). (f r, g s)) \<in> ring_iso (RDirProd R S) (RDirProd R' S')"
+  using ring_iso_set_trans[OF RDirProd_isomorphism4[OF assms(1)] RDirProd_isomorphism5[OF assms(2)]]
+  by (simp add: case_prod_beta' comp_def)
 
 
 subsection \<open>Simple Version of The Theorem\<close>
@@ -120,7 +154,7 @@ proof -
   thus "\<exists>a \<in> carrier R. I +> a = I +> x \<and> J +> a = J +> y" using Ix Jy by blast
 qed
 
-lemma (in ring) canonical_surj_is_hom:
+lemma (in ring) canonical_proj_is_hom:
   assumes "ideal I R" "ideal J R" "I <+> J = carrier R"
   shows "(\<lambda>a. (I +> a, J +> a)) \<in> ring_hom R (RDirProd (R Quot I) (R Quot J))"
 proof (rule ring_hom_memI)
@@ -147,7 +181,7 @@ proof -
   let ?\<phi> = "\<lambda>a. (I +> a, J +> a)"
 
   have phi_hom: "?\<phi> \<in> ring_hom R (RDirProd (R Quot I) (R Quot J))"
-    using canonical_surj_is_hom[OF assms] .
+    using canonical_proj_is_hom[OF assms] .
 
   moreover have "?\<phi> ` (carrier R) = carrier (RDirProd (R Quot I) (R Quot J))"
   proof
@@ -193,7 +227,7 @@ proof -
 qed
 
 
-subsection \<open>First Generalization - Canonical Projection Extended is Surjective\<close>
+subsection \<open>First Generalization - The Extended Canonical Projection is Surjective\<close>
 
 lemma (in cring) canonical_proj_ext_is_surj:
   assumes "\<And>i. i \<in> {..n :: nat} \<Longrightarrow> x i \<in> carrier R"
@@ -263,7 +297,7 @@ next
 qed
 
 
-subsection \<open>Direct Product of a List of Structures\<close>
+subsection \<open>Direct Product of a List of Monoid Structures\<close>
 
 fun DirProd_list :: "(('a, 'b) monoid_scheme) list \<Rightarrow> (('a list), 'b) monoid_scheme"
   where
@@ -329,11 +363,12 @@ proof (induct Rs arbitrary: r1 r2 rule: DirProd_list.induct)
   case 1 thus ?case by simp 
 next
   case (2 R Rs)
-  then obtain r1' rs1' r2' rs2' where r12': "r1' \<in> carrier R" "r2' \<in> carrier R"
-                                  and "rs1' \<in> carrier (DirProd_list Rs)"
-                                  and "rs2' \<in> carrier (DirProd_list Rs)"
-                                  and r1: "r1 = r1' # rs1'"
-                                  and r2: "r2 = r2' # rs2'" by auto
+  then obtain r1' rs1' r2' rs2'
+    where r12': "r1' \<in> carrier R" "r2' \<in> carrier R"
+      and "rs1' \<in> carrier (DirProd_list Rs)"
+      and "rs2' \<in> carrier (DirProd_list Rs)"
+      and r1: "r1 = r1' # rs1'"
+      and r2: "r2 = r2' # rs2'" by auto
   moreover have "\<And>i. i \<in> {..<(length Rs)} \<Longrightarrow> monoid (Rs ! i)"
     using "2.prems"(3) by force
   ultimately have "rs1' \<otimes>\<^bsub>(DirProd_list Rs)\<^esub> rs2' \<in> carrier (DirProd_list Rs)"
@@ -398,7 +433,7 @@ proof -
 
   fix i assume "i < length (r1 \<otimes>\<^bsub>DirProd_list Rs\<^esub> r2 \<otimes>\<^bsub>DirProd_list Rs\<^esub> r3)"
   hence i: "i < length Rs"
-    by (metis DirProd_list_carrier_elts DirProd_list_m_closed Group.comm_monoid.axioms(1) assms)
+    by (metis DirProd_list_carrier_elts DirProd_list_m_closed assms)
   have "((r1 \<otimes>\<^bsub>DirProd_list Rs\<^esub> r2) \<otimes>\<^bsub>DirProd_list Rs\<^esub> r3) ! i =
         ((r1 ! i) \<otimes>\<^bsub>(Rs ! i)\<^esub> (r2 ! i)) \<otimes>\<^bsub>(Rs ! i)\<^esub> (r3 ! i)"
     by (metis DirProd_list_m_closed DirProd_list_m_output i assms lessThan_iff)
@@ -596,7 +631,12 @@ qed
 
 subsection \<open>Direct Product for of a List of Rings\<close>
 
-fun RDirProd_list :: "(('a, 'b) ring_scheme) list \<Rightarrow> ('a list) ring"
+text \<open>In order to state a more general version of the Chinese Remainder Theorem, we need a new
+      structure: the direct product of a variable number of rings. The construction of this
+      structure as well as its algebraic properties are the subject of this subsection and follow
+      the similar study that has already been done for monoids in the previous subsection.\<close>
+
+fun RDirProd_list :: "('a ring) list \<Rightarrow> ('a list) ring"
   where "RDirProd_list Rs =
            monoid.extend (monoid.truncate (DirProd_list Rs))
                          \<lparr> zero = one (DirProd_list (map add_monoid Rs)),
@@ -822,80 +862,269 @@ proof -
     using RDirProd_list_cring by blast
 qed
 
+lemma RDirProd_list_isomorphism1:
+  "(\<lambda>(hd, tl). hd # tl) \<in> ring_iso (RDirProd R (RDirProd_list Rs)) (RDirProd_list (R # Rs))"
+  unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+  by (auto simp add: monoid.defs)
 
-lemma (in cring) canonical_proj_ext_is_hom:
+lemma RDirProd_list_isomorphism1':
+  "(RDirProd R (RDirProd_list Rs)) \<simeq> (RDirProd_list (R # Rs))"
+  unfolding is_ring_iso_def using RDirProd_list_isomorphism1 by blast 
+
+lemma RDirProd_list_isomorphism2:
+  "(\<lambda>r. (hd r, tl r)) \<in> ring_iso (RDirProd_list (R # Rs)) (RDirProd R (RDirProd_list Rs))"
+  unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+proof (auto simp add: monoid.defs)
+  let ?\<phi> = "\<lambda>r. (hd r, tl r)"
+  fix a b assume "a \<in> carrier R" "b \<in> carrier (DirProd_list Rs)"
+  hence "a # b \<in> {r # rs |r rs. r \<in> carrier R \<and> rs \<in> carrier (DirProd_list Rs)} \<and> ?\<phi> (a # b) = (a, b)"
+    by simp
+  thus "(a, b) \<in> ?\<phi> ` {r # rs |r rs. r \<in> carrier R \<and> rs \<in> carrier (DirProd_list Rs)}"
+    by (metis (no_types, lifting) image_iff)
+qed
+
+lemma RDirProd_list_isomorphism3:
+  "(\<lambda>(r, l). r @ [l]) \<in> ring_iso (RDirProd (RDirProd_list Rs) S) (RDirProd_list (Rs @ [S]))"
+proof (induction Rs rule: DirProd_list.induct)
+  case 1 thus ?case
+    unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+    by (auto simp add: monoid.defs image_iff)
+next
+  case (2 R Rs)
+
+  { fix r1 r2 assume A0: "r1 \<in> carrier (RDirProd_list (R # Rs))"
+                 and A1: "r2 \<in> carrier (RDirProd_list (R # Rs))"
+    have "length r1 \<ge> 1"
+     and "length r2 \<ge> 1"
+     and "length (r1 \<otimes>\<^bsub>(RDirProd_list (R # Rs))\<^esub> r2) \<ge> 1"
+     and "length (r1 \<oplus>\<^bsub>(RDirProd_list (R # Rs))\<^esub> r2) \<ge> 1"
+     and "length (\<one>\<^bsub>(RDirProd_list (R # Rs))\<^esub>) \<ge> 1"
+    proof -
+      show len_r1: "length r1 \<ge> 1"
+       and len_r2: "length r2 \<ge> 1"
+        by (metis RDirProd_list_carrier_elts A0 A1 length_Cons less_one nat.simps(3) not_less)+
+      show "length (r1 \<otimes>\<^bsub>(RDirProd_list (R # Rs))\<^esub> r2) \<ge> 1"
+       and "length (r1 \<oplus>\<^bsub>(RDirProd_list (R # Rs))\<^esub> r2) \<ge> 1"
+       and "length (\<one>\<^bsub>(RDirProd_list (R # Rs))\<^esub>) \<ge> 1"
+        using len_r1 len_r2 by (simp_all add: monoid.defs)
+    qed } note aux_lemma = this
+
+  moreover
+  have "(\<lambda>(r, s). (hd r, (tl r, s))) \<in>
+          ring_iso (RDirProd (RDirProd_list (R # Rs)) S)
+                   (RDirProd R (RDirProd (RDirProd_list Rs) S))"
+    using ring_iso_set_trans[OF RDirProd_isomorphism4[OF RDirProd_list_isomorphism2[of R Rs],of S]
+                                RDirProd_isomorphism3[of R "RDirProd_list Rs" S]]
+    by (simp add: case_prod_beta' comp_def)
+
+  moreover
+  have "(\<lambda>(hd, (tl, s)). hd # (tl @ [s])) \<in>
+          ring_iso (RDirProd R (RDirProd (RDirProd_list Rs) S))
+                   (RDirProd_list (R # (Rs @ [S])))"
+    using ring_iso_set_trans[OF RDirProd_isomorphism5[OF 2(1), of R]
+                                RDirProd_list_isomorphism1[of R "Rs @ [S]"]]
+    by (simp add: case_prod_beta' comp_def)
+
+  moreover
+  have "(\<lambda>(r, s). (hd r) # ((tl r) @ [s])) \<in>
+          ring_iso (RDirProd (RDirProd_list (R # Rs)) S) (RDirProd_list (R # (Rs @ [S])))"
+    using ring_iso_set_trans[OF calculation(6-7)] by (simp add: case_prod_beta' comp_def)
+  hence iso: "(\<lambda>(r, s). (hd r # tl r) @ [s]) \<in>
+           ring_iso (RDirProd (RDirProd_list (R # Rs)) S) (RDirProd_list ((R # Rs) @ [S]))" by simp
+  
+  show ?case
+  proof (rule ring_iso_morphic_prop[OF iso, of "\<lambda>r. length (fst r) \<ge> 1" "\<lambda>(r, s). r @ [s]"])
+    show "\<And>r. 1 \<le> length (fst r) \<Longrightarrow>
+              (case r of (r, s) \<Rightarrow> (hd r # tl r) @ [s]) = (case r of (r, s) \<Rightarrow> r @ [s])"
+      by (simp add: Suc_le_eq case_prod_beta')
+    show "morphic_prop (RDirProd (RDirProd_list (R # Rs)) S) (\<lambda>r. 1 \<le> length (fst r))"
+      unfolding RDirProd_def by (rule morphic_propI) (auto simp add: monoid.defs aux_lemma)
+  qed
+qed
+
+
+subsection \<open>Second Generalization - The Extended Canonical Projection is a Homomorphism and
+                                    Description of its Kernel\<close>
+
+theorem (in cring) canonical_proj_ext_is_hom:
   assumes "\<And>i. i \<in> {..< (n :: nat)} \<Longrightarrow> ideal (I i) R"
       and "\<And>i j. \<lbrakk> i \<in> {..< n}; j \<in> {..< n}; i \<noteq> j \<rbrakk> \<Longrightarrow> I i <+> I j = carrier R"
     shows "(\<lambda>a. (map (\<lambda>i. (I i) +> a) [0..< n])) \<in>
-            ring_hom R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< n]))"
+            ring_hom R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< n]))" (is "?\<phi> \<in> ?ring_hom")
 proof (rule ring_hom_memI)
-  fix x y assume x: "x \<in> carrier R"
-             and y: "y \<in> carrier R"
-  show x': "map (\<lambda>i. I i +> x) [0..<n] \<in> carrier (RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
+  { fix x assume x: "x \<in> carrier R"
+    have "?\<phi> x \<in> carrier (RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
     apply (rule RDirProd_list_in_carrierI)
-    by (simp_all add: FactRing_def a_rcosetsI additive_subgroup.a_subset assms(1) ideal.axioms(1) x)
-  hence x'': "map (\<lambda>i. I i +> x) [0..<n] \<in> carrier (DirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
+    by (simp_all add: FactRing_def a_rcosetsI additive_subgroup.a_subset assms(1) ideal.axioms(1) x) }
+  note aux_lemma = this
+
+  fix x y assume x: "x \<in> carrier R" and y: "y \<in> carrier R"
+
+  show x': "?\<phi> x \<in> carrier (RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
+    using aux_lemma[OF x] .
+  hence x'': "?\<phi> x \<in> carrier (DirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
     by (simp add: monoid.defs)
 
-  have y': "map (\<lambda>i. I i +> y) [0..<n] \<in> carrier (RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
-    apply (rule RDirProd_list_in_carrierI)
-    by (simp_all add: FactRing_def a_rcosetsI additive_subgroup.a_subset assms(1) ideal.axioms(1) y)
+  have y': "?\<phi> y \<in> carrier (RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
+    using aux_lemma[OF y] .
   hence y'': "map (\<lambda>i. I i +> y) [0..<n] \<in> carrier (DirProd_list (map (\<lambda>i. R Quot I i) [0..<n]))"
     by (simp add: monoid.defs)
 
-  show "map (\<lambda>i. I i +> x \<otimes> y) [0..<n] =
-        map (\<lambda>i. I i +> x) [0..<n] \<otimes>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-        map (\<lambda>i. I i +> y) [0..<n]"
+  show "?\<phi> (x \<otimes> y) = ?\<phi> x \<otimes>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> ?\<phi> y"
     apply (rule nth_equalityI) 
     apply (metis RDirProd_list_carrier_elts RDirProd_list_of_quot_is_cring assms(1)
                  cring.cring_simprules(5) length_map x' y')
     apply (simp add: monoid.defs)
-    using DirProd_list_m_output [of "map (\<lambda>i. I i +> x) [0..<n]" "(map (\<lambda>i. R Quot I i) [0..<n])"
-                                    "map (\<lambda>i. I i +> y) [0..<n]"] x'' y''
+    using DirProd_list_m_output [of "?\<phi> x" "(map (\<lambda>i. R Quot I i) [0..<n])" "?\<phi> y"] x'' y''
     by (simp add: x'' y'' FactRing_def add.left_neutral assms(1) diff_zero ideal.rcoset_mult_add
                   length_map length_upt lessThan_iff monoid.simps(1) nth_map_upt x y)
 
-  show "map (\<lambda>i. I i +> x \<oplus> y) [0..<n] =
-        map (\<lambda>i. I i +> x) [0..<n] \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-        map (\<lambda>i. I i +> y) [0..<n]"
+  show "?\<phi> (x \<oplus> y) = ?\<phi> x \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> ?\<phi> y"
   proof -
-    have "length (map (\<lambda>i. I i +> x \<oplus> y) [0..<n]) =
-          length (map (\<lambda>i. I i +> x) [0..<n] \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-                  map (\<lambda>i. I i +> y) [0..<n])"
+    have "length (?\<phi> (x \<oplus> y)) =
+          length ((?\<phi> x) \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> (?\<phi> y))"
       by (metis RDirProd_list_carrier_elts RDirProd_list_of_quot_is_cring assms(1)
           cring.cring_simprules(1) length_map x' y')
 
     moreover
     have "\<And>j. j < n \<Longrightarrow>
-              (map (\<lambda>i. I i +> x \<oplus> y) [0..<n]) ! j =
-              (map (\<lambda>i. I i +> x) [0..<n] \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-               map (\<lambda>i. I i +> y) [0..<n]) ! j"
+              (?\<phi> (x \<oplus> y)) ! j = ((?\<phi> x) \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> (?\<phi> y)) ! j"
     proof -
       fix j assume j: "j < n"
-      have "(map (\<lambda>i. I i +> x \<oplus> y) [0..<n]) ! j = I j +> x \<oplus> y" using j by simp
+      have "(?\<phi> (x \<oplus> y)) ! j = I j +> x \<oplus> y" using j by simp
       also have " ... = (I j +> x) \<oplus>\<^bsub>(R Quot I j)\<^esub> (I j +> y)"
-        by (simp add: FactRing_def abelian_subgroup.a_rcos_sum abelian_subgroupI3 assms(1) ideal.axioms(1) is_abelian_group j x y)
-      also have " ... = (map (\<lambda>i. I i +> x) [0..<n] \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-                         map (\<lambda>i. I i +> y) [0..<n]) ! j"
-        by (smt RDirProd_list_a_output add.left_neutral diff_zero j length_map length_upt lessThan_iff nth_map nth_upt x' y')
-      finally show "(map (\<lambda>i. I i +> x \<oplus> y) [0..<n]) ! j =
-                         (map (\<lambda>i. I i +> x) [0..<n] \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-                          map (\<lambda>i. I i +> y) [0..<n]) ! j" .
+        by (simp add: FactRing_def abelian_subgroup.a_rcos_sum abelian_subgroupI3
+                      assms(1) ideal.axioms(1) is_abelian_group j x y)
+      also have " ... = ((?\<phi> x) \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> (?\<phi> y)) ! j"
+        by (smt RDirProd_list_a_output add.left_neutral diff_zero j
+            length_map length_upt lessThan_iff nth_map nth_upt x' y')
+      finally show "(?\<phi> (x \<oplus> y)) ! j =
+                    ((?\<phi> x) \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> (?\<phi> y)) ! j" .
     qed
-    ultimately show "map (\<lambda>i. I i +> x \<oplus> y) [0..<n] =
-                     map (\<lambda>i. I i +> x) [0..<n] \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>
-                     map (\<lambda>i. I i +> y) [0..<n]"
+    ultimately show "?\<phi> (x \<oplus> y) = ?\<phi> x \<oplus>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub> ?\<phi> y"
       by (simp add: nth_equalityI) 
   qed
 next
-  show "map (\<lambda>i. I i +> \<one>) [0..<n] = \<one>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>"
+  show "(?\<phi> \<one>) = \<one>\<^bsub>RDirProd_list (map (\<lambda>i. R Quot I i) [0..<n])\<^esub>"
     apply (rule nth_equalityI)
-    apply (metis RDirProd_list_carrier_elts RDirProd_list_of_quot_is_cring assms(1) cring.cring_simprules(6) length_map)
+    apply (metis RDirProd_list_carrier_elts cring.cring_simprules(6)
+                 RDirProd_list_of_quot_is_cring assms(1) length_map)
     using DirProd_list_one[where ?Rs = "map (\<lambda>i. R Quot I i) [0..<n]"]
     by (simp add: FactRing_def monoid.defs)
 qed
 
+
+theorem (in cring) canonical_proj_ext_kernel:
+  assumes "\<And>i. i \<in> {..(n :: nat)} \<Longrightarrow> ideal (I i) R"
+      and "\<And>i j. \<lbrakk> i \<in> {..n}; j \<in> {..n}; i \<noteq> j \<rbrakk> \<Longrightarrow> I i <+> I j = carrier R"
+    shows "(\<Inter>i \<le> n. I i) = a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))
+                           (\<lambda>a. (map (\<lambda>i. (I i) +> a) [0..< Suc n]))"
+proof -
+  let ?\<phi> = "\<lambda>a. (map (\<lambda>i. (I i) +> a) [0..< Suc n])"
+  show ?thesis
+  proof
+    show "(\<Inter>i \<le> n. I i) \<subseteq> a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi>"
+    proof
+      fix s assume s: "s \<in> (\<Inter>i \<le> n. I i)"
+      hence "\<And>i. i \<le> n \<Longrightarrow> (I i) +> s = I i"
+        by (simp add: additive_subgroup.zero_closed assms ideal.axioms(1) ideal.set_add_zero)
+      hence "\<And>i. i \<le> n \<Longrightarrow> (?\<phi> s) ! i = I i"
+        by (metis add.left_neutral diff_zero le_imp_less_Suc nth_map_upt)
+      moreover have
+        "\<And>i. i \<le> n \<Longrightarrow> (\<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>) ! i =
+                         \<zero>\<^bsub>(R Quot (I i))\<^esub>"
+        using RDirProd_list_zero[where ?Rs = "map (\<lambda>i. R Quot I i) [0..<Suc n]"]
+        by (metis (no_types, lifting) add.left_neutral atMost_iff le_imp_less_Suc
+            length_map length_upt lessThan_Suc_atMost nth_map_upt diff_zero)
+      hence 
+        "\<And>i. i \<le> n \<Longrightarrow> (\<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>) ! i = I i"
+        unfolding FactRing_def by simp
+      moreover
+      have "length (\<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>) = Suc n"
+        using RDirProd_list_carrier_elts RDirProd_list_cring
+        by (smt add.left_neutral assms(1) cring.cring_simprules(2) diff_zero nth_map_upt
+            ideal.quotient_is_cring is_cring length_map length_upt lessThan_Suc_atMost lessThan_iff)
+      moreover have "length (?\<phi> s) = Suc n" by simp
+      ultimately have "?\<phi> s = \<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>"
+        by (simp add: nth_equalityI)
+
+      moreover have "s \<in> carrier R"
+        using additive_subgroup.a_Hcarr assms(1) ideal.axioms(1) s by fastforce
+      ultimately show "s \<in> a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi>"
+        using a_kernel_def'[of R "RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])"] by simp
+    qed
+  next
+    show "a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi> \<subseteq> (\<Inter>i \<le> n. I i)"
+    proof
+      fix s assume s: "s \<in> a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi>"
+      hence "?\<phi> s = \<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>"
+        unfolding a_kernel_def kernel_def by (simp add: monoid.defs)
+      hence "\<And>i. i \<le> n \<Longrightarrow> (I i) +> s = \<zero>\<^bsub>(R Quot (I i))\<^esub>"
+        using RDirProd_list_zero[where ?Rs = "map (\<lambda>i. R Quot I i) [0..<Suc n]"]
+        by (smt add.left_neutral atMost_iff diff_zero le_imp_less_Suc
+            length_map length_upt lessThan_Suc_atMost nth_map_upt)
+      hence "\<And>i. i \<le> n \<Longrightarrow> (I i) +> s = I i"
+        unfolding FactRing_def by simp
+      moreover have "s \<in> carrier R"
+        using s unfolding a_kernel_def kernel_def by simp
+      ultimately show "s \<in> (\<Inter>i \<le> n. I i)"
+        using ideal.set_add_zero_imp_mem[where ?i = s and ?R = R] by (simp add: assms(1))
+    qed
+  qed
+qed
+
+
+subsection \<open>Final Generalization\<close>
+
 theorem (in cring) chinese_remainder:
+  assumes "\<And>i. i \<in> {..(n :: nat)} \<Longrightarrow> ideal (I i) R"
+      and "\<And>i j. \<lbrakk> i \<in> {..n}; j \<in> {..n}; i \<noteq> j \<rbrakk> \<Longrightarrow> I i <+> I j = carrier R"
+    shows "R Quot (\<Inter>i \<le> n. I i) \<simeq>  RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])"
+  using assms
+proof (induct n)
+  case 0
+  have "(\<lambda>r. (r, [])) \<in> ring_iso (R Quot (I 0)) (RDirProd (R Quot (I 0)) (RDirProd_list []))"
+    unfolding ring_iso_def ring_hom_def bij_betw_def inj_on_def RDirProd_def
+    by (auto simp add: monoid.defs)
+  hence "(R Quot (I 0)) \<simeq> (RDirProd (R Quot (I 0)) (RDirProd_list []))"
+    unfolding is_ring_iso_def by blast
+  moreover
+  have "RDirProd ((R Quot (I 0)) :: 'a set ring)
+                 (RDirProd_list ([] :: (('a set) ring) list)) \<simeq> (RDirProd_list  [ (R Quot (I 0)) ])"
+    using RDirProd_list_isomorphism1'[of "(R Quot (I 0)) :: 'a set ring" "[] :: (('a set) ring) list"] . 
+  ultimately show ?case
+    using ring_iso_trans by simp
+next
+  case (Suc n)
+  have inter_ideal: "ideal (\<Inter> i \<le> n. I i) R"
+    using Suc.prems(1) ring.i_Intersect[of R "I ` {..n}"] atMost_Suc
+          atLeast1_atMost_eq_remove0 local.ring_axioms by auto 
+  hence "R Quot (\<Inter> i \<le> Suc n. I i) \<simeq> RDirProd (R Quot (\<Inter> i \<le> n. I i)) (R Quot (I (Suc n)))"
+    using chinese_remainder_simple[of "\<Inter> i \<le> n. I i" "I (Suc n)"]
+          inter_plus_ideal_eq_carrier[of n I] by (simp add: Int_commute Suc.prems(1-2) atMost_Suc)
+
+  moreover have "R Quot (\<Inter> i \<le> n. I i) \<simeq> RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])"
+    using Suc.hyps Suc.prems(1-2) by auto
+  hence "RDirProd (R Quot (\<Inter> i \<le> n. I i)) (R Quot (I (Suc n))) \<simeq>
+         RDirProd (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) (R Quot (I (Suc n)))"
+    unfolding is_ring_iso_def using RDirProd_isomorphism4 by blast
+
+  ultimately
+  have "R Quot (\<Inter> i \<le> Suc n. I i) \<simeq>
+        RDirProd (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) (R Quot (I (Suc n)))"
+    using ring_iso_trans by simp
+
+  moreover
+  have "RDirProd (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) (R Quot (I (Suc n))) \<simeq>
+        RDirProd_list ((map (\<lambda>i. R Quot (I i)) [0..< Suc n]) @ [ R Quot (I (Suc n)) ])"
+    using RDirProd_list_isomorphism3 unfolding is_ring_iso_def by blast
+  hence "RDirProd (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) (R Quot (I (Suc n))) \<simeq>
+         RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc (Suc n)])" by simp
+
+  ultimately show ?case using ring_iso_trans by simp
+qed
+
+theorem (in cring) (* chinese_remainder: another proof *)
   assumes "\<And>i. i \<in> {..(n :: nat)} \<Longrightarrow> ideal (I i) R"
       and "\<And>i j. \<lbrakk> i \<in> {..n}; j \<in> {..n}; i \<noteq> j \<rbrakk> \<Longrightarrow> I i <+> I j = carrier R"
     shows "R Quot (\<Inter>i \<le> n. I i) \<simeq>  RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])"
@@ -922,17 +1151,16 @@ proof -
         proof (induct n)
           case 0
           have "x ! 0 \<in> carrier (R Quot (I 0))" using x_nth_eq by simp
-          then obtain x0 where x0: "x ! 0 = (I 0) +> x0" "x0 \<in> carrier R"
+          then obtain x_0 where x_0: "x ! 0 = (I 0) +> x_0" "x_0 \<in> carrier R"
             unfolding FactRing_def using A_RCOSETS_def'[of R "I 0"] by auto
-          define y :: "nat \<Rightarrow> 'a"  where "y = (\<lambda>i. x0)"
+          define y :: "nat \<Rightarrow> 'a"  where "y = (\<lambda>i. x_0)"
           hence "x ! 0 = (I 0) +> (y 0) \<and> (y 0) \<in> carrier R"
-            using x0 by simp
-          thus ?case by blast
+            using x_0 by simp
+          thus ?case using x_0 by blast
         next
           case (Suc n)
           then obtain y' where y': "\<And>i. i \<in> {..<Suc n} \<Longrightarrow> x ! i = I i +> y' i"
-                                   "\<And>i. i \<in> {..<Suc n} \<Longrightarrow> y' i \<in> carrier R"
-            by auto
+                                   "\<And>i. i \<in> {..<Suc n} \<Longrightarrow> y' i \<in> carrier R" by auto
 
           have "x ! (Suc n) \<in> carrier (R Quot (I (Suc n)))" using Suc by simp
           then obtain x_Sn where x_Sn: "x ! (Suc n) = (I (Suc n)) +> x_Sn"
@@ -964,55 +1192,7 @@ proof -
   qed
 
   moreover have "a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi> = (\<Inter>i \<le> n. I i)"
-  proof
-    show "(\<Inter>i \<le> n. I i) \<subseteq> a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi>"
-    proof
-      fix s assume s: "s \<in> (\<Inter>i \<le> n. I i)"
-      hence "\<And>i. i \<le> n \<Longrightarrow> (I i) +> s = I i"
-        by (simp add: additive_subgroup.zero_closed assms ideal.axioms(1) ideal.set_add_zero)
-      hence "\<And>i. i \<le> n \<Longrightarrow> (?\<phi> s) ! i = I i"
-        by (metis add.left_neutral diff_zero le_imp_less_Suc nth_map_upt)
-
-      moreover have
-        "\<And>i. i \<le> n \<Longrightarrow> (\<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>) ! i =
-                         \<zero>\<^bsub>(R Quot (I i))\<^esub>"
-        using RDirProd_list_zero[where ?Rs = "map (\<lambda>i. R Quot I i) [0..<Suc n]"]
-        by (metis (no_types, lifting) add.left_neutral atMost_iff diff_zero le_imp_less_Suc length_map length_upt lessThan_Suc_atMost nth_map_upt)
-      hence 
-        "\<And>i. i \<le> n \<Longrightarrow> (\<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>) ! i = I i"
-        unfolding FactRing_def by simp
-
-      moreover
-      have "length (\<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>) = Suc n"
-        using RDirProd_list_carrier_elts
-        by (smt RDirProd_list_cring add.left_neutral assms(1) cring.cring_simprules(2) diff_zero ideal.quotient_is_cring is_cring length_map length_upt lessThan_Suc_atMost lessThan_iff nth_map_upt)
-
-      moreover have "length (?\<phi> s) = Suc n" by simp
-
-      ultimately have "?\<phi> s = \<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>"
-        by (simp add: nth_equalityI) 
-
-      thus "s \<in> a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi>"
-        apply (simp add: monoid.defs) unfolding a_kernel_def kernel_def apply simp
-        using s additive_subgroup.a_Hcarr assms(1) ideal.axioms(1) by fastforce 
-    qed
-  next
-    show "a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi> \<subseteq> (\<Inter>i \<le> n. I i)"
-    proof
-      fix s assume s: "s \<in> a_kernel R (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])) ?\<phi>"
-      hence "?\<phi> s = \<zero>\<^bsub>(RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))\<^esub>"
-        unfolding a_kernel_def kernel_def by (simp add: monoid.defs)
-      hence "\<And>i. i \<le> n \<Longrightarrow> (I i) +> s = \<zero>\<^bsub>(R Quot (I i))\<^esub>"
-        using RDirProd_list_zero[where ?Rs = "map (\<lambda>i. R Quot I i) [0..<Suc n]"]
-        by (smt add.left_neutral atMost_iff diff_zero le_imp_less_Suc length_map length_upt lessThan_Suc_atMost nth_map_upt)
-      hence "\<And>i. i \<le> n \<Longrightarrow> (I i) +> s = I i"
-        unfolding FactRing_def by simp
-      moreover have "s \<in> carrier R"
-        using s unfolding a_kernel_def kernel_def by simp
-      ultimately show "s \<in> (\<Inter>i \<le> n. I i)"
-        using ideal.set_add_zero_imp_mem[where ?i = s and ?R = R] by (simp add: assms(1))
-    qed
-  qed
+    using canonical_proj_ext_kernel assms by blast
 
   moreover have "ring (RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n]))"
     using RDirProd_list_of_quot_is_cring assms(1) cring_def lessThan_Suc_atMost by blast

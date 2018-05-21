@@ -167,7 +167,7 @@ lemma (in ring) ideal_prod_zero:
   assumes "ideal I R"
   shows "I \<cdot> { \<zero> } = { \<zero> }"
 proof
-  show "I \<cdot> {\<zero>} \<subseteq> {\<zero>}"
+  show "I \<cdot> { \<zero> } \<subseteq> { \<zero> }"
   proof
     fix s assume "s \<in> I \<cdot> {\<zero>}" thus "s \<in> { \<zero> }"
       apply (induct s rule: ideal_prod.induct)
@@ -488,7 +488,101 @@ corollary (in cring) inter_plus_ideal_eq_carrier:
   shows "(\<Inter> i \<le> n. I i) <+> (I (Suc n)) = carrier R"
   using ideal_prod_eq_Inter[of I n] ideal_prod_eq_Inter_aux[of I n] by (auto simp add: assms)
 
+corollary (in cring) inter_plus_ideal_eq_carrier_arbitrary:
+  assumes "\<And>i. i \<in> {..(Suc n)} \<Longrightarrow> ideal (I i) R" 
+      and "\<And>i j. \<lbrakk> i \<in> {..(Suc n)}; j \<in> {..(Suc n)}; i \<noteq> j \<rbrakk> \<Longrightarrow> I i <+> I j = carrier R"
+      and "j \<in> {..(Suc n)}"
+  shows "(\<Inter> i \<in> ({..(Suc n)} - { j }). I i) <+> (I j) = carrier R"
+proof -
+  define I' where "I' = (\<lambda>i. if i = Suc n then (I j) else
+                             if i = j     then (I (Suc n))
+                                          else (I i))"
+  have "\<And>i. i \<in> {..(Suc n)} \<Longrightarrow> ideal (I' i) R"
+    using I'_def assms(1) assms(3) by auto
+  moreover have "\<And>i j. \<lbrakk> i \<in> {..(Suc n)}; j \<in> {..(Suc n)}; i \<noteq> j \<rbrakk> \<Longrightarrow> I' i <+> I' j = carrier R"
+    using I'_def assms(2-3) by force
+  ultimately have "(\<Inter> i \<le> n. I' i) <+> (I' (Suc n)) = carrier R"
+    using inter_plus_ideal_eq_carrier by simp
 
-subsection \<open>\<close>
+  moreover have "I' ` {..n} = I ` ({..(Suc n)} - { j })"
+  proof
+    show "I' ` {..n} \<subseteq> I ` ({..Suc n} - {j})"
+    proof
+      fix x assume "x \<in> I' ` {..n}"
+      then obtain i where i: "i \<in> {..n}" "I' i = x" by blast
+      thus "x \<in> I ` ({..Suc n} - {j})"
+      proof (cases)
+        assume "i = j" thus ?thesis using i I'_def by auto
+      next
+        assume "i \<noteq> j" thus ?thesis using I'_def i insert_iff by auto
+      qed
+    qed
+  next
+    show "I ` ({..Suc n} - {j}) \<subseteq> I' ` {..n}"
+    proof
+      fix x assume "x \<in> I ` ({..Suc n} - {j})"
+      then obtain i where i: "i \<in> {..Suc n}" "i \<noteq> j" "I i = x" by blast
+      thus "x \<in> I' ` {..n}"
+      proof (cases)
+        assume "i = Suc n" thus ?thesis using I'_def assms(3) i(2-3) by auto
+      next
+        assume "i \<noteq> Suc n" thus ?thesis using I'_def i by auto
+      qed
+    qed
+  qed
+  ultimately show ?thesis using I'_def by metis 
+qed
+
+
+subsection \<open>Another Characterization of Prime Ideals\<close>
+
+text \<open>With product of ideals being defined, we can give another definition of a prime ideal\<close>
+
+lemma (in ring) primeideal_divides_ideal_prod:
+  assumes "primeideal P R" "ideal I R" "ideal J R"
+      and "I \<cdot> J \<subseteq> P"
+    shows "I \<subseteq> P \<or> J \<subseteq> P"
+proof (cases)
+  assume "\<exists> i \<in> I. i \<notin> P"
+  then obtain i where i: "i \<in> I" "i \<notin> P" by blast
+  have "J \<subseteq> P"
+  proof
+    fix j assume j: "j \<in> J"
+    hence "i \<otimes> j \<in> P"
+      using ideal_prod.prod[OF i(1) j, of R] assms(4) by auto
+    thus "j \<in> P"
+      using primeideal.I_prime[OF assms(1), of i j] i j
+      by (meson assms(2-3) ideal.Icarr) 
+  qed
+  thus ?thesis by blast
+next
+  assume "\<not> (\<exists> i \<in> I. i \<notin> P)" thus ?thesis by blast
+qed
+
+lemma (in cring) divides_ideal_prod_imp_primeideal:
+  assumes "ideal P R"
+    and "P \<noteq> carrier R"
+    and "\<And>I J. \<lbrakk> ideal I R; ideal J R; I \<cdot> J \<subseteq> P \<rbrakk> \<Longrightarrow> I \<subseteq> P \<or> J \<subseteq> P"
+  shows "primeideal P R"
+proof -
+  have "\<And>a b. \<lbrakk> a \<in> carrier R; b \<in> carrier R; a \<otimes> b \<in> P \<rbrakk> \<Longrightarrow> a \<in> P \<or> b \<in> P"
+  proof -
+    fix a b assume A: "a \<in> carrier R" "b \<in> carrier R" "a \<otimes> b \<in> P"
+    have "(PIdl a) \<cdot> (PIdl b) = Idl (PIdl (a \<otimes> b))"
+      using ideal_prod_eq_genideal[of "Idl { a }" "Idl { b }"]
+            A(1-2) cgenideal_eq_genideal cgenideal_ideal cgenideal_prod by auto
+    hence "(PIdl a) \<cdot> (PIdl b) = PIdl (a \<otimes> b)"
+      by (simp add: A Idl_subset_ideal cgenideal_ideal cgenideal_minimal
+                    genideal_self oneideal subset_antisym)
+    hence "(PIdl a) \<cdot> (PIdl b) \<subseteq> P"
+      by (simp add: A(3) assms(1) cgenideal_minimal)
+    hence "(PIdl a) \<subseteq> P \<or> (PIdl b) \<subseteq> P"
+      by (simp add: A assms(3) cgenideal_ideal)
+    thus "a \<in> P \<or> b \<in> P"
+      using A cgenideal_self by blast
+  qed
+  thus ?thesis
+    using assms is_cring by (simp add: primeidealI)
+qed
 
 end
