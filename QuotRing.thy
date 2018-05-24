@@ -307,6 +307,297 @@ proof -
 qed
 
 
+(* Next lemmas and subsection contributed by Paulo Emílio de Vilhena. *)
+
+lemma (in group_hom) trivial_hom_iff: (* move to Group.thy *)
+  "(h ` (carrier G) = { \<one>\<^bsub>H\<^esub> }) = (kernel G H h = carrier G)"
+  unfolding kernel_def using one_closed by force
+
+lemma (in ring_hom_ring) trivial_hom_iff:
+  "(h ` (carrier R) = { \<zero>\<^bsub>S\<^esub> }) = (a_kernel R S h = carrier R)"
+  using group_hom.trivial_hom_iff[OF a_group_hom] by (simp add: a_kernel_def)
+
+lemma (in group_hom) trivial_ker_imp_inj: (* move to Group.thy *)
+  assumes "kernel G H h = { \<one> }"
+  shows "inj_on h (carrier G)"
+proof (rule inj_onI)
+  fix g1 g2 assume A: "g1 \<in> carrier G" "g2 \<in> carrier G" "h g1 = h g2"
+  hence "h (g1 \<otimes> (inv g2)) = \<one>\<^bsub>H\<^esub>" by simp
+  hence "g1 \<otimes> (inv g2) = \<one>"
+    using A assms unfolding kernel_def by blast
+  thus "g1 = g2"
+    using A G.inv_equality G.inv_inv by blast
+qed
+
+lemma (in ring_hom_ring) trivial_ker_imp_inj:
+  assumes "a_kernel R S h = { \<zero> }"
+  shows "inj_on h (carrier R)"
+  using group_hom.trivial_ker_imp_inj[OF a_group_hom] assms a_kernel_def[of R S h] by simp 
+
+lemma (in ring_hom_ring) non_trivial_field_hom_imp_inj:
+  assumes "field R"
+  shows "h ` (carrier R) \<noteq> { \<zero>\<^bsub>S\<^esub> } \<Longrightarrow> inj_on h (carrier R)"
+proof -
+  assume "h ` (carrier R) \<noteq> { \<zero>\<^bsub>S\<^esub> }"
+  hence "a_kernel R S h \<noteq> carrier R"
+    using trivial_hom_iff by linarith
+  hence "a_kernel R S h = { \<zero> }"
+    using field.all_ideals[OF assms] kernel_is_ideal by blast
+  thus "inj_on h (carrier R)"
+    using trivial_ker_imp_inj by blast
+qed
+
+lemma (in ring_hom_ring) img_is_add_subgroup:
+  assumes "subgroup H (add_monoid R)"
+  shows "subgroup (h ` H) (add_monoid S)"
+proof -
+  have "group ((add_monoid R) \<lparr> carrier := H \<rparr>)"
+    using assms R.add.subgroup_imp_group by blast
+  moreover have "H \<subseteq> carrier R" by (simp add: R.add.subgroupE(1) assms)
+  hence "h \<in> hom ((add_monoid R) \<lparr> carrier := H \<rparr>) (add_monoid S)"
+    unfolding hom_def by (auto simp add: subsetD)
+  ultimately have "subgroup (h ` carrier ((add_monoid R) \<lparr> carrier := H \<rparr>)) (add_monoid S)"
+    using group_hom.img_is_subgroup[of "(add_monoid R) \<lparr> carrier := H \<rparr>" "add_monoid S" h]
+    using a_group_hom group_hom_axioms.intro group_hom_def by blast
+  thus "subgroup (h ` H) (add_monoid S)" by simp
+qed
+
+lemma (in ring) ring_ideal_imp_quot_ideal:
+  assumes "ideal I R"
+  shows "ideal J R \<Longrightarrow> ideal ((op +> I) ` J) (R Quot I)"
+proof -
+  assume A: "ideal J R" show "ideal ((op +> I) ` J) (R Quot I)"
+  proof (rule idealI)
+    show "ring (R Quot I)"
+      by (simp add: assms(1) ideal.quotient_is_ring) 
+  next
+    have "subgroup J (add_monoid R)"
+      by (simp add: additive_subgroup.a_subgroup A ideal.axioms(1))
+    moreover have "(op +> I) \<in> ring_hom R (R Quot I)"
+      by (simp add: assms(1) ideal.rcos_ring_hom)
+    ultimately show "subgroup (op +> I ` J) (add_monoid (R Quot I))"
+      using assms(1) ideal.rcos_ring_hom_ring ring_hom_ring.img_is_add_subgroup by blast
+  next
+    fix a x assume "a \<in> ((op +> I) ` J)" "x \<in> carrier (R Quot I)"
+    then obtain i j where i: "i \<in> carrier R" "x = I +> i"
+                      and j: "j \<in> J" "a = I +> j"
+      unfolding FactRing_def using A_RCOSETS_def'[of R I] by auto
+    hence "a \<otimes>\<^bsub>R Quot I\<^esub> x = [mod I:] (I +> j) \<Otimes> (I +> i)"
+      unfolding FactRing_def by simp
+    hence "a \<otimes>\<^bsub>R Quot I\<^esub> x = I +> (j \<otimes> i)"
+      using ideal.rcoset_mult_add[OF assms(1), of j i] i(1) j(1) A ideal.Icarr by force
+    thus "a \<otimes>\<^bsub>R Quot I\<^esub> x \<in> ((op +> I) ` J)"
+      using A i(1) j(1) by (simp add: ideal.I_r_closed)
+  
+    have "x \<otimes>\<^bsub>R Quot I\<^esub> a = [mod I:] (I +> i) \<Otimes> (I +> j)"
+      unfolding FactRing_def i j by simp
+    hence "x \<otimes>\<^bsub>R Quot I\<^esub> a = I +> (i \<otimes> j)"
+      using ideal.rcoset_mult_add[OF assms(1), of i j] i(1) j(1) A ideal.Icarr by force
+    thus "x \<otimes>\<^bsub>R Quot I\<^esub> a \<in> ((op +> I) ` J)"
+      using A i(1) j(1) by (simp add: ideal.I_l_closed)
+  qed
+qed
+
+lemma (in ring_hom_ring) ideal_vimage:
+  assumes "ideal I S"
+  shows "ideal { r \<in> carrier R. h r \<in> I } R" (* or (carrier R) \<inter> (h -` I) *)
+proof
+  show "{ r \<in> carrier R. h r \<in> I } \<subseteq> carrier (add_monoid R)" by auto
+next
+  show "\<one>\<^bsub>add_monoid R\<^esub> \<in> { r \<in> carrier R. h r \<in> I }"
+    by (simp add: additive_subgroup.zero_closed assms ideal.axioms(1))
+next
+  fix a b
+  assume "a \<in> { r \<in> carrier R. h r \<in> I }"
+     and "b \<in> { r \<in> carrier R. h r \<in> I }"
+  hence a: "a \<in> carrier R" "h a \<in> I"
+    and b: "b \<in> carrier R" "h b \<in> I" by auto
+  hence "h (a \<oplus> b) = (h a) \<oplus>\<^bsub>S\<^esub> (h b)" using hom_add by blast
+  moreover have "(h a) \<oplus>\<^bsub>S\<^esub> (h b) \<in> I" using a b assms
+    by (simp add: additive_subgroup.a_closed ideal.axioms(1))
+  ultimately show "a \<otimes>\<^bsub>add_monoid R\<^esub> b \<in> { r \<in> carrier R. h r \<in> I }"
+    using a(1) b (1) by auto
+
+  have "h (\<ominus> a) = \<ominus>\<^bsub>S\<^esub> (h a)" by (simp add: a)
+  moreover have "\<ominus>\<^bsub>S\<^esub> (h a) \<in> I"
+    by (simp add: a(2) additive_subgroup.a_inv_closed assms ideal.axioms(1))
+  ultimately show "inv\<^bsub>add_monoid R\<^esub> a \<in> { r \<in> carrier R. h r \<in> I }"
+    using a by (simp add: a_inv_def)
+next
+  fix a r
+  assume "a \<in> { r \<in> carrier R. h r \<in> I }" and r: "r \<in> carrier R"
+  hence a: "a \<in> carrier R" "h a \<in> I" by auto
+
+  have "h a \<otimes>\<^bsub>S\<^esub> h r \<in> I"
+    using assms a r by (simp add: ideal.I_r_closed)
+  thus "a \<otimes> r \<in> { r \<in> carrier R. h r \<in> I }" by (simp add: a(1) r)
+
+  have "h r \<otimes>\<^bsub>S\<^esub> h a \<in> I"
+    using assms a r by (simp add: ideal.I_l_closed)
+  thus "r \<otimes> a \<in> { r \<in> carrier R. h r \<in> I }" by (simp add: a(1) r)
+qed
+
+lemma (in ring) canonical_proj_vimage_in_carrier:
+  assumes "ideal I R"
+  shows "J \<subseteq> carrier (R Quot I) \<Longrightarrow> \<Union> J \<subseteq> carrier R"
+proof -
+  assume A: "J \<subseteq> carrier (R Quot I)" show "\<Union> J \<subseteq> carrier R"
+  proof
+    fix j assume j: "j \<in> \<Union> J"
+    then obtain j' where j': "j' \<in> J" "j \<in> j'" by blast
+    then obtain r where r: "r \<in> carrier R" "j' = I +> r"
+      using A j' unfolding FactRing_def using A_RCOSETS_def'[of R I] by auto
+    thus "j \<in> carrier R" using j' assms
+      by (meson a_r_coset_subset_G additive_subgroup.a_subset contra_subsetD ideal.axioms(1)) 
+  qed
+qed
+
+lemma (in ring) canonical_proj_vimage_mem_iff:
+  assumes "ideal I R" "J \<subseteq> carrier (R Quot I)"
+  shows "\<And>a. a \<in> carrier R \<Longrightarrow> (a \<in> (\<Union> J)) = (I +> a \<in> J)"
+proof -
+  fix a assume a: "a \<in> carrier R" show "(a \<in> (\<Union> J)) = (I +> a \<in> J)"
+  proof
+    assume "a \<in> \<Union> J"
+    then obtain j where j: "j \<in> J" "a \<in> j" by blast
+    then obtain r where r: "r \<in> carrier R" "j = I +> r"
+      using assms j unfolding FactRing_def using A_RCOSETS_def'[of R I] by auto
+    hence "I +> r = I +> a"
+      using add.repr_independence[of a I r] j r
+      by (metis a_r_coset_def additive_subgroup.a_subgroup assms ideal.axioms(1))
+    thus "I +> a \<in> J" using r j by simp
+  next
+    assume "I +> a \<in> J"
+    hence "\<zero> \<oplus> a \<in> I +> a"
+      using additive_subgroup.zero_closed[OF ideal.axioms(1)[OF assms(1)]]
+            a_r_coset_def'[of R I a] by blast
+    thus "a \<in> \<Union> J" using a \<open>I +> a \<in> J\<close> by auto 
+  qed
+qed
+
+corollary (in ring) quot_ideal_imp_ring_ideal:
+  assumes "ideal I R"
+  shows "ideal J (R Quot I) \<Longrightarrow> ideal (\<Union> J) R"
+proof -
+  assume A: "ideal J (R Quot I)"
+  have "\<Union> J = { r \<in> carrier R. I +> r \<in> J }"
+    using canonical_proj_vimage_in_carrier[OF assms, of J]
+          canonical_proj_vimage_mem_iff[OF assms, of J]
+          additive_subgroup.a_subset[OF ideal.axioms(1)[OF A]] by blast
+  thus "ideal (\<Union> J) R"
+    using ring_hom_ring.ideal_vimage[OF ideal.rcos_ring_hom_ring[OF assms] A] by simp
+qed
+
+lemma (in ring) ideal_incl_iff:
+  assumes "ideal I R" "ideal J R"
+  shows "(I \<subseteq> J) = (J = (\<Union> j \<in> J. I +> j))"
+proof
+  assume A: "J = (\<Union> j \<in> J. I +> j)" hence "I +> \<zero> \<subseteq> J"
+    using additive_subgroup.zero_closed[OF ideal.axioms(1)[OF assms(2)]] by blast
+  thus "I \<subseteq> J" using additive_subgroup.a_subset[OF ideal.axioms(1)[OF assms(1)]] by simp 
+next
+  assume A: "I \<subseteq> J" show "J = (\<Union>j\<in>J. I +> j)"
+  proof
+    show "J \<subseteq> (\<Union> j \<in> J. I +> j)"
+    proof
+      fix j assume j: "j \<in> J"
+      have "\<zero> \<in> I" by (simp add: additive_subgroup.zero_closed assms(1) ideal.axioms(1))
+      hence "\<zero> \<oplus> j \<in> I +> j"
+        using a_r_coset_def'[of R I j] by blast
+      thus "j \<in> (\<Union>j\<in>J. I +> j)"
+        using assms(2) j additive_subgroup.a_Hcarr ideal.axioms(1) by fastforce 
+    qed
+  next
+    show "(\<Union> j \<in> J. I +> j) \<subseteq> J"
+    proof
+      fix x assume "x \<in> (\<Union> j \<in> J. I +> j)"
+      then obtain j where j: "j \<in> J" "x \<in> I +> j" by blast
+      then obtain i where i: "i \<in> I" "x = i \<oplus> j"
+        using a_r_coset_def'[of R I j] by blast
+      thus "x \<in> J"
+        using assms(2) j A additive_subgroup.a_closed[OF ideal.axioms(1)[OF assms(2)]] by blast
+    qed
+  qed
+qed
+
+theorem (in ring) quot_ideal_correspondence:
+  assumes "ideal I R"
+  shows "bij_betw (\<lambda>J. (op +> I) ` J) { J. ideal J R \<and> I \<subseteq> J } { J . ideal J (R Quot I) }"
+proof (rule bij_betw_byWitness[where ?f' = "\<lambda>X. \<Union> X"])
+  show "\<forall>J \<in> { J. ideal J R \<and> I \<subseteq> J }. (\<lambda>X. \<Union> X) (op +> I ` J) = J"
+    using assms ideal_incl_iff by blast
+next
+  show "op ` (op +> I) ` { J. ideal J R \<and> I \<subseteq> J } \<subseteq> { J. ideal J (R Quot I) }"
+    using assms ring_ideal_imp_quot_ideal by auto
+next
+  show "(\<lambda>X. \<Union> X) ` { J. ideal J (R Quot I) } \<subseteq> { J. ideal J R \<and> I \<subseteq> J }"
+  proof
+    fix J assume "J \<in> ((\<lambda>X. \<Union> X) ` { J. ideal J (R Quot I) })"
+    then obtain J' where J': "ideal J' (R Quot I)" "J = \<Union> J'" by blast
+    hence "ideal J R"
+      using assms quot_ideal_imp_ring_ideal by auto
+    moreover have "I \<in> J'"
+      using additive_subgroup.zero_closed[OF ideal.axioms(1)[OF J'(1)]] unfolding FactRing_def by simp
+    ultimately show "J \<in> { J. ideal J R \<and> I \<subseteq> J }" using J'(2) by auto
+  qed
+next
+  show "\<forall>J' \<in> { J. ideal J (R Quot I) }. ((op +> I) ` (\<Union> J')) = J'"
+  proof
+    fix J' assume "J' \<in> { J. ideal J (R Quot I) }"
+    hence subset: "J' \<subseteq> carrier (R Quot I) \<and> ideal J' (R Quot I)"
+      using additive_subgroup.a_subset ideal_def by blast
+    hence "((op +> I) ` (\<Union> J')) \<subseteq> J'"
+      using canonical_proj_vimage_in_carrier canonical_proj_vimage_mem_iff
+      by (meson assms contra_subsetD image_subsetI)
+    moreover have "J' \<subseteq> ((op +> I) ` (\<Union> J'))"
+    proof
+      fix x assume "x \<in> J'"
+      then obtain r where r: "r \<in> carrier R" "x = I +> r"
+        using subset unfolding FactRing_def A_RCOSETS_def'[of R I] by auto
+      hence "r \<in> (\<Union> J')"
+        using \<open>x \<in> J'\<close> assms canonical_proj_vimage_mem_iff subset by blast
+      thus "x \<in> ((op +> I) ` (\<Union> J'))" using r(2) by blast
+    qed
+    ultimately show "((op +> I) ` (\<Union> J')) = J'" by blast
+  qed
+qed
+
+lemma (in cring) quot_domain_imp_primeideal:
+  assumes "ideal P R"
+  shows "domain (R Quot P) \<Longrightarrow> primeideal P R"
+proof -
+  assume A: "domain (R Quot P)" show "primeideal P R"
+  proof (rule primeidealI)
+    show "ideal P R" using assms .
+    show "cring R" using is_cring .
+  next
+    show "carrier R \<noteq> P"
+    proof (rule ccontr)
+      assume "\<not> carrier R \<noteq> P" hence "carrier R = P" by simp
+      hence "\<And>I. I \<in> carrier (R Quot P) \<Longrightarrow> I = P"
+        unfolding FactRing_def A_RCOSETS_def' apply simp
+        using a_coset_join2 additive_subgroup.a_subgroup assms ideal.axioms(1) by blast
+      hence "\<one>\<^bsub>(R Quot P)\<^esub> = \<zero>\<^bsub>(R Quot P)\<^esub>"
+        by (metis assms ideal.quotient_is_ring ring.ring_simprules(2) ring.ring_simprules(6))
+      thus False using domain.one_not_zero[OF A] by simp
+    qed
+  next
+    fix a b assume a: "a \<in> carrier R" and b: "b \<in> carrier R" and ab: "a \<otimes> b \<in> P"
+    hence "P +> (a \<otimes> b) = \<zero>\<^bsub>(R Quot P)\<^esub>" unfolding FactRing_def
+      by (simp add: a_coset_join2 additive_subgroup.a_subgroup assms ideal.axioms(1))
+    moreover have "(P +> a) \<otimes>\<^bsub>(R Quot P)\<^esub> (P +> b) = P +> (a \<otimes> b)" unfolding FactRing_def
+      using a b by (simp add: assms ideal.rcoset_mult_add)
+    moreover have "P +> a \<in> carrier (R Quot P) \<and> P +> b \<in> carrier (R Quot P)"
+      by (simp add: a b FactRing_def a_rcosetsI additive_subgroup.a_subset assms ideal.axioms(1))
+    ultimately have "P +> a = \<zero>\<^bsub>(R Quot P)\<^esub> \<or> P +> b = \<zero>\<^bsub>(R Quot P)\<^esub>"
+      using domain.integral[OF A, of "P +> a" "P +> b"] by auto
+    thus "a \<in> P \<or> b \<in> P" unfolding FactRing_def apply simp
+      using a b assms a_coset_join1 additive_subgroup.a_subgroup ideal.axioms(1) by blast
+  qed
+qed
+
+
+
 subsection \<open>Isomorphism\<close>
 
 definition
@@ -411,22 +702,7 @@ corollary ring_iso_refl: "R \<simeq> R"
 
 lemma ring_iso_set_trans:
   "\<lbrakk> f \<in> ring_iso R S; g \<in> ring_iso S Q \<rbrakk> \<Longrightarrow> (g \<circ> f) \<in> ring_iso R Q"
-proof -
-  assume "f \<in> ring_iso R S" "g \<in> ring_iso S Q"
-  hence f: "f \<in> ring_hom R S" "bij_betw f (carrier R) (carrier S)"
-    and g: "g \<in> ring_hom S Q" "bij_betw g (carrier S) (carrier Q)"
-    unfolding is_ring_iso_def ring_iso_def by simp_all 
-  hence gof_bij: "bij_betw (g \<circ> f) (carrier R) (carrier Q)"
-    using bij_betw_comp_iff by blast
-
-  show "g \<circ> f \<in> ring_iso R Q"
-    apply (rule ring_iso_memI)
-    using gof_bij bij_betwE apply blast
-    apply (smt bij_betwE comp_apply f g(1) ring_hom_mult)
-    apply (smt bij_betwE comp_apply f g(1) ring_hom_add)
-    apply (metis comp_def f(1) g(1) ring_hom_one)
-    by (simp add: gof_bij)
-qed
+  unfolding ring_iso_def using bij_betw_trans ring_hom_trans by fastforce 
 
 corollary ring_iso_trans: "\<lbrakk> R \<simeq> S; S \<simeq> Q \<rbrakk> \<Longrightarrow> R \<simeq> Q"
   using ring_iso_set_trans unfolding is_ring_iso_def by blast 
@@ -461,95 +737,75 @@ corollary ring_iso_sym:
   shows "R \<simeq> S \<Longrightarrow> S \<simeq> R"
   using assms ring_iso_set_sym unfolding is_ring_iso_def by auto 
 
-theorem (in ring_hom_ring) FactRing_iso_set:
-  assumes "h ` carrier R = carrier S"
-  shows "(\<lambda>X. the_elem (h ` X)) \<in> ring_iso (R Quot (a_kernel R S h)) S"
-proof (rule ring_iso_memI)
-  have quot_mem:
-    "\<And>X. X \<in> carrier (R Quot (a_kernel R S h)) \<Longrightarrow> \<exists>x \<in> carrier R. X = (a_kernel R S h) +> x"
+lemma (in ring_hom_ring) the_elem_simp [simp]:
+  "\<And>x. x \<in> carrier R \<Longrightarrow> the_elem (h ` ((a_kernel R S h) +> x)) = h x"
+proof -
+  fix x assume x: "x \<in> carrier R"
+  hence "h x \<in> h ` ((a_kernel R S h) +> x)"
+    using homeq_imp_rcos by blast
+  thus "the_elem (h ` ((a_kernel R S h) +> x)) = h x"
+    by (metis (no_types, lifting) x empty_iff homeq_imp_rcos rcos_imp_homeq the_elem_image_unique)
+qed
+
+lemma (in ring_hom_ring) the_elem_inj:
+  "\<And>X Y. \<lbrakk> X \<in> carrier (R Quot (a_kernel R S h)); Y \<in> carrier (R Quot (a_kernel R S h)) \<rbrakk> \<Longrightarrow>
+           the_elem (h ` X) = the_elem (h ` Y) \<Longrightarrow> X = Y"
+proof -
+  fix X Y
+  assume "X \<in> carrier (R Quot (a_kernel R S h))"
+     and "Y \<in> carrier (R Quot (a_kernel R S h))"
+     and Eq: "the_elem (h ` X) = the_elem (h ` Y)"
+  then obtain x y where x: "x \<in> carrier R" "X = (a_kernel R S h) +> x"
+                    and y: "y \<in> carrier R" "Y = (a_kernel R S h) +> y"
+    unfolding FactRing_def A_RCOSETS_def' by auto
+  hence "h x = h y" using Eq by simp
+  hence "x \<ominus> y \<in> (a_kernel R S h)"
+    by (simp add: a_minus_def abelian_subgroup.a_rcos_module_imp
+                  abelian_subgroup_a_kernel homeq_imp_rcos x(1) y(1))
+  thus "X = Y"
+    by (metis R.a_coset_add_inv1 R.minus_eq abelian_subgroup.a_rcos_const
+        abelian_subgroup_a_kernel additive_subgroup.a_subset additive_subgroup_a_kernel x y)
+qed
+
+lemma (in ring_hom_ring) quot_mem:
+  "\<And>X. X \<in> carrier (R Quot (a_kernel R S h)) \<Longrightarrow> \<exists>x \<in> carrier R. X = (a_kernel R S h) +> x"
+proof -
+  fix X assume "X \<in> carrier (R Quot (a_kernel R S h))"
+  thus "\<exists>x \<in> carrier R. X = (a_kernel R S h) +> x"
+    unfolding FactRing_def RCOSETS_def A_RCOSETS_def by (simp add: a_r_coset_def)
+qed
+
+lemma (in ring_hom_ring) the_elem_wellfounded:
+  "\<And>X. X \<in> carrier (R Quot (a_kernel R S h)) \<Longrightarrow> \<exists>y \<in> carrier S. (h ` X) = { y }"
+proof -
+  fix X assume "X \<in> carrier (R Quot (a_kernel R S h))"
+  then obtain x where x: "x \<in> carrier R" and X: "X = (a_kernel R S h) +> x"
+    using quot_mem by blast
+  hence "\<And>x'. x' \<in> X \<Longrightarrow> h x' = h x"
   proof -
-    fix X assume "X \<in> carrier (R Quot (a_kernel R S h))"
-    thus "\<exists>x \<in> carrier R. X = (a_kernel R S h) +> x"
-      unfolding FactRing_def RCOSETS_def A_RCOSETS_def by (simp add: a_r_coset_def)
+    fix x' assume "x' \<in> X" hence "x' \<in> (a_kernel R S h) +> x" using X by simp
+    then obtain k where k: "k \<in> a_kernel R S h" "x' = k \<oplus> x"
+      by (metis R.add.inv_closed R.add.m_assoc R.l_neg R.r_zero
+          abelian_subgroup.a_elemrcos_carrier
+          abelian_subgroup.a_rcos_module_imp abelian_subgroup_a_kernel x)
+    hence "h x' = h k \<oplus>\<^bsub>S\<^esub> h x"
+      by (meson additive_subgroup.a_Hcarr additive_subgroup_a_kernel hom_add x)
+    also have " ... =  h x"
+      using k by (auto simp add: x)
+    finally show "h x' = h x" .
   qed
+  moreover have "h x \<in> h ` X"
+    by (simp add: X homeq_imp_rcos x)
+  ultimately have "(h ` X) = { h x }"
+    by blast
+  thus "\<exists>y \<in> carrier S. (h ` X) = { y }" using x by simp
+qed
 
-  have well_founded:
-    "\<And>X. X \<in> carrier (R Quot (a_kernel R S h)) \<Longrightarrow> \<exists>y \<in> carrier S. (h ` X) = { y }"
-  proof -
-    fix X assume "X \<in> carrier (R Quot (a_kernel R S h))"
-    then obtain x where x: "x \<in> carrier R" and X: "X = (a_kernel R S h) +> x"
-      using quot_mem by blast
-    hence "\<And>x'. x' \<in> X \<Longrightarrow> h x' = h x"
-    proof -
-      fix x' assume "x' \<in> X" hence "x' \<in> (a_kernel R S h) +> x" using X by simp
-      then obtain k where k: "k \<in> a_kernel R S h" "x' = k \<oplus> x"
-        by (metis R.add.inv_closed R.add.m_assoc R.l_neg R.r_zero
-            abelian_subgroup.a_elemrcos_carrier
-            abelian_subgroup.a_rcos_module_imp abelian_subgroup_a_kernel x)
-      hence "h x' = h k \<oplus>\<^bsub>S\<^esub> h x"
-        by (meson additive_subgroup.a_Hcarr additive_subgroup_a_kernel hom_add x)
-      also have " ... =  h x"
-        using k by (auto simp add: x)
-      finally show "h x' = h x" .
-    qed
-    moreover have "h x \<in> h ` X"
-      by (simp add: X homeq_imp_rcos x)
-    ultimately have "(h ` X) = { h x }"
-      by blast
-    thus "\<exists>y \<in> carrier S. (h ` X) = { y }"
-      by (simp add: assms x) 
-  qed
-
-  have the_elem_simp [simp]:
-    "\<And>x. x \<in> carrier R \<Longrightarrow> the_elem (h ` ((a_kernel R S h) +> x)) = h x"
-  proof -
-    fix x assume x: "x \<in> carrier R"
-    hence "h x \<in> h ` ((a_kernel R S h) +> x)"
-      using homeq_imp_rcos by blast
-    thus "the_elem (h ` ((a_kernel R S h) +> x)) = h x"
-      by (metis (no_types, lifting) x empty_iff homeq_imp_rcos rcos_imp_homeq the_elem_image_unique)
-  qed
-
-  have the_elem_inj:
-    "\<And>X Y. \<lbrakk> X \<in> carrier (R Quot (a_kernel R S h)); Y \<in> carrier (R Quot (a_kernel R S h)) \<rbrakk> \<Longrightarrow>
-             the_elem (h ` X) = the_elem (h ` Y) \<Longrightarrow> X = Y"
-  proof -
-    fix X Y
-    assume "X \<in> carrier (R Quot (a_kernel R S h))"
-       and "Y \<in> carrier (R Quot (a_kernel R S h))"
-       and Eq: "the_elem (h ` X) = the_elem (h ` Y)"
-    then obtain x y where x: "x \<in> carrier R" "X = (a_kernel R S h) +> x"
-                      and y: "y \<in> carrier R" "Y = (a_kernel R S h) +> y" using quot_mem by blast
-    hence "h x = h y" using Eq by simp
-    hence "x \<ominus> y \<in> (a_kernel R S h)"
-      by (simp add: a_minus_def abelian_subgroup.a_rcos_module_imp
-                    abelian_subgroup_a_kernel homeq_imp_rcos x(1) y(1))
-    thus "X = Y"
-      by (metis R.a_coset_add_inv1 R.minus_eq abelian_subgroup.a_rcos_const
-          abelian_subgroup_a_kernel additive_subgroup.a_subset additive_subgroup_a_kernel x y)
-  qed
-
-  have the_elem_surj:
-    "(\<lambda>X. (the_elem (h ` X))) ` carrier (R Quot (a_kernel R S h)) = carrier S"
-  proof -
-    have "carrier S \<subseteq> (\<lambda>X. (the_elem (h ` X))) ` carrier (R Quot (a_kernel R S h))"
-    proof
-      fix y assume "y \<in> carrier S"
-      then obtain x where x: "x \<in> carrier R" "h x = y"
-        using assms by (metis image_iff)
-      hence "the_elem (h ` ((a_kernel R S h) +> x)) = y" by simp
-      moreover have "(a_kernel R S h) +> x \<in> carrier (R Quot (a_kernel R S h))"
-      unfolding FactRing_def RCOSETS_def A_RCOSETS_def by (auto simp add: x a_r_coset_def)
-      ultimately show "y \<in> (\<lambda>X. (the_elem (h ` X))) ` carrier (R Quot (a_kernel R S h))" by blast
-    qed
-    thus ?thesis using well_founded by fastforce
-  qed
-
-  show "bij_betw (\<lambda>X. the_elem (h ` X)) (carrier (R Quot a_kernel R S h)) (carrier S)"
-    unfolding bij_betw_def inj_on_def using the_elem_surj the_elem_inj by simp
-
+lemma (in ring_hom_ring) the_elem_hom:
+  "(\<lambda>X. the_elem (h ` X)) \<in> ring_hom (R Quot (a_kernel R S h)) S"
+proof (rule ring_hom_memI)
   show "\<And>x. x \<in> carrier (R Quot a_kernel R S h) \<Longrightarrow> the_elem (h ` x) \<in> carrier S"
-    using well_founded by fastforce
+    using the_elem_wellfounded by fastforce
   
   show "the_elem (h ` \<one>\<^bsub>R Quot a_kernel R S h\<^esub>) = \<one>\<^bsub>S\<^esub>"
     unfolding FactRing_def  using the_elem_simp[of "\<one>\<^bsub>R\<^esub>"] by simp
@@ -572,9 +828,87 @@ proof (rule ring_iso_memI)
     by (simp add: x y)
 qed
 
+theorem (in ring_hom_ring) FactRing_iso_set:
+  assumes "h ` carrier R = carrier S"
+  shows "(\<lambda>X. the_elem (h ` X)) \<in> ring_iso (R Quot (a_kernel R S h)) S"
+proof -
+  have the_elem_surj:
+    "(\<lambda>X. (the_elem (h ` X))) ` carrier (R Quot (a_kernel R S h)) = carrier S"
+  proof -
+    have "carrier S \<subseteq> (\<lambda>X. (the_elem (h ` X))) ` carrier (R Quot (a_kernel R S h))"
+    proof
+      fix y assume "y \<in> carrier S"
+      then obtain x where x: "x \<in> carrier R" "h x = y"
+        using assms by (metis image_iff)
+      hence "the_elem (h ` ((a_kernel R S h) +> x)) = y" by simp
+      moreover have "(a_kernel R S h) +> x \<in> carrier (R Quot (a_kernel R S h))"
+      unfolding FactRing_def RCOSETS_def A_RCOSETS_def by (auto simp add: x a_r_coset_def)
+      ultimately show "y \<in> (\<lambda>X. (the_elem (h ` X))) ` carrier (R Quot (a_kernel R S h))" by blast
+    qed
+    thus ?thesis using the_elem_wellfounded by fastforce
+  qed
+
+  have "bij_betw (\<lambda>X. the_elem (h ` X)) (carrier (R Quot a_kernel R S h)) (carrier S)"
+    unfolding bij_betw_def inj_on_def using the_elem_surj the_elem_inj by simp
+  thus ?thesis unfolding ring_iso_def using the_elem_hom by simp
+qed
+
 corollary (in ring_hom_ring) FactRing_iso:
   assumes "h ` carrier R = carrier S"
   shows "R Quot (a_kernel R S h) \<simeq> S"
   using FactRing_iso_set assms is_ring_iso_def by auto
+
+proposition (in ring_hom_ring) primeideal_vimage:
+  assumes "cring R"
+  shows "primeideal P S \<Longrightarrow> primeideal { r \<in> carrier R. h r \<in> P } R"
+proof -
+  assume A: "primeideal P S"
+  hence is_ideal: "ideal P S" unfolding primeideal_def by simp
+  have "ring_hom_ring R (S Quot P) (op +>\<^bsub>S\<^esub> P \<circ> h)" (is "ring_hom_ring ?A ?B ?h")
+    using ring_hom_trans[OF homh, of "op +>\<^bsub>S\<^esub> P" "S Quot P"]
+          ideal.rcos_ring_hom_ring[OF is_ideal] assms
+    unfolding ring_hom_ring_def ring_hom_ring_axioms_def cring_def by simp
+  then interpret hom: ring_hom_ring R "S Quot P" "(op +>\<^bsub>S\<^esub> P \<circ> h)" by simp
+  
+  have "inj_on (\<lambda>X. the_elem (?h ` X)) (carrier (R Quot (a_kernel R (S Quot P) ?h)))"
+    using hom.the_elem_inj unfolding inj_on_def by simp
+  moreover
+  have "ideal (a_kernel R (S Quot P) ?h) R"
+    using hom.kernel_is_ideal by auto
+  have hom': "ring_hom_ring (R Quot (a_kernel R (S Quot P) ?h)) (S Quot P) (\<lambda>X. the_elem (?h ` X))"
+    using hom.the_elem_hom hom.kernel_is_ideal
+    by (meson hom.ring_hom_ring_axioms ideal.rcos_ring_hom_ring ring_hom_ring_axioms_def ring_hom_ring_def)
+  
+  ultimately
+  have "primeideal (a_kernel R (S Quot P) ?h) R"
+    using ring_hom_ring.inj_on_domain[OF hom'] primeideal.quotient_is_domain[OF A]
+          cring.quot_domain_imp_primeideal[OF assms hom.kernel_is_ideal] by simp
+  
+  moreover have "a_kernel R (S Quot P) ?h = { r \<in> carrier R. h r \<in> P }"
+  proof
+    show "a_kernel R (S Quot P) ?h \<subseteq> { r \<in> carrier R. h r \<in> P }"
+    proof 
+      fix r assume "r \<in> a_kernel R (S Quot P) ?h"
+      hence r: "r \<in> carrier R" "P +>\<^bsub>S\<^esub> (h r) = P"
+        unfolding a_kernel_def kernel_def FactRing_def by auto
+      hence "h r \<in> P"
+        using S.a_rcosI R.l_zero S.l_zero additive_subgroup.a_subset[OF ideal.axioms(1)[OF is_ideal]]
+              additive_subgroup.zero_closed[OF ideal.axioms(1)[OF is_ideal]] hom_closed by metis
+      thus "r \<in> { r \<in> carrier R. h r \<in> P }" using r by simp
+    qed
+  next
+    show "{ r \<in> carrier R. h r \<in> P } \<subseteq> a_kernel R (S Quot P) ?h"
+    proof
+      fix r assume "r \<in> { r \<in> carrier R. h r \<in> P }"
+      hence r: "r \<in> carrier R" "h r \<in> P" by simp_all
+      hence "?h r = P"
+        by (simp add: S.a_coset_join2 additive_subgroup.a_subgroup ideal.axioms(1) is_ideal)
+      thus "r \<in> a_kernel R (S Quot P) ?h"
+        unfolding a_kernel_def kernel_def FactRing_def using r(1) by auto
+    qed
+  qed
+
+  ultimately show "primeideal { r \<in> carrier R. h r \<in> P } R" by simp
+qed
 
 end
