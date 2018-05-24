@@ -892,6 +892,13 @@ proof -
   with x show ?thesis by (simp del: H.r_inv H.Units_r_inv)
 qed
 
+lemma (in group_hom) img_is_subgroup: "subgroup (h ` (carrier G)) H"
+  apply (rule subgroupI)
+  apply (auto simp add: image_subsetI)
+  apply (metis (no_types, hide_lams) G.inv_closed hom_inv image_iff)
+  apply (smt G.monoid_axioms hom_mult image_iff monoid.m_closed)
+  done
+
 lemma (in group) canonical_inj_is_hom:
   assumes "subgroup H G"
   shows "group_hom (G \<lparr> carrier := H \<rparr>) G id"
