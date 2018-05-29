@@ -251,6 +251,10 @@ locale ring = abelian_group (* for add *) R + monoid (* for mult *) R for R (str
 
 locale cring = ring + comm_monoid (* for mult *) R
 
+interpretation monoid_monoid : cring "\<lparr>carrier = {1::nat}, monoid.mult = op *, one = 1::nat, zero = 1::nat, add = op * \<rparr>"
+  apply unfold_locales apply (simp_all add : Units_def).
+  
+
 locale "domain" = cring +
   assumes one_not_zero [simp]: "\<one> \<noteq> \<zero>"
       and integral: "\<lbrakk> a \<otimes> b = \<zero>; a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> a = \<zero> \<or> b = \<zero>"

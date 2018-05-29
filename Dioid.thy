@@ -3,42 +3,6 @@ theory Dioid
 begin
 
 
-locale cancel_monoid = monoid +
-  assumes l_cancel [simp]:
-        "\<lbrakk> x \<in> carrier G; y \<in> carrier G; z \<in> carrier G \<rbrakk> \<Longrightarrow>x \<otimes> y = x \<otimes> z \<Longrightarrow> y = z "
-      and r_cancel [simp]:
-        "\<lbrakk> x \<in> carrier G; y \<in> carrier G; z \<in> carrier G \<rbrakk> \<Longrightarrow>y \<otimes> x = z \<otimes> x \<Longrightarrow> y = z "
-
-lemma cancel_monoidI :
-  fixes G (structure)
-  assumes m_closed:
-      "!!x y. [| x \<in> carrier G; y \<in> carrier G |] ==> x \<otimes> y \<in> carrier G"
-    and one_closed: "\<one> \<in> carrier G"
-    and m_assoc:
-      "!!x y z. [| x \<in> carrier G; y \<in> carrier G; z \<in> carrier G |] ==>
-      (x \<otimes> y) \<otimes> z = x \<otimes> (y \<otimes> z)"
-    and l_one: "!!x. x \<in> carrier G ==> \<one> \<otimes> x = x"
-    and r_one: "!!x. x \<in> carrier G ==> x \<otimes> \<one> = x"
-    and l_cancel:
-        "\<And> x y z. \<lbrakk> x \<in> carrier G; y \<in> carrier G; z \<in> carrier G \<rbrakk> \<Longrightarrow>x \<otimes> y = x \<otimes> z \<Longrightarrow> y = z "
-    and r_cancel:
-        "\<And> x y z. \<lbrakk> x \<in> carrier G; y \<in> carrier G; z \<in> carrier G \<rbrakk> \<Longrightarrow>y \<otimes> x = z \<otimes> x \<Longrightarrow> y = z "
-  shows "cancel_monoid G"
-  using cancel_monoid.intro[OF monoidI] assms unfolding cancel_monoid_axioms_def
-  by blast
-
-lemma (in cancel_monoid) submonoid_is_cancel :
-  assumes "submonoid H G"
-  shows "cancel_monoid (G\<lparr>carrier := H\<rparr>)" 
-proof (intro cancel_monoid.intro)
-  show "monoid (G\<lparr>carrier := H\<rparr>)"
-    using submonoid.submonoid_is_monoid[OF assms(1)] cancel_monoid_axioms cancel_monoid_def
-    by blast
-  show "cancel_monoid_axioms (G\<lparr>carrier := H\<rparr>)"
-    unfolding cancel_monoid_axioms_def apply simp
-    by (meson l_cancel r_cancel submonoid.mem_carrier assms)
-qed
-
 
 locale abelian_cancel_monoid =
   fixes D (structure)
@@ -360,6 +324,23 @@ lemma real_is_dioid :
    apply (simp_all add : distrib_right distrib_left)
    apply linarith
    by auto
+
+interpretation monoid_monoid : monoid "\<lparr>carrier = {1::nat}, monoid.mult = op *, one = 1::nat\<rparr>"
+  apply (auto intro : monoid.intro).
+
+
+
+interpretation  dioid R using real_is_dioid.
+
+lemma order_topology_R :
+"class.order_topology (op \<le> :: real \<Rightarrow> real \<Rightarrow> bool) (op < :: real \<Rightarrow> real \<Rightarrow> bool)
+(generate_topology (range (ord.lessThan (op < :: real \<Rightarrow> real \<Rightarrow> bool)) \<union>
+   range (ord.greaterThan (op < :: real \<Rightarrow> real \<Rightarrow> bool))))"
+proof 
+    show "generate_topology (range (ord.lessThan op <) \<union> range (ord.greaterThan op <)) =
+    generate_topology (range (ord.lessThan op <) \<union> range (ord.greaterThan op <))"
+      by simp
+  qed
 
 
 

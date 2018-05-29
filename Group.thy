@@ -86,7 +86,7 @@ proof -
   finally show ?thesis .
 qed
 
-lemma (in monoid) Units_m_closed [intro, simp]:
+lemma (in monoid) Units_m_closed [simp, intro]:
   assumes x: "x \<in> Units G" and y: "y \<in> Units G"
   shows "x \<otimes> y \<in> Units G"
 proof -
