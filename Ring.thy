@@ -733,4 +733,10 @@ declare ring_hom_cring.hom_finprod [simp]
 lemma id_ring_hom [simp]: "id \<in> ring_hom R R"
   by (auto intro!: ring_hom_memI)
 
+(* Next lemma contributed by Paulo Emílio de Vilhena. *)
+
+lemma ring_hom_trans:
+  "\<lbrakk> f \<in> ring_hom R S; g \<in> ring_hom S T \<rbrakk> \<Longrightarrow> g \<circ> f \<in> ring_hom R T"
+  by (rule ring_hom_memI) (auto simp add: ring_hom_closed ring_hom_mult ring_hom_add ring_hom_one)
+
 end
