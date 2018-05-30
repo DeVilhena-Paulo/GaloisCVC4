@@ -1062,7 +1062,28 @@ corollary (in group_hom) FactGroup_iso :
   using FactGroup_iso_set unfolding is_iso_def by auto
 
 
-subsection\<open>Theorems about Factor Groups and Direct product\<close>
+(* Next two lemmas contributed by Paulo Emílio de Vilhena. *)
+
+lemma (in group_hom) trivial_hom_iff:
+  "(h ` (carrier G) = { \<one>\<^bsub>H\<^esub> }) = (kernel G H h = carrier G)"
+  unfolding kernel_def using one_closed by force
+
+lemma (in group_hom) trivial_ker_imp_inj:
+  assumes "kernel G H h = { \<one> }"
+  shows "inj_on h (carrier G)"
+proof (rule inj_onI)
+  fix g1 g2 assume A: "g1 \<in> carrier G" "g2 \<in> carrier G" "h g1 = h g2"
+  hence "h (g1 \<otimes> (inv g2)) = \<one>\<^bsub>H\<^esub>" by simp
+  hence "g1 \<otimes> (inv g2) = \<one>"
+    using A assms unfolding kernel_def by blast
+  thus "g1 = g2"
+    using A G.inv_equality G.inv_inv by blast
+qed
+
+
+(* Next subsection contributed by Martin Baillon. *)
+
+subsection \<open>Theorems about Factor Groups and Direct product\<close>
 
 
 lemma (in group) DirProd_normal :

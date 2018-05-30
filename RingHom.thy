@@ -215,7 +215,7 @@ next
       show "x \<in> a_kernel R S h +> a" by (rule homeq_imp_rcos)
 qed
 
-(* Next lemma contributed by Paulo Emílio de Vilhena. *)
+(* Next two lemmas contributed by Paulo Emílio de Vilhena. *)
 
 lemma (in ring_hom_ring) inj_on_domain:
   assumes "inj_on h (carrier R)"
