@@ -33,7 +33,7 @@ lemma (in comm_monoid) finprod_Union_disjoint:
   apply auto
   done
 
-lemma (in comm_monoid) finprod_one_subset:
+lemma (in comm_monoid) finprod_one:
     "finite A \<Longrightarrow> (\<And>x. x:A \<Longrightarrow> f x = \<one>) \<Longrightarrow> finprod G f A = \<one>"
   by (induct set: finite) auto
 
