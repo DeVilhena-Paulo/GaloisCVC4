@@ -764,6 +764,7 @@ proof -
     also have " ... = y \<otimes>\<^bsub>(?h_img)\<^esub> x"
       using assms r1 r2 unfolding ring_iso_def ring_hom_def by auto
     finally show "x \<otimes>\<^bsub>(?h_img)\<^esub> y = y \<otimes>\<^bsub>(?h_img)\<^esub> x" .
+  qed
 qed
 
 
