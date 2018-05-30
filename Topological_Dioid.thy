@@ -2,20 +2,6 @@ theory Topological_Dioid
   imports Dioid 
 begin
 
-datatype 'a extension = Infinity | Elt 'a
-
-type_synonym N_ext = "nat extension"
-
-instantiation  extension :: (plus) plus
-begin
-fun plus_extension where
-"Infinity +  b  = Infinity "|
-"a + Infinity = Infinity"|
-"(Elt a) + (Elt b) = Elt (a + b)"
-instance ..
-end
-
-
 sublocale dioid \<subseteq> order_topology "dioid_canonic_order D" "dioid_canonic_strict_order D"
 "generate_topology (range (ord.lessThan (dioid_canonic_strict_order D)) \<union>
    range (ord.greaterThan (dioid_canonic_strict_order D)))"
@@ -62,29 +48,46 @@ lemma (in dioid) topological_dioid :
   using order_topology_axioms.
 
 
-lemma topological_real :
-"class.order_topology (dioid_canonic_order R) (dioid_canonic_strict_order R)
-(generate_topology (range (ord.lessThan (dioid_canonic_strict_order R)) \<union>
-   range (ord.greaterThan (dioid_canonic_strict_order R))))"
-  using dioid.topological_dioid[OF real_is_dioid].
 
-print_locale order_topology
+class is_filter2 =
+  fixes F :: "('a \<Rightarrow> bool) \<Rightarrow> bool"
+  assumes True: "F (\<lambda>x. True)"
+  assumes conj: "F (\<lambda>x. P x) \<Longrightarrow> F (\<lambda>x. Q x) \<Longrightarrow> F (\<lambda>x. P x \<and> Q x)"
+  assumes mono: "\<forall>x. P x \<longrightarrow> Q x \<Longrightarrow> F (\<lambda>x. P x) \<Longrightarrow> F (\<lambda>x. Q x)"
 
-lemma  "open (ord.lessThan (dioid_canonic_strict_order R) (0 :: real) )"
-  using order_topology.open_lessThan[OF topological_real, of 0] dioid.open_generated_order
-  order_topology.open_generated_order[OF  dioid.topological_dioid[OF real_is_dioid]]
-  unfolding open_generated_order
+instantiation filter :: (type) is_filter2
+begin
+
+typedef 'a kr = "{R :: 'a ring. dioid R}"
+proof
+  fix x :: 'a
+  show "(\<lparr>carrier =  {x}, monoid.mult = \<lambda>x y. y, one = x, zero = x, add = \<lambda>x y. y\<rparr>) \<in> {R. dioid R}"
+  proof
+    show "dioid \<lparr>carrier = {x}, monoid.mult = \<lambda>x y. y, one = x, zero = x, add = \<lambda>x y. y\<rparr>"
+      apply unfold_locales apply auto unfolding dioid_canonic_order_def factor_def apply simp.
+  qed
+qed
   
-  
-  
 
-interpretation monoid_monoid : monoid "\<lparr>carrier = {1::nat}, monoid.mult = op *, one = 1::nat\<rparr>"
-  apply (auto intro : monoid.intro)
+datatype 'a extension = Infinity | Elt 'a
 
+type_synonym N_ext = "nat extension"
+
+instantiation  extension :: (plus) plus
+begin
+fun plus_extension where
+"Infinity +  b  = Infinity "|
+"a + Infinity = Infinity"|
+"(Elt a) + (Elt b) = Elt (a + b)"
+instance ..
+end
 
 
 record 'a top_dioid = "('a extension) ring" +
 infinity :: " 'a extension" ("\<infinity>")
+
+
+
 
 
 
