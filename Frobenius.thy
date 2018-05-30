@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Frobenius.thy                                                  *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Frobenius
 imports Ideal Ring "HOL.Binomial" Int_Ring
 

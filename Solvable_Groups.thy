@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Solvable_Groups.thy                                            *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Solvable_Groups
   imports Group Coset Generated_Groups
     

@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Ring_Divisibility.thy                                          *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Ring_Divisibility
 imports Ideal Divisibility Multiplicative_Group QuotRing
 
@@ -141,7 +146,7 @@ lemma divides_mult_imp_divides [simp]: "a divides\<^bsub>(mult_of R)\<^esub> b \
 lemma (in domain) divides_imp_divides_mult [simp]:
   "\<lbrakk> a \<in> carrier R; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow>
      a divides\<^bsub>R\<^esub> b \<Longrightarrow> a divides\<^bsub>(mult_of R)\<^esub> b"
-  unfolding factor_def by auto
+  unfolding factor_def using integral_iff by auto 
 
 lemma assoc_mult_imp_assoc [simp]: "a \<sim>\<^bsub>(mult_of R)\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>R\<^esub> b"
   unfolding associated_def by simp
@@ -149,7 +154,7 @@ lemma assoc_mult_imp_assoc [simp]: "a \<sim>\<^bsub>(mult_of R)\<^esub> b \<Long
 lemma (in domain) assoc_imp_assoc_mult [simp]:
   "\<lbrakk> a \<in> carrier R - { \<zero> } ; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow>
      a \<sim>\<^bsub>R\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>(mult_of R)\<^esub> b"
-  unfolding associated_def by simp 
+  unfolding associated_def by simp
 
 lemma (in domain) Units_mult_eq_Units [simp]: "Units (mult_of R) = Units R"
   unfolding Units_def using insert_Diff integral_iff by auto

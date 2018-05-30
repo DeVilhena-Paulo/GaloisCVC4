@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Int_Ring.thy                                                   *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Int_Ring
   imports "HOL-Computational_Algebra.Primes" Ring_Divisibility QuotRing
 
