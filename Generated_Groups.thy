@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Generated_Groups.thy                                           *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Generated_Groups
   imports Group Coset
 

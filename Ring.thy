@@ -16,8 +16,8 @@ record 'a ring = "'a monoid" +
   add :: "['a, 'a] \<Rightarrow> 'a" (infixl "\<oplus>\<index>" 65)
 
 abbreviation
-  add_monoid :: "('a, 'm) ring_scheme \<Rightarrow> 'a monoid"
-  where "add_monoid R \<equiv> \<lparr> carrier = carrier R, mult = add R, one = zero R \<rparr>"
+  add_monoid :: "('a, 'm) ring_scheme \<Rightarrow> ('a, 'm) monoid_scheme"
+  where "add_monoid R \<equiv> \<lparr> carrier = carrier R, mult = add R, one = zero R, \<dots> = (undefined :: 'm) \<rparr>"
 
 text \<open>Derived operations.\<close>
 
@@ -28,6 +28,10 @@ definition
 definition
   a_minus :: "[('a, 'm) ring_scheme, 'a, 'a] => 'a" (infixl "\<ominus>\<index>" 65)
   where "\<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> x \<ominus>\<^bsub>R\<^esub> y = x \<oplus>\<^bsub>R\<^esub> (\<ominus>\<^bsub>R\<^esub> y)"
+
+definition
+  add_pow :: "[_, ('b :: semiring_1), 'a] \<Rightarrow> 'a" ("[_] \<cdot>\<index> _" [81, 81] 80)
+  where "add_pow R k a = pow (add_monoid R) a k"
 
 locale abelian_monoid =
   fixes G (structure)
@@ -115,7 +119,8 @@ sublocale abelian_monoid <
   rewrites "carrier (add_monoid G) = carrier G"
        and "mult    (add_monoid G) = add G"
        and "one     (add_monoid G) = zero G"
-  by (rule a_monoid) auto
+       and "(\<lambda>a k. pow (add_monoid G) a k) = (\<lambda>a k. add_pow G k a)"
+  by (rule a_monoid) (auto simp add: add_pow_def)
 
 context abelian_monoid
 begin
@@ -135,7 +140,8 @@ sublocale abelian_monoid <
        and "mult    (add_monoid G) = add G"
        and "one     (add_monoid G) = zero G"
        and "finprod (add_monoid G) = finsum G"
-  by (rule a_comm_monoid) (auto simp: finsum_def)
+       and "pow     (add_monoid G) = (\<lambda>a k. add_pow G k a)"
+  by (rule a_comm_monoid) (auto simp: finsum_def add_pow_def)
 
 context abelian_monoid begin
 
@@ -191,7 +197,8 @@ sublocale abelian_group <
        and "mult    (add_monoid G) = add G"
        and "one     (add_monoid G) = zero G"
        and "m_inv   (add_monoid G) = a_inv G"
-  by (rule a_group) (auto simp: m_inv_def a_inv_def)
+       and "pow     (add_monoid G) = (\<lambda>a k. add_pow G k a)"
+  by (rule a_group) (auto simp: m_inv_def a_inv_def add_pow_def)
 
 context abelian_group
 begin
@@ -220,7 +227,8 @@ sublocale abelian_group <
        and "one     (add_monoid G) = zero G"
        and "m_inv   (add_monoid G) = a_inv G"
        and "finprod (add_monoid G) = finsum G"
-  by (rule a_comm_group) (auto simp: m_inv_def a_inv_def finsum_def)
+       and "pow     (add_monoid G) = (\<lambda>a k. add_pow G k a)"
+  by (rule a_comm_group) (auto simp: m_inv_def a_inv_def finsum_def add_pow_def)
 
 lemmas (in abelian_group) minus_add = add.inv_mult
  
@@ -250,10 +258,6 @@ locale ring = abelian_group (* for add *) R + monoid (* for mult *) R for R (str
       and "\<lbrakk> x \<in> carrier R; y \<in> carrier R; z \<in> carrier R \<rbrakk> \<Longrightarrow> z \<otimes> (x \<oplus> y) = z \<otimes> x \<oplus> z \<otimes> y"
 
 locale cring = ring + comm_monoid (* for mult *) R
-
-interpretation monoid_monoid : cring "\<lparr>carrier = {1::nat}, monoid.mult = op *, one = 1::nat, zero = 1::nat, add = op * \<rparr>"
-  apply unfold_locales apply (simp_all add : Units_def).
-  
 
 locale "domain" = cring +
   assumes one_not_zero [simp]: "\<one> \<noteq> \<zero>"
@@ -536,6 +540,69 @@ proof (induct set: finite)
 next
   case (insert x F) then show ?case by (simp add: Pi_def r_distr)
 qed
+
+(* ************************************************************************** *)
+(* Contributed by Paulo E. de Vilhena.                                        *)
+
+text \<open>A quick detour\<close>
+
+lemma add_pow_int_ge: "(k :: int) \<ge> 0 \<Longrightarrow> [ k ] \<cdot>\<^bsub>R\<^esub> a = [ nat k ] \<cdot>\<^bsub>R\<^esub> a"
+  by (simp add: add_pow_def int_pow_def nat_pow_def)
+
+lemma add_pow_int_lt: "(k :: int) < 0 \<Longrightarrow> [ k ] \<cdot>\<^bsub>R\<^esub> a = \<ominus>\<^bsub>R\<^esub> ([ nat (- k) ] \<cdot>\<^bsub>R\<^esub> a)"
+  by (simp add: int_pow_def nat_pow_def a_inv_def add_pow_def) 
+
+corollary (in semiring) add_pow_ldistr:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  shows "([(k :: nat)] \<cdot> a) \<otimes> b = [k] \<cdot> (a \<otimes> b)"
+proof -
+  have "([k] \<cdot> a) \<otimes> b = (\<Oplus> i \<in> {..< k}. a) \<otimes> b"
+    using add.finprod_const[OF assms(1), of "{..<k}"] by simp
+  also have " ... = (\<Oplus> i \<in> {..< k}. (a \<otimes> b))"
+    using finsum_ldistr[of "{..<k}" b "\<lambda>x. a"] assms by simp
+  also have " ... = [k] \<cdot> (a \<otimes> b)"
+    using add.finprod_const[of "a \<otimes> b" "{..<k}"] assms by simp
+  finally show ?thesis .
+qed
+
+corollary (in semiring) add_pow_rdistr:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  shows "a \<otimes> ([(k :: nat)] \<cdot> b) = [k] \<cdot> (a \<otimes> b)"
+proof -
+  have "a \<otimes> ([k] \<cdot> b) = a \<otimes> (\<Oplus> i \<in> {..< k}. b)"
+    using add.finprod_const[OF assms(2), of "{..<k}"] by simp
+  also have " ... = (\<Oplus> i \<in> {..< k}. (a \<otimes> b))"
+    using finsum_rdistr[of "{..<k}" a "\<lambda>x. b"] assms by simp
+  also have " ... = [k] \<cdot> (a \<otimes> b)"
+    using add.finprod_const[of "a \<otimes> b" "{..<k}"] assms by simp
+  finally show ?thesis .
+qed 
+
+(* For integers, we need the uniqueness of the additive inverse *)
+lemma (in ring) add_pow_ldistr_int:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  shows "([(k :: int)] \<cdot> a) \<otimes> b = [k] \<cdot> (a \<otimes> b)"
+proof (cases "k \<ge> 0")
+  case True thus ?thesis
+    using add_pow_int_ge[of k R] add_pow_ldistr[OF assms] by auto
+next
+  case False thus ?thesis
+    using add_pow_int_lt[of k R a] add_pow_int_lt[of k R "a \<otimes> b"]
+          add_pow_ldistr[OF assms, of "nat (- k)"] assms l_minus by auto 
+qed
+
+lemma (in ring) add_pow_rdistr_int:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  shows "a \<otimes> ([(k :: int)] \<cdot> b) = [k] \<cdot> (a \<otimes> b)"
+proof (cases "k \<ge> 0")
+  case True thus ?thesis
+    using add_pow_int_ge[of k R] add_pow_rdistr[OF assms] by auto
+next
+  case False thus ?thesis
+    using add_pow_int_lt[of k R b] add_pow_int_lt[of k R "a \<otimes> b"]
+          add_pow_rdistr[OF assms, of "nat (- k)"] assms r_minus by auto 
+qed
+(* ************************************************************************** *)
 
 
 subsection \<open>Integral Domains\<close>

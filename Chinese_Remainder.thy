@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Chinese_Remainder.thy                                          *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Chinese_Remainder
   imports QuotRing Ideal_Product
     

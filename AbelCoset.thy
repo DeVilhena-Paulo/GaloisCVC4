@@ -106,8 +106,9 @@ sublocale abelian_group <
        and "finprod (add_monoid G) =    finsum G"
        and "r_coset (add_monoid G) = a_r_coset G"
        and "l_coset (add_monoid G) = a_l_coset G"
+       and "(\<lambda>a k. pow (add_monoid G) a k) = (\<lambda>a k. add_pow G k a)"
   by (rule a_group)
-     (auto simp: m_inv_def a_inv_def finsum_def a_r_coset_def a_l_coset_def)
+     (auto simp: m_inv_def a_inv_def finsum_def a_r_coset_def a_l_coset_def add_pow_def)
 
 context abelian_group
 begin

@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Group_Action.thy                                               *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Group_Action
 imports Bij Coset Congruence
 

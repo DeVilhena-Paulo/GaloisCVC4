@@ -75,6 +75,12 @@ lemma (in monoid) Units_closed [dest]:
   "x \<in> Units G ==> x \<in> carrier G"
   by (unfold Units_def) fast
 
+lemma (in monoid) one_unique:
+  assumes "u \<in> carrier G"
+    and "\<And>x. x \<in> carrier G \<Longrightarrow> u \<otimes> x = x"
+  shows "u = \<one>"
+  using assms(2)[OF one_closed] r_one[OF assms(1)] by simp
+
 lemma (in monoid) inv_unique:
   assumes eq: "y \<otimes> x = \<one>"  "x \<otimes> y' = \<one>"
     and G: "x \<in> carrier G"  "y \<in> carrier G"  "y' \<in> carrier G"
@@ -215,10 +221,23 @@ lemma (in monoid) nat_pow_mult:
   "x \<in> carrier G ==> x (^) (n::nat) \<otimes> x (^) m = x (^) (n + m)"
   by (induct m) (simp_all add: m_assoc [THEN sym])
 
+lemma (in monoid) nat_pow_comm:
+  "x \<in> carrier G \<Longrightarrow> (x (^) (n::nat)) \<otimes> (x (^) (m :: nat)) = (x (^) m) \<otimes> (x (^) n)"
+  using nat_pow_mult[of x n m] nat_pow_mult[of x m n] by (simp add: add.commute) 
+
+lemma (in monoid) nat_pow_Suc2:
+  "x \<in> carrier G \<Longrightarrow> x (^) (Suc n) = x \<otimes> (x (^) n)"
+  using nat_pow_mult[of x 1 n] Suc_eq_plus1[of n]
+  by (metis One_nat_def Suc_eq_plus1_left l_one nat.rec(1) nat_pow_Suc nat_pow_def) 
+
 lemma (in monoid) nat_pow_pow:
   "x \<in> carrier G ==> (x (^) n) (^) m = x (^) (n * m::nat)"
   by (induct m) (simp, simp add: nat_pow_mult add.commute)
 
+lemma (in monoid) nat_pow_consistent:
+  "x (^) (n :: nat) = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+  unfolding nat_pow_def by simp
+  
 
 (* Jacobson defines submonoid here. *)
 (* Jacobson defines the order of a monoid here. *)
@@ -440,6 +459,57 @@ proof -
     by (auto simp add: int_pow_def2 inv_solve_left inv_solve_right nat_add_distrib [symmetric] nat_pow_mult )
 qed
 
+lemma (in group) nat_pow_inv:
+  "x \<in> carrier G \<Longrightarrow> (inv x) (^) (i :: nat) = inv (x (^) i)"
+proof (induction i)
+  case 0 thus ?case by simp
+next
+  case (Suc i)
+  have "(inv x) (^) Suc i = ((inv x) (^) i) \<otimes> inv x"
+    by simp
+  also have " ... = (inv (x (^) i)) \<otimes> inv x"
+    by (simp add: Suc.IH Suc.prems)
+  also have " ... = inv (x \<otimes> (x (^) i))"
+    using inv_mult_group[OF Suc.prems nat_pow_closed[OF Suc.prems, of i]] by simp
+  also have " ... = inv (x (^) (Suc i))"
+    using Suc.prems nat_pow_Suc2 by auto
+  finally show ?case . 
+qed
+
+lemma (in group) int_pow_inv:
+  "x \<in> carrier G \<Longrightarrow> (inv x) (^) (i :: int) = inv (x (^) i)"
+  by (simp add: nat_pow_inv int_pow_def2)
+
+lemma (in group) int_pow_pow:
+  assumes "x \<in> carrier G"
+  shows "(x (^) (n :: int)) (^) (m :: int) = x (^) (n * m :: int)"
+proof (cases)
+  assume n_ge: "n \<ge> 0" thus ?thesis
+  proof (cases)
+    assume m_ge: "m \<ge> 0" thus ?thesis
+      using n_ge nat_pow_pow[OF assms, of "nat n" "nat m"] int_pow_def2
+      by (simp add: mult_less_0_iff nat_mult_distrib)
+  next
+    assume m_lt: "\<not> m \<ge> 0" thus ?thesis
+      using n_ge int_pow_def2 nat_pow_pow[OF assms, of "nat n" "nat (- m)"]
+      by (smt assms group.int_pow_neg is_group mult_minus_right nat_mult_distrib split_mult_neg_le)
+  qed
+next
+  assume n_lt: "\<not> n \<ge> 0" thus ?thesis
+  proof (cases)
+    assume m_ge: "m \<ge> 0" thus ?thesis
+      using n_lt nat_pow_pow[OF assms, of "nat (- n)" "nat m"]
+            nat_pow_inv[of "x (^) nat (- n)" "nat m"] int_pow_def2
+      by (smt assms group.int_pow_closed group.int_pow_neg is_group mult_minus_right
+          mult_nonpos_nonpos nat_mult_distrib_neg)
+  next
+    assume m_lt: "\<not> m \<ge> 0" thus ?thesis
+      using n_lt nat_pow_pow[OF assms, of "nat (- n)" "nat (- m)"]
+            nat_pow_inv[of "x (^) nat (- n)" "nat (- m)"] int_pow_def2
+      by (smt assms inv_inv mult_nonpos_nonpos nat_mult_distrib_neg nat_pow_closed)
+  qed
+qed
+
 lemma (in group) int_pow_diff:
   "x \<in> carrier G \<Longrightarrow> x (^) (n - m :: int) = x (^) n \<otimes> inv (x (^) m)"
 by(simp only: diff_conv_add_uminus int_pow_mult int_pow_neg)
@@ -548,6 +618,40 @@ proof -
     done
 qed
 
+lemma (in group) m_inv_consistent:
+  assumes "subgroup H G" "x \<in> H"
+  shows "inv x = inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> x"
+  unfolding m_inv_def apply auto
+  using subgroup.m_inv_closed[OF assms] inv_equality
+  by (metis (no_types, hide_lams) assms subgroup.mem_carrier)
+
+lemma (in group) int_pow_consistent: (* by Paulo *)
+  assumes "subgroup H G" "x \<in> H"
+  shows "x (^) (n :: int) = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+proof (cases)
+  assume ge: "n \<ge> 0"
+  hence "x (^) n = x (^) (nat n)"
+    using int_pow_def2 by auto
+  also have " ... = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat n)"
+    using nat_pow_consistent by simp
+  also have " ... = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+    using group.int_pow_def2[OF subgroup.subgroup_is_group[OF assms(1) is_group]] ge by auto
+  finally show ?thesis .
+next 
+  assume "\<not> n \<ge> 0" hence lt: "n < 0" by simp
+  hence "x (^) n = inv (x (^) (nat (- n)))"
+    using int_pow_def2 by auto
+  also have " ... = (inv x) (^) (nat (- n))"
+    by (metis assms nat_pow_inv subgroup.mem_carrier)
+  also have " ... = (inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> x) (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat (- n))"
+    using m_inv_consistent[OF assms] nat_pow_consistent by auto
+  also have " ... = inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat (- n)))"
+    using group.nat_pow_inv[OF subgroup.subgroup_is_group[OF assms(1) is_group]] assms(2) by auto
+  also have " ... = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+    using group.int_pow_def2[OF subgroup.subgroup_is_group[OF assms(1) is_group]] lt by auto
+  finally show ?thesis .
+qed
+
 text \<open>
   Since @{term H} is nonempty, it contains some element @{term x}.  Since
   it is closed under inverse, it contains \<open>inv x\<close>.  Since
@@ -609,7 +713,7 @@ lemma (in group) submonoid_subgroupI :
   shows "subgroup H G"
   by (metis assms subgroup_def submonoid_def)
 
-lemma (in group) group_incl_imp_subgroup :
+lemma (in group) group_incl_imp_subgroup:
   assumes "H \<subseteq> carrier G"
 and "group (G\<lparr>carrier := H\<rparr>)"
 shows "subgroup H G"
@@ -759,6 +863,45 @@ corollary (in group) iso_trans :
 "\<lbrakk>G \<cong> H ; H \<cong> I\<rbrakk> \<Longrightarrow> G \<cong> I"
   using iso_set_trans unfolding is_iso_def by blast
 
+(* Next three lemmas contributed by Paulo Emílio de Vilhena. *)
+
+lemma (in monoid) hom_imp_img_monoid:
+  assumes "h \<in> hom G H"
+  shows "monoid (H \<lparr> carrier := h ` (carrier G), one := h \<one>\<^bsub>G\<^esub> \<rparr>)" (is "monoid ?h_img")
+proof (rule monoidI)
+  show "\<one>\<^bsub>?h_img\<^esub> \<in> carrier ?h_img"
+    by auto
+next
+  fix x y z assume "x \<in> carrier ?h_img" "y \<in> carrier ?h_img" "z \<in> carrier ?h_img"
+  then obtain g1 g2 g3
+    where g1: "g1 \<in> carrier G" "x = h g1"
+      and g2: "g2 \<in> carrier G" "y = h g2"
+      and g3: "g3 \<in> carrier G" "z = h g3"
+    using image_iff[where ?f = h and ?A = "carrier G"] by auto
+  have aux_lemma:
+    "\<And>a b. \<lbrakk> a \<in> carrier G; b \<in> carrier G \<rbrakk> \<Longrightarrow> h a \<otimes>\<^bsub>(?h_img)\<^esub> h b = h (a \<otimes> b)"
+    using assms unfolding hom_def by auto
+
+  show "x \<otimes>\<^bsub>(?h_img)\<^esub> \<one>\<^bsub>(?h_img)\<^esub> = x"
+    using aux_lemma[OF g1(1) one_closed] g1(2) r_one[OF g1(1)] by simp
+
+  show "\<one>\<^bsub>(?h_img)\<^esub> \<otimes>\<^bsub>(?h_img)\<^esub> x = x"
+    using aux_lemma[OF one_closed g1(1)] g1(2) l_one[OF g1(1)] by simp
+
+  have "x \<otimes>\<^bsub>(?h_img)\<^esub> y = h (g1 \<otimes> g2)"
+    using aux_lemma g1 g2 by auto
+  thus "x \<otimes>\<^bsub>(?h_img)\<^esub> y \<in> carrier ?h_img"
+    using g1(1) g2(1) by simp
+
+  have "(x \<otimes>\<^bsub>(?h_img)\<^esub> y) \<otimes>\<^bsub>(?h_img)\<^esub> z = h ((g1 \<otimes> g2) \<otimes> g3)"
+    using aux_lemma g1 g2 g3 by auto
+  also have " ... = h (g1 \<otimes> (g2 \<otimes> g3))"
+    using m_assoc[OF g1(1) g2(1) g3(1)] by simp
+  also have " ... = x \<otimes>\<^bsub>(?h_img)\<^esub> (y \<otimes>\<^bsub>(?h_img)\<^esub> z)"
+    using aux_lemma g1 g2 g3 by auto
+  finally show "(x \<otimes>\<^bsub>(?h_img)\<^esub> y) \<otimes>\<^bsub>(?h_img)\<^esub> z = x \<otimes>\<^bsub>(?h_img)\<^esub> (y \<otimes>\<^bsub>(?h_img)\<^esub> z)" .
+qed
+
 lemma (in group) iso_imp_group:
   assumes "G \<cong> H" and "monoid H"
   shows "group H"
@@ -808,6 +951,24 @@ proof -
     thus "h \<in> Units H" unfolding Units_def using 1 2 h surj by fastforce
   qed
   thus ?thesis unfolding group_def group_axioms_def using assms(2) by simp
+qed
+
+corollary (in group) iso_imp_img_group:
+  assumes "h \<in> iso G H"
+  shows "group (H \<lparr> one := h \<one> \<rparr>)"
+proof -
+  let ?h_img = "H \<lparr> carrier := h ` (carrier G), one := h \<one> \<rparr>"
+  have "h \<in> iso G ?h_img"
+    using assms unfolding iso_def hom_def bij_betw_def by auto
+  hence "G \<cong> ?h_img"
+    unfolding is_iso_def by auto
+  hence "group ?h_img"
+    using iso_imp_group[of ?h_img] hom_imp_img_monoid[of h H] assms unfolding iso_def by simp
+  moreover have "carrier H = carrier ?h_img"
+    using assms unfolding iso_def bij_betw_def by simp
+  hence "H \<lparr> one := h \<one> \<rparr> = ?h_img"
+    by simp
+  ultimately show ?thesis by simp
 qed
 
 lemma DirProd_commute_iso_set:
@@ -892,6 +1053,8 @@ proof -
   with x show ?thesis by (simp del: H.r_inv H.Units_r_inv)
 qed
 
+(* Next four lemmas contributed by Paulo Emílio de Vilhena. *)
+
 lemma (in group_hom) img_is_subgroup: "subgroup (h ` (carrier G)) H"
   apply (rule subgroupI)
   apply (auto simp add: image_subsetI)
@@ -905,6 +1068,14 @@ lemma (in group) canonical_inj_is_hom:
   unfolding group_hom_def group_hom_axioms_def hom_def
   using subgroup.subgroup_is_group[OF assms is_group]
         is_group subgroup_imp_subset[OF assms] by auto
+
+lemma (in group_hom) nat_pow_hom:
+  "x \<in> carrier G \<Longrightarrow> h (x (^) (n :: nat)) = (h x) (^)\<^bsub>H\<^esub> n"
+  by (induction n) auto
+
+lemma (in group_hom) int_pow_hom:
+  "x \<in> carrier G \<Longrightarrow> h (x (^) (n :: int)) = (h x) (^)\<^bsub>H\<^esub> n"
+  using int_pow_def2 nat_pow_hom by (simp add: G.int_pow_def2)
 
 (* Contributed by Joachim Breitner *)
 lemma (in group) int_pow_is_hom:
@@ -1022,6 +1193,67 @@ lemma comm_groupE:
 lemma (in comm_group) inv_mult:
   "[| x \<in> carrier G; y \<in> carrier G |] ==> inv (x \<otimes> y) = inv x \<otimes> inv y"
   by (simp add: m_ac inv_mult_group)
+
+(* Next three lemmas contributed by Paulo Emílio de Vilhena. *)
+
+lemma (in comm_monoid) hom_imp_img_comm_monoid:
+  assumes "h \<in> hom G H"
+  shows "comm_monoid (H \<lparr> carrier := h ` (carrier G), one := h \<one>\<^bsub>G\<^esub> \<rparr>)" (is "comm_monoid ?h_img")
+proof (rule monoid.monoid_comm_monoidI)
+  show "monoid ?h_img"
+    using hom_imp_img_monoid[OF assms] .
+next
+  fix x y assume "x \<in> carrier ?h_img" "y \<in> carrier ?h_img"
+  then obtain g1 g2
+    where g1: "g1 \<in> carrier G" "x = h g1"
+      and g2: "g2 \<in> carrier G" "y = h g2"
+    by auto
+  have "x \<otimes>\<^bsub>(?h_img)\<^esub> y = h (g1 \<otimes> g2)"
+    using g1 g2 assms unfolding hom_def by auto
+  also have " ... = h (g2 \<otimes> g1)"
+    using m_comm[OF g1(1) g2(1)] by simp
+  also have " ... = y \<otimes>\<^bsub>(?h_img)\<^esub> x"
+    using g1 g2 assms unfolding hom_def by auto
+  finally show "x \<otimes>\<^bsub>(?h_img)\<^esub> y = y \<otimes>\<^bsub>(?h_img)\<^esub> x" .
+qed
+
+lemma (in comm_group) iso_imp_img_comm_group:
+  assumes "h \<in> iso G H"
+  shows "comm_group (H \<lparr> one := h \<one>\<^bsub>G\<^esub> \<rparr>)"
+proof -
+  let ?h_img = "H \<lparr> carrier := h ` (carrier G), one := h \<one> \<rparr>"
+  have "comm_monoid ?h_img"
+    using hom_imp_img_comm_monoid[of h H] assms unfolding iso_def by simp
+  moreover have "carrier H = carrier ?h_img"
+    using assms unfolding iso_def bij_betw_def by simp
+  hence "H \<lparr> one := h \<one> \<rparr> = ?h_img"
+    by simp
+  ultimately have "comm_monoid (H \<lparr> one := h \<one>\<^bsub>G\<^esub> \<rparr>)"
+    by simp
+  thus ?thesis
+    unfolding comm_group_def using iso_imp_img_group[OF assms] by simp
+qed
+
+lemma (in comm_group) iso_imp_comm_group:
+  assumes "G \<cong> H" "monoid H"
+  shows "comm_group H"
+proof -
+  obtain h where h: "h \<in> iso G H"
+    using assms(1) unfolding is_iso_def by auto
+  hence comm_gr: "comm_group (H \<lparr> one := h \<one> \<rparr>)"
+    using iso_imp_img_comm_group[of h H] by simp
+  hence "\<And>x. x \<in> carrier H \<Longrightarrow> h \<one> \<otimes>\<^bsub>H\<^esub> x = x"
+    using monoid.l_one[of "H \<lparr> one := h \<one> \<rparr>"] unfolding comm_group_def comm_monoid_def by simp
+  moreover have "h \<one> \<in> carrier H"
+    using h one_closed unfolding iso_def hom_def by auto
+  ultimately have "h \<one> = \<one>\<^bsub>H\<^esub>"
+    using monoid.one_unique[OF assms(2), of "h \<one>"] by simp
+  hence "H = H \<lparr> one := h \<one> \<rparr>"
+    by simp
+  thus ?thesis
+    using comm_gr by simp
+qed
+
 
 
 subsection \<open>The Lattice of Subgroups of a Group\<close>

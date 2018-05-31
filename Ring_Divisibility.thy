@@ -1,5 +1,10 @@
+(* ************************************************************************** *)
+(* Title:      Ring_Divisibility.thy                                          *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Ring_Divisibility
-imports Ideal Divisibility Multiplicative_Group
+imports Ideal Divisibility Multiplicative_Group QuotRing
 
 begin
 
@@ -141,7 +146,7 @@ lemma divides_mult_imp_divides [simp]: "a divides\<^bsub>(mult_of R)\<^esub> b \
 lemma (in domain) divides_imp_divides_mult [simp]:
   "\<lbrakk> a \<in> carrier R; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow>
      a divides\<^bsub>R\<^esub> b \<Longrightarrow> a divides\<^bsub>(mult_of R)\<^esub> b"
-  unfolding factor_def by auto
+  unfolding factor_def using integral_iff by auto 
 
 lemma assoc_mult_imp_assoc [simp]: "a \<sim>\<^bsub>(mult_of R)\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>R\<^esub> b"
   unfolding associated_def by simp
@@ -149,10 +154,10 @@ lemma assoc_mult_imp_assoc [simp]: "a \<sim>\<^bsub>(mult_of R)\<^esub> b \<Long
 lemma (in domain) assoc_imp_assoc_mult [simp]:
   "\<lbrakk> a \<in> carrier R - { \<zero> } ; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow>
      a \<sim>\<^bsub>R\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>(mult_of R)\<^esub> b"
-  unfolding associated_def by simp 
+  unfolding associated_def by simp
 
 lemma (in domain) Units_mult_eq_Units [simp]: "Units (mult_of R) = Units R"
-  unfolding Units_def using insert_Diff integral_iff by auto 
+  unfolding Units_def using insert_Diff integral_iff by auto
 
 lemma (in domain) properfactor_mult_imp_properfactor:
   "\<lbrakk> a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> properfactor (mult_of R) b a \<Longrightarrow> properfactor R b a"
@@ -452,7 +457,7 @@ proof (rule ccontr)
           using fs_a fs_b by auto
         ultimately show False using A by blast 
       qed
-      thus ?thesis using a b b_properfactor mult_of.m_comm by blast  
+      thus ?thesis using a b b_properfactor mult_of.m_comm by blast
     qed } note aux_lemma = this
   
   assume A: "\<not> ?P x"
@@ -587,6 +592,24 @@ proof
 next
   show "prime (mult_of R) p \<Longrightarrow> irreducible (mult_of R) p"
     using mult_of.prime_irreducible by simp
+qed
+
+lemma (in principal_domain) domain_iff_prime:
+  assumes "a \<in> carrier R - { \<zero> }"
+  shows "domain (R Quot (PIdl a)) = prime (mult_of R) a"
+  using quot_domain_iff_primeideal[of "PIdl a"] primeideal_iff_prime[of a]
+        cgenideal_ideal[of a] assms by auto
+
+lemma (in principal_domain) field_iff_prime:
+  assumes "a \<in> carrier R - { \<zero> }"
+  shows "field (R Quot (PIdl a)) = prime (mult_of R) a"
+proof
+  show "prime (mult_of R) a \<Longrightarrow> field  (R Quot (PIdl a))"
+    using  primeness_condition[of a] irreducible_imp_maximalideal[of a]
+           maximalideal.quotient_is_field[of "PIdl a" R] is_cring assms by auto
+next
+  show "field  (R Quot (PIdl a)) \<Longrightarrow> prime (mult_of R) a"
+    unfolding field_def using domain_iff_prime[of a] assms by auto
 qed
 
 sublocale principal_domain < mult_of: primeness_condition_monoid "(mult_of R)"

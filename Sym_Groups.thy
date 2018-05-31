@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Sym_Groups.th                                                  *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Sym_Groups
   imports Cycles Group Coset Generated_Groups Solvable_Groups
     

@@ -415,6 +415,20 @@ lemma finprod_0 [simp]:
   "f \<in> {0::nat} \<rightarrow> carrier G ==> finprod G f {..0} = f 0"
 by (simp add: Pi_def)
 
+lemma finprod_0':
+  "f \<in> {.. n :: nat} \<rightarrow> carrier G \<Longrightarrow> (f 0) \<otimes> finprod G f {Suc 0..n} = finprod G f {..n}"
+proof -
+  assume A: "f \<in> {.. n :: nat} \<rightarrow> carrier G"
+  hence "(f 0) \<otimes> finprod G f {Suc 0..n} = finprod G f {..0} \<otimes> finprod G f {Suc 0..n}"
+    using finprod_0[of f] by (simp add: funcset_mem)
+  also have " ... = finprod G f ({..0} \<union> {Suc 0..n})"
+    using finprod_Un_disjoint[of "{..0}" "{Suc 0..n}" f] A by (simp add: funcset_mem)
+  also have " ... = finprod G f {..n}"
+    by (simp add: atLeastAtMost_insertL atMost_atLeast0)
+  finally show ?thesis .
+qed
+    
+
 lemma finprod_Suc [simp]:
   "f \<in> {..Suc n} \<rightarrow> carrier G ==>
    finprod G f {..Suc n} = (f (Suc n) \<otimes> finprod G f {..n})"
@@ -427,6 +441,20 @@ proof (induct n)
   case 0 thus ?case by (simp add: Pi_def)
 next
   case Suc thus ?case by (simp add: m_assoc Pi_def)
+qed
+
+lemma finprod_Suc3:
+  assumes "f \<in> {.. n :: nat} \<rightarrow> carrier G"
+  shows "finprod G f {.. n} = (f n) \<otimes> finprod G f {..< n}"
+proof (cases "n = 0")
+  case True thus ?thesis
+   using assms atMost_Suc by simp
+next
+  case False
+  then obtain k where "n = Suc k"
+    using not0_implies_Suc by blast
+  thus ?thesis
+    using finprod_Suc[of f k] assms atMost_Suc lessThan_Suc_atMost by simp
 qed
 
 lemma finprod_mult [simp]:
@@ -449,7 +477,7 @@ qed (auto simp add: Pi_def)
 
 lemma finprod_const:
   assumes a [simp]: "a : carrier G"
-    shows "finprod G (%x. a) A = a (^) card A"
+    shows "finprod G (\<lambda>x. a) A = a (^) card A"
 proof (induct A rule: infinite_finite_induct)
   case (insert b A)
   show ?case 
