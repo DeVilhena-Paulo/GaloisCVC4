@@ -139,9 +139,9 @@ theorem (in group) solvable_iff_trivial_derived_seq:
 
 subsection \<open>Short Exact Sequences\<close>
 
-text \<open>Even if we don't talk about short exact sequences explicitly,
-      we are going to show that given an injective homomorphism from a group H to a group G,
-      in order to prove that a group G isn't solvable, it suffices to prove that H isn't neither\<close>
+text \<open>Even don't talking about short exact sequences explicitly, we show that if there is an
+      injective homomorphism from a group H to a group G, it suffices to prove that H isn't
+      solvable in order to prove that a group G isn't neither\<close>
 
 lemma (in group_hom) generate_of_img:
   assumes "K \<subseteq> carrier G"
@@ -326,6 +326,88 @@ proof -
     hence "solvable G" unfolding solvable_def by simp
     thus False using assms(2) by simp
   qed
+qed
+
+corollary (in group_hom) inj_hom_imp_solvable:
+  assumes "inj_on h (carrier G)"
+  shows "solvable H \<Longrightarrow> solvable G"
+  using not_solvable[OF assms] by auto
+
+theorem (in group_hom) solvable_imp_solvable_img:
+  assumes "subgroup I G"
+    and "solvable_seq G I"
+  shows "solvable_seq H (h ` I)"
+proof -
+  obtain n where "(derived G ^^ n) I = { \<one>\<^bsub>G\<^esub> }"
+    using G.solvable_imp_trivial_derived_seq[OF assms(2) assms(1)] ..
+  hence "(derived H ^^ n) (h ` I) = { \<one>\<^bsub>H\<^esub> }"
+    using derived_of_img[OF G.subgroupE(1)[OF assms(1)], of n] by simp
+  thus ?thesis
+    using H.trivial_derived_seq_imp_solvable[OF subgroup_img_is_subgroup[OF assms(1)]] by simp
+qed
+
+corollary (in group_hom) surj_hom_imp_solvable:
+  assumes "h ` (carrier G) = (carrier H)"
+  shows "solvable G \<Longrightarrow> solvable H"
+  using solvable_imp_solvable_img[OF G.subgroup_self] assms unfolding solvable_def by auto
+
+lemma solvable_seq_condition:
+  assumes "group_hom G1 G2 h" "group_hom G2 G3 f"
+      and "subgroup I G1" "subgroup J G2"
+      and "h ` I \<subseteq> J"
+      and "\<And>g. \<lbrakk> g \<in> carrier G2; f g = \<one>\<^bsub>G3\<^esub> \<rbrakk> \<Longrightarrow> g \<in> h ` I"
+    shows "\<lbrakk> solvable_seq G1 I; solvable_seq G3 (f ` J) \<rbrakk> \<Longrightarrow> solvable_seq G2 J"
+proof -
+  have G1: "group G1" and G2: "group G2" and G3: "group G3"
+    using assms(1-2) unfolding group_hom_def by auto
+
+  have h: "h \<in> hom G1 G2" and f: "f \<in> hom G2 G3"
+    using assms(1-2) unfolding group_hom_def group_hom_axioms_def by auto
+
+  assume "solvable_seq G1 I" "solvable_seq G3 (f ` J)"
+  then obtain n m :: nat
+    where n: "(derived G1 ^^ n) I       = { \<one>\<^bsub>G1\<^esub> }"
+      and m: "(derived G3 ^^ m) (f ` J) = { \<one>\<^bsub>G3\<^esub> }"
+    using group.solvable_imp_trivial_derived_seq[OF G1, of I]
+          group.solvable_imp_trivial_derived_seq[OF G3, of "f ` J"]
+          group_hom.subgroup_img_is_subgroup[OF assms(2) assms(4)] assms(2-4) by auto
+  have "f ` ((derived G2 ^^ m) J) = (derived G3 ^^ m) (f ` J)"
+    using group_hom.derived_of_img[OF assms(2), of J m] subgroup_imp_subset[OF assms(4)] by simp
+  hence "f ` ((derived G2 ^^ m) J) = { \<one>\<^bsub>G3\<^esub> }"
+    using m by simp
+  hence "((derived G2 ^^ m) J) \<subseteq> h ` I"
+    using assms(6) group.exp_of_derived_in_carrier[OF G2 subgroup_imp_subset[OF assms(4)], of m]
+    by blast
+  hence "(derived G2 ^^ n) ((derived G2 ^^ m) J) \<subseteq> (derived G2 ^^ n) (h ` I)"
+    using group.mono_derived[OF G2, of "h ` I" "(derived G2 ^^ m) J" n]
+          subgroup_imp_subset[OF group_hom.subgroup_img_is_subgroup[OF assms(1) assms(3)]] by blast
+  also have " ... = h ` { \<one>\<^bsub>G1\<^esub> }"
+    using group_hom.derived_of_img[OF assms(1) subgroup_imp_subset[OF assms(3)], of n] n by simp
+  also have " ... = { \<one>\<^bsub>G2\<^esub> }"
+    using assms(1) by (simp add: group_hom.hom_one)
+  finally have "(derived G2 ^^ n) ((derived G2 ^^ m) J) \<subseteq> { \<one>\<^bsub>G2\<^esub> }" .
+  hence "(derived G2 ^^ (n + m)) J \<subseteq> { \<one>\<^bsub>G2\<^esub> }"
+    by (metis comp_eq_dest_lhs funpow_add)
+  moreover have "{ \<one>\<^bsub>G2\<^esub> } \<subseteq> (derived G2 ^^ (n + m)) J"
+    using subgroup.one_closed[OF group.exp_of_derived_is_subgroup[OF G2 assms(4), of "n + m"]] by simp
+  ultimately show ?thesis
+    using group.trivial_derived_seq_imp_solvable[OF G2 assms(4), of "n + m"] by auto 
+qed
+
+lemma solvable_condition:
+  assumes "group_hom G1 G2 h" "group_hom G2 G3 f"
+      and "f ` (carrier G2) = (carrier G3)"
+      and "kernel G2 G3 f \<subseteq> h ` (carrier G1)"
+    shows "\<lbrakk> solvable G1; solvable G3 \<rbrakk> \<Longrightarrow> solvable G2"
+proof -
+  assume "solvable G1" "solvable G3"
+  moreover have "\<And>g. \<lbrakk> g \<in> carrier G2; f g = \<one>\<^bsub>G3\<^esub> \<rbrakk> \<Longrightarrow> g \<in> h ` (carrier G1)"
+    using assms(4) unfolding kernel_def by auto
+  moreover have "h ` (carrier G1 ) \<subseteq> (carrier G2)"
+    using group_hom.hom_closed[OF assms(1)] image_subsetI by blast
+  ultimately show ?thesis
+    using solvable_seq_condition[OF assms(1-2), of "carrier G1" "carrier G2"] assms(1-3)
+    unfolding solvable_def group_hom_def by (simp add: group.subgroup_self)
 qed
 
 end
