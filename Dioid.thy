@@ -325,12 +325,7 @@ lemma real_is_dioid :
    apply linarith
    by auto
 
-interpretation monoid_monoid : monoid "\<lparr>carrier = {1::nat}, monoid.mult = op *, one = 1::nat\<rparr>"
-  apply (auto intro : monoid.intro).
 
-
-
-interpretation  dioid R using real_is_dioid.
 
 lemma order_topology_R :
 "class.order_topology (op \<le> :: real \<Rightarrow> real \<Rightarrow> bool) (op < :: real \<Rightarrow> real \<Rightarrow> bool)

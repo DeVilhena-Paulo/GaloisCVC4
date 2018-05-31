@@ -49,14 +49,6 @@ lemma (in dioid) topological_dioid :
 
 
 
-class is_filter2 =
-  fixes F :: "('a \<Rightarrow> bool) \<Rightarrow> bool"
-  assumes True: "F (\<lambda>x. True)"
-  assumes conj: "F (\<lambda>x. P x) \<Longrightarrow> F (\<lambda>x. Q x) \<Longrightarrow> F (\<lambda>x. P x \<and> Q x)"
-  assumes mono: "\<forall>x. P x \<longrightarrow> Q x \<Longrightarrow> F (\<lambda>x. P x) \<Longrightarrow> F (\<lambda>x. Q x)"
-
-instantiation filter :: (type) is_filter2
-begin
 
 typedef 'a kr = "{R :: 'a ring. dioid R}"
 proof
