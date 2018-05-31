@@ -863,7 +863,7 @@ corollary (in group) iso_trans :
 "\<lbrakk>G \<cong> H ; H \<cong> I\<rbrakk> \<Longrightarrow> G \<cong> I"
   using iso_set_trans unfolding is_iso_def by blast
 
-(* Next three lemmas contributed by Paulo Emílio de Vilhena. *)
+(* Next four lemmas contributed by Paulo Emílio de Vilhena. *)
 
 lemma (in monoid) hom_imp_img_monoid:
   assumes "h \<in> hom G H"
@@ -900,6 +900,30 @@ next
   also have " ... = x \<otimes>\<^bsub>(?h_img)\<^esub> (y \<otimes>\<^bsub>(?h_img)\<^esub> z)"
     using aux_lemma g1 g2 g3 by auto
   finally show "(x \<otimes>\<^bsub>(?h_img)\<^esub> y) \<otimes>\<^bsub>(?h_img)\<^esub> z = x \<otimes>\<^bsub>(?h_img)\<^esub> (y \<otimes>\<^bsub>(?h_img)\<^esub> z)" .
+qed
+
+lemma (in group) hom_imp_img_group:
+  assumes "h \<in> hom G H"
+  shows "group (H \<lparr> carrier := h ` (carrier G), one := h \<one>\<^bsub>G\<^esub> \<rparr>)" (is "group ?h_img")
+proof -
+  interpret monoid ?h_img
+    using hom_imp_img_monoid[OF assms] .
+
+  show ?thesis
+  proof (unfold_locales)
+    show "carrier ?h_img \<subseteq> Units ?h_img"
+    proof (auto simp add: Units_def)
+      have aux_lemma:
+        "\<And>g1 g2. \<lbrakk> g1 \<in> carrier G; g2 \<in> carrier G \<rbrakk> \<Longrightarrow> h g1 \<otimes>\<^bsub>H\<^esub> h g2 = h (g1 \<otimes> g2)"
+        using assms unfolding hom_def by auto
+
+      fix g1 assume g1: "g1 \<in> carrier G"
+      thus "\<exists>g2 \<in> carrier G. (h g2) \<otimes>\<^bsub>H\<^esub> (h g1) = h \<one> \<and> (h g1) \<otimes>\<^bsub>H\<^esub> (h g2) = h \<one>"
+        using aux_lemma[OF g1 inv_closed[OF g1]]
+              aux_lemma[OF inv_closed[OF g1] g1]
+              inv_closed by auto
+    qed
+  qed
 qed
 
 lemma (in group) iso_imp_group:
@@ -1053,7 +1077,12 @@ proof -
   with x show ?thesis by (simp del: H.r_inv H.Units_r_inv)
 qed
 
-(* Next four lemmas contributed by Paulo Emílio de Vilhena. *)
+(* Contributed by Joachim Breitner *)
+lemma (in group) int_pow_is_hom:
+  "x \<in> carrier G \<Longrightarrow> (op(^) x) \<in> hom \<lparr> carrier = UNIV, mult = op +, one = 0::int \<rparr> G "
+  unfolding hom_def by (simp add: int_pow_mult)
+
+(* Next six lemmas contributed by Paulo Emílio de Vilhena. *)
 
 lemma (in group_hom) img_is_subgroup: "subgroup (h ` (carrier G)) H"
   apply (rule subgroupI)
@@ -1061,6 +1090,32 @@ lemma (in group_hom) img_is_subgroup: "subgroup (h ` (carrier G)) H"
   apply (metis (no_types, hide_lams) G.inv_closed hom_inv image_iff)
   apply (smt G.monoid_axioms hom_mult image_iff monoid.m_closed)
   done
+
+lemma (in group_hom) subgroup_img_is_subgroup:
+  assumes "subgroup I G"
+  shows "subgroup (h ` I) H"
+proof -
+  have "h \<in> hom (G \<lparr> carrier := I \<rparr>) H"
+    using G.subgroupE[OF assms] subgroup.mem_carrier[OF assms] homh
+    unfolding hom_def by auto
+  hence "group_hom (G \<lparr> carrier := I \<rparr>) H h"
+    using subgroup.subgroup_is_group[OF assms G.is_group] is_group
+    unfolding group_hom_def group_hom_axioms_def by simp
+  thus ?thesis
+    using group_hom.img_is_subgroup[of "G \<lparr> carrier := I \<rparr>" H h] by simp
+qed
+
+lemma (in group_hom) induced_group_hom:
+  assumes "subgroup I G"
+  shows "group_hom (G \<lparr> carrier := I \<rparr>) (H \<lparr> carrier := h ` I \<rparr>) h"
+proof -
+  have "h \<in> hom (G \<lparr> carrier := I \<rparr>) (H \<lparr> carrier := h ` I \<rparr>)"
+    using homh subgroup.mem_carrier[OF assms] unfolding hom_def by auto
+  thus ?thesis
+    unfolding group_hom_def group_hom_axioms_def
+    using subgroup.subgroup_is_group[OF assms G.is_group]
+          subgroup.subgroup_is_group[OF subgroup_img_is_subgroup[OF assms] is_group] by simp
+qed
 
 lemma (in group) canonical_inj_is_hom:
   assumes "subgroup H G"
@@ -1076,11 +1131,6 @@ lemma (in group_hom) nat_pow_hom:
 lemma (in group_hom) int_pow_hom:
   "x \<in> carrier G \<Longrightarrow> h (x (^) (n :: int)) = (h x) (^)\<^bsub>H\<^esub> n"
   using int_pow_def2 nat_pow_hom by (simp add: G.int_pow_def2)
-
-(* Contributed by Joachim Breitner *)
-lemma (in group) int_pow_is_hom:
-  "x \<in> carrier G \<Longrightarrow> (op(^) x) \<in> hom \<lparr> carrier = UNIV, mult = op +, one = 0::int \<rparr> G "
-  unfolding hom_def by (simp add: int_pow_mult)
 
 
 subsection \<open>Commutative Structures\<close>
