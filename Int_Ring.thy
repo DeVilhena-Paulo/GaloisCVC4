@@ -175,6 +175,7 @@ proof -
 qed
 
 
+
 subsection \<open>Int_Mod\<close>
 
 sublocale int_mod \<subseteq> ring ..
@@ -201,6 +202,7 @@ lemma (in int_mod) m_comm:
 sublocale int_mod \<subseteq> cring
   unfolding cring_def comm_monoid_def comm_monoid_axioms_def
   using is_ring m_comm monoid_axioms by auto
+
 
 
 subsection \<open>Int_Ring\<close>
@@ -237,7 +239,7 @@ next
     using a b int_repr_wf by force
 qed
 
-sublocale int_ring \<subseteq> euclidean_domain R "\<lambda>a. nat \<bar> int_repr a \<bar>"
+lemma (in int_ring) is_euclidean_domain: "euclidean_domain R (\<lambda>a. nat \<bar> int_repr a \<bar>)"
 proof (rule domain.euclidean_domainI[OF is_domain])
   let ?norm = "\<lambda>a. nat \<bar> int_repr a \<bar>"
   fix a b assume a: "a \<in> carrier R - { \<zero> }" and b: "b \<in> carrier R - { \<zero> }"
@@ -259,9 +261,28 @@ proof (rule domain.euclidean_domainI[OF is_domain])
     by (metis elt_of_int_in_carrier elt_of_int_inj)
 qed
 
+sublocale int_ring \<subseteq> euclidean_domain R "\<lambda>a. nat \<bar> int_repr a \<bar>"
+  using is_euclidean_domain .
+
 sublocale int_ring \<subseteq> principal_domain ..
 
-lemma (in int_ring) is_principal_domain: "principal_domain R" ..
+
+
+subsection \<open>Integers\<close>
+
+lemma z_lemmas:
+  shows "ring \<Z>" "cring \<Z>" "domain \<Z>"
+    and "principal_domain \<Z>" "euclidean_domain \<Z> (\<lambda>a. nat \<bar> a \<bar>)"
+    and "int_mod \<Z>" "int_ring \<Z>"
+proof -
+  interpret Z?: int_ring \<Z>
+    using int_ring_of_integers .
+  show "ring \<Z>" "cring \<Z>" "domain \<Z>" "principal_domain \<Z>" "int_mod \<Z>" "int_ring \<Z>"
+    by unfold_locales
+  show "euclidean_domain \<Z> (\<lambda>a. nat \<bar> a \<bar>)"
+    using Z.is_euclidean_domain integer_repr by auto
+qed
+
 
 
 subsection \<open>Ideals of Int_Rings\<close>
@@ -713,6 +734,9 @@ next
     using x y elt_of_int_inj elt_of_int_add int_repr_wf ring.simps(2) by metis
 qed
 
+
+subsection \<open>Int_Mod - Return\<close>
+
 lemma (in int_ring) mod_ring:
   assumes "a \<in> carrier R - { \<zero> }"
   shows "carrier (R Quot (PIdl a)) = (\<lambda>i. PIdl a +> \<lbrakk> i \<rbrakk>) ` {0..< \<bar> int_repr a \<bar>}"
@@ -921,21 +945,19 @@ proof -
             int_ring_of_integers
       by (simp add: int_mod.axioms(1) int_ring.FactRing_is_int_mod) 
     hence "ring_hom_ring (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img))) ?h_img h"
-      using ring_of_integers int_subring int_mod_def[of ?h_img] hom
+      using z_lemmas(1) int_subring int_mod_def[of ?h_img] hom
             ideal.quotient_is_ring cring.cgenideal_ideal[of \<Z> "char ?h_img"]
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def by simp
     moreover have "ring_hom_ring \<Z> R ?h"
-      using int_ring.exists_hom[OF int_ring_of_integers is_ring] ring_of_integers is_ring
+      using int_ring.exists_hom[OF z_lemmas(7) is_ring] z_lemmas(1) is_ring
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def by (simp add: integer_repr)
     hence "domain ?h_img"
       using ring_hom_ring.img_is_domain[of \<Z> R ?h] is_domain by simp
     ultimately have "domain (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img)))"
       using ring_hom_ring.inj_on_domain[of "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img))" ?h_img h] inj by simp
-    moreover have "principal_domain \<Z>"
-      using int_ring.is_principal_domain[OF int_ring_of_integers] .
-    ultimately have "prime (mult_of \<Z>) (char ?h_img)"
+    hence "prime (mult_of \<Z>) (char ?h_img)"
       using principal_domain.domain_iff_prime[of \<Z> "char ?h_img"] A(2) char_eq
-            int_ring_of_integers  by auto
+            int_ring_of_integers z_lemmas(4) by auto
     hence "prime' \<bar> int_repr\<^bsub>\<Z>\<^esub> (char R) \<bar>"
       using int_ring.prime_iff_prime'[OF int_ring_of_integers, of "char ?h_img"] A(2) char_eq by simp
     thus "prime' (char R)"
