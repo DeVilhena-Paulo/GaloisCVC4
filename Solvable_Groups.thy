@@ -134,7 +134,29 @@ theorem (in group) solvable_iff_trivial_derived_seq:
   "solvable G \<longleftrightarrow> (\<exists>n. (derived G ^^ n) (carrier G) = { \<one> })"
   unfolding solvable_def
   using solvable_imp_trivial_derived_seq subgroup_self
-        trivial_derived_seq_imp_solvable by blast 
+        trivial_derived_seq_imp_solvable by blast
+
+corollary (in group) solvable_subgroup:
+  assumes "subgroup H G"
+  shows "solvable G \<Longrightarrow> solvable_seq G H"
+proof -
+  { fix I J assume A: "subgroup I G" "subgroup J G" "I \<subseteq> J" "solvable_seq G J"
+    have "solvable_seq G I"
+    proof -
+      obtain n where "(derived G ^^ n) J = { \<one> }"
+        using solvable_imp_trivial_derived_seq[OF A(4) A(2)] by auto
+      hence "(derived G ^^ n) I \<subseteq> { \<one> }"
+        using mono_derived[OF subgroup_imp_subset[OF A(2)] A(3)] by auto
+      hence "(derived G ^^ n) I = { \<one> }"
+        using subgroup.one_closed[OF exp_of_derived_is_subgroup[OF A(1), of n]] by auto
+      thus ?thesis
+        using trivial_derived_seq_imp_solvable[OF A(1), of n] by auto
+    qed } note aux_lemma = this
+  assume "solvable G"
+  thus ?thesis
+    using aux_lemma[OF assms subgroup_self subgroup_imp_subset[OF assms]]
+    unfolding solvable_def by simp 
+qed
 
 
 subsection \<open>Short Exact Sequences\<close>
@@ -360,9 +382,6 @@ lemma solvable_seq_condition:
 proof -
   have G1: "group G1" and G2: "group G2" and G3: "group G3"
     using assms(1-2) unfolding group_hom_def by auto
-
-  have h: "h \<in> hom G1 G2" and f: "f \<in> hom G2 G3"
-    using assms(1-2) unfolding group_hom_def group_hom_axioms_def by auto
 
   assume "solvable_seq G1 I" "solvable_seq G3 (f ` J)"
   then obtain n m :: nat
