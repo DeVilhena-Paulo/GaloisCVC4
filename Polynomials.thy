@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Polynomials.thy                                                     *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Polynomials
   imports Ring (* "HOL-Library.Multiset" *)
 
