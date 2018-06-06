@@ -12,10 +12,10 @@ abbreviation inv' :: "('a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'a)"
   where "inv' f \<equiv> Hilbert_Choice.inv f"
   
 definition sym_group :: "nat \<Rightarrow> (nat \<Rightarrow> nat) monoid"
-  where "sym_group n = \<lparr> carrier = { p. p permutes {1..n} }, mult = (op \<circ>), one = id \<rparr>"
+  where "sym_group n = \<lparr> carrier = { p. p permutes {1..n} }, mult = (\<circ>), one = id \<rparr>"
 
 definition sign_img :: "int monoid"
-  where "sign_img = \<lparr> carrier = { -1, 1 }, mult = (op *), one = 1 \<rparr>"
+  where "sign_img = \<lparr> carrier = { -1, 1 }, mult = ( * ), one = 1 \<rparr>"
 
 
 lemma sym_group_is_group: "group (sym_group n)"
@@ -368,7 +368,7 @@ proof
         moreover have "permutation p" using p cs(1) cycle_permutes by simp
         hence "p permutes {1..n}"
           using id_outside_supp[OF cs(1)] p cs permutation_permutes unfolding permutes_def
-          by (metis permutation_permutes permutes_def subsetCE)
+          using permutation_permutes permutes_def subsetCE by metis
 
         ultimately show ?thesis by (simp add: alt_group_def)
       qed } note aux_lemma = this

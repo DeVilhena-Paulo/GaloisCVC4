@@ -524,7 +524,7 @@ next
   also have " ... = (\<Sum>y\<in>B. (f x y) + (\<Sum>x\<in>A'. f x y))"
     by (simp add: sum.distrib)
   finally have "(\<Sum>x\<in>insert x A'. \<Sum>y\<in>B. f x y) = (\<Sum>y\<in>B. \<Sum>x\<in>insert x A'. f x y)"
-    using sum.commute by blast
+    using sum.swap by blast
   thus ?case by simp
 qed
 

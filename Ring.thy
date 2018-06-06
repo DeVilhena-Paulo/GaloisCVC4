@@ -25,8 +25,9 @@ definition
   a_inv :: "[('a, 'm) ring_scheme, 'a ] \<Rightarrow> 'a" ("\<ominus>\<index> _" [81] 80)
   where "a_inv R = m_inv (add_monoid R)"
 
+
 definition
-  a_minus :: "[('a, 'm) ring_scheme, 'a, 'a] => 'a" (infixl "\<ominus>\<index>" 65)
+  a_minus :: "[('a, 'm) ring_scheme, 'a, 'a] => 'a" ("(_ \<ominus>\<index> _)" [65,66] 65)
   where "\<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> x \<ominus>\<^bsub>R\<^esub> y = x \<oplus>\<^bsub>R\<^esub> (\<ominus>\<^bsub>R\<^esub> y)"
 
 definition
@@ -424,6 +425,7 @@ lemma (in abelian_group) minus_eq:
 text \<open>Setup algebra method:
   compute distributive normal form in locale contexts\<close>
 
+
 ML_file "ringsimp.ML"
 
 attribute_setup algebra = \<open>
@@ -461,7 +463,7 @@ lemmas (in cring) cring_simprules
   a_lcomm m_lcomm r_distr l_null r_null l_minus r_minus
 
 lemma (in semiring) nat_pow_zero:
-  "(n::nat) \<noteq> 0 \<Longrightarrow> \<zero> (^) n = \<zero>"
+  "(n::nat) \<noteq> 0 \<Longrightarrow> \<zero> [^] n = \<zero>"
   by (induct n) simp_all
 
 context semiring begin

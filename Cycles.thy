@@ -318,8 +318,10 @@ lemma exp_of_permutation4:
 proof -
   obtain k where "k > 0" "(p ^^ k) = id"
     using exp_of_permutation3[OF assms] by blast
-  thus ?thesis using split_div_lemma
-    by (metis funpow_mult id_funpow) 
+  moreover obtain n where "n * k > m"
+    by (metis calculation(1) dividend_less_times_div mult.commute mult_Suc_right)
+  ultimately show ?thesis
+    using funpow_mult[of n k p] id_funpow[of n] mult.commute[of k n] by smt
 qed
 
 
@@ -526,9 +528,9 @@ proof (rule disjointI)
       then obtain k where k: "k \<ge> 0" "w = (p ^^ k) x" using x by blast
       define l where "l = (kx div (least_power p w)) + 1"
       hence l: "l * (least_power p w) > kx"
-        using least_power_gt_zero assms
-        by (metis One_nat_def add.right_neutral add_Suc_right
-            mult.commute permutation_permutes split_div_lemma)
+        using least_power_gt_zero assms One_nat_def add.right_neutral add_Suc_right
+            mult.commute permutation_permutes
+        by (metis dividend_less_times_div mult_Suc_right) 
 
       have "w = (p ^^ (l * (least_power p w))) w"
         by (metis assms least_power_wellfounded mult.commute permutation_permutes power_prop)

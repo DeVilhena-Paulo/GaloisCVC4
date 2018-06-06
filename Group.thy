@@ -30,7 +30,7 @@ definition
   where "Units G = {y. y \<in> carrier G & (\<exists>x \<in> carrier G. x \<otimes>\<^bsub>G\<^esub> y = \<one>\<^bsub>G\<^esub> & y \<otimes>\<^bsub>G\<^esub> x = \<one>\<^bsub>G\<^esub>)}"
 
 consts
-  pow :: "[('a, 'm) monoid_scheme, 'a, 'b::semiring_1] => 'a"  (infixr "'(^')\<index>" 75)
+  pow :: "[('a, 'm) monoid_scheme, 'a, 'b::semiring_1] => 'a"  (infixr "[^]\<index>" 75)
 
 overloading nat_pow == "pow :: [_, 'a, nat] => 'a"
 begin
@@ -44,7 +44,7 @@ begin
     in if z < 0 then inv\<^bsub>G\<^esub> (p (nat (-z))) else p (nat z))"
 end
 
-lemma int_pow_int: "x (^)\<^bsub>G\<^esub> (int n) = x (^)\<^bsub>G\<^esub> n"
+lemma int_pow_int: "x [^]\<^bsub>G\<^esub> (int n) = x [^]\<^bsub>G\<^esub> n"
 by(simp add: int_pow_def nat_pow_def)
 
 locale monoid =
@@ -104,7 +104,7 @@ proof -
   moreover from x y xinv yinv have "x \<otimes> (y \<otimes> y') \<otimes> x' = \<one>" by simp
   moreover note x y
   ultimately show ?thesis unfolding Units_def
-    \<comment> "Must avoid premature use of \<open>hyp_subst_tac\<close>."
+    \<comment> \<open>"Must avoid premature use of \<open>hyp_subst_tac\<close>."\<close>
     apply (rule_tac CollectI)
     apply (rule)
     apply (fast)
@@ -202,40 +202,40 @@ by auto
 text \<open>Power\<close>
 
 lemma (in monoid) nat_pow_closed [intro, simp]:
-  "x \<in> carrier G ==> x (^) (n::nat) \<in> carrier G"
+  "x \<in> carrier G ==> x [^] (n::nat) \<in> carrier G"
   by (induct n) (simp_all add: nat_pow_def)
 
 lemma (in monoid) nat_pow_0 [simp]:
-  "x (^) (0::nat) = \<one>"
+  "x [^] (0::nat) = \<one>"
   by (simp add: nat_pow_def)
 
 lemma (in monoid) nat_pow_Suc [simp]:
-  "x (^) (Suc n) = x (^) n \<otimes> x"
+  "x [^] (Suc n) = x [^] n \<otimes> x"
   by (simp add: nat_pow_def)
 
 lemma (in monoid) nat_pow_one [simp]:
-  "\<one> (^) (n::nat) = \<one>"
+  "\<one> [^] (n::nat) = \<one>"
   by (induct n) simp_all
 
 lemma (in monoid) nat_pow_mult:
-  "x \<in> carrier G ==> x (^) (n::nat) \<otimes> x (^) m = x (^) (n + m)"
+  "x \<in> carrier G ==> x [^] (n::nat) \<otimes> x [^] m = x [^] (n + m)"
   by (induct m) (simp_all add: m_assoc [THEN sym])
 
 lemma (in monoid) nat_pow_comm:
-  "x \<in> carrier G \<Longrightarrow> (x (^) (n::nat)) \<otimes> (x (^) (m :: nat)) = (x (^) m) \<otimes> (x (^) n)"
+  "x \<in> carrier G \<Longrightarrow> (x [^] (n::nat)) \<otimes> (x [^] (m :: nat)) = (x [^] m) \<otimes> (x [^] n)"
   using nat_pow_mult[of x n m] nat_pow_mult[of x m n] by (simp add: add.commute) 
 
 lemma (in monoid) nat_pow_Suc2:
-  "x \<in> carrier G \<Longrightarrow> x (^) (Suc n) = x \<otimes> (x (^) n)"
+  "x \<in> carrier G \<Longrightarrow> x [^] (Suc n) = x \<otimes> (x [^] n)"
   using nat_pow_mult[of x 1 n] Suc_eq_plus1[of n]
   by (metis One_nat_def Suc_eq_plus1_left l_one nat.rec(1) nat_pow_Suc nat_pow_def) 
 
 lemma (in monoid) nat_pow_pow:
-  "x \<in> carrier G ==> (x (^) n) (^) m = x (^) (n * m::nat)"
+  "x \<in> carrier G ==> (x [^] n) [^] m = x [^] (n * m::nat)"
   by (induct m) (simp, simp add: nat_pow_mult add.commute)
 
 lemma (in monoid) nat_pow_consistent:
-  "x (^) (n :: nat) = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+  "x [^] (n :: nat) = x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
   unfolding nat_pow_def by simp
   
 
@@ -425,33 +425,33 @@ lemma (in group) inv_solve_right:
 text \<open>Power\<close>
 
 lemma (in group) int_pow_def2:
-  "a (^) (z::int) = (if z < 0 then inv (a (^) (nat (-z))) else a (^) (nat z))"
+  "a [^] (z::int) = (if z < 0 then inv (a [^] (nat (-z))) else a [^] (nat z))"
   by (simp add: int_pow_def nat_pow_def Let_def)
 
 lemma (in group) int_pow_0 [simp]:
-  "x (^) (0::int) = \<one>"
+  "x [^] (0::int) = \<one>"
   by (simp add: int_pow_def2)
 
 lemma (in group) int_pow_one [simp]:
-  "\<one> (^) (z::int) = \<one>"
+  "\<one> [^] (z::int) = \<one>"
   by (simp add: int_pow_def2)
 
 (* The following are contributed by Joachim Breitner *)
 
 lemma (in group) int_pow_closed [intro, simp]:
-  "x \<in> carrier G ==> x (^) (i::int) \<in> carrier G"
+  "x \<in> carrier G ==> x [^] (i::int) \<in> carrier G"
   by (simp add: int_pow_def2)
 
 lemma (in group) int_pow_1 [simp]:
-  "x \<in> carrier G \<Longrightarrow> x (^) (1::int) = x"
+  "x \<in> carrier G \<Longrightarrow> x [^] (1::int) = x"
   by (simp add: int_pow_def2)
 
 lemma (in group) int_pow_neg:
-  "x \<in> carrier G \<Longrightarrow> x (^) (-i::int) = inv (x (^) i)"
+  "x \<in> carrier G \<Longrightarrow> x [^] (-i::int) = inv (x [^] i)"
   by (simp add: int_pow_def2)
 
 lemma (in group) int_pow_mult:
-  "x \<in> carrier G \<Longrightarrow> x (^) (i + j::int) = x (^) i \<otimes> x (^) j"
+  "x \<in> carrier G \<Longrightarrow> x [^] (i + j::int) = x [^] i \<otimes> x [^] j"
 proof -
   have [simp]: "-i - j = -j - i" by simp
   assume "x : carrier G" then
@@ -460,29 +460,29 @@ proof -
 qed
 
 lemma (in group) nat_pow_inv:
-  "x \<in> carrier G \<Longrightarrow> (inv x) (^) (i :: nat) = inv (x (^) i)"
+  "x \<in> carrier G \<Longrightarrow> (inv x) [^] (i :: nat) = inv (x [^] i)"
 proof (induction i)
   case 0 thus ?case by simp
 next
   case (Suc i)
-  have "(inv x) (^) Suc i = ((inv x) (^) i) \<otimes> inv x"
+  have "(inv x) [^] Suc i = ((inv x) [^] i) \<otimes> inv x"
     by simp
-  also have " ... = (inv (x (^) i)) \<otimes> inv x"
+  also have " ... = (inv (x [^] i)) \<otimes> inv x"
     by (simp add: Suc.IH Suc.prems)
-  also have " ... = inv (x \<otimes> (x (^) i))"
+  also have " ... = inv (x \<otimes> (x [^] i))"
     using inv_mult_group[OF Suc.prems nat_pow_closed[OF Suc.prems, of i]] by simp
-  also have " ... = inv (x (^) (Suc i))"
+  also have " ... = inv (x [^] (Suc i))"
     using Suc.prems nat_pow_Suc2 by auto
   finally show ?case . 
 qed
 
 lemma (in group) int_pow_inv:
-  "x \<in> carrier G \<Longrightarrow> (inv x) (^) (i :: int) = inv (x (^) i)"
+  "x \<in> carrier G \<Longrightarrow> (inv x) [^] (i :: int) = inv (x [^] i)"
   by (simp add: nat_pow_inv int_pow_def2)
 
 lemma (in group) int_pow_pow:
   assumes "x \<in> carrier G"
-  shows "(x (^) (n :: int)) (^) (m :: int) = x (^) (n * m :: int)"
+  shows "(x [^] (n :: int)) [^] (m :: int) = x [^] (n * m :: int)"
 proof (cases)
   assume n_ge: "n \<ge> 0" thus ?thesis
   proof (cases)
@@ -499,19 +499,19 @@ next
   proof (cases)
     assume m_ge: "m \<ge> 0" thus ?thesis
       using n_lt nat_pow_pow[OF assms, of "nat (- n)" "nat m"]
-            nat_pow_inv[of "x (^) nat (- n)" "nat m"] int_pow_def2
+            nat_pow_inv[of "x [^] nat (- n)" "nat m"] int_pow_def2
       by (smt assms group.int_pow_closed group.int_pow_neg is_group mult_minus_right
           mult_nonpos_nonpos nat_mult_distrib_neg)
   next
     assume m_lt: "\<not> m \<ge> 0" thus ?thesis
       using n_lt nat_pow_pow[OF assms, of "nat (- n)" "nat (- m)"]
-            nat_pow_inv[of "x (^) nat (- n)" "nat (- m)"] int_pow_def2
+            nat_pow_inv[of "x [^] nat (- n)" "nat (- m)"] int_pow_def2
       by (smt assms inv_inv mult_nonpos_nonpos nat_mult_distrib_neg nat_pow_closed)
   qed
 qed
 
 lemma (in group) int_pow_diff:
-  "x \<in> carrier G \<Longrightarrow> x (^) (n - m :: int) = x (^) n \<otimes> inv (x (^) m)"
+  "x \<in> carrier G \<Longrightarrow> x [^] (n - m :: int) = x [^] n \<otimes> inv (x [^] m)"
 by(simp only: diff_conv_add_uminus int_pow_mult int_pow_neg)
 
 lemma (in group) inj_on_multc: "c \<in> carrier G \<Longrightarrow> inj_on (\<lambda>x. x \<otimes> c) (carrier G)"
@@ -627,27 +627,27 @@ lemma (in group) m_inv_consistent:
 
 lemma (in group) int_pow_consistent: (* by Paulo *)
   assumes "subgroup H G" "x \<in> H"
-  shows "x (^) (n :: int) = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+  shows "x [^] (n :: int) = x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
 proof (cases)
   assume ge: "n \<ge> 0"
-  hence "x (^) n = x (^) (nat n)"
+  hence "x [^] n = x [^] (nat n)"
     using int_pow_def2 by auto
-  also have " ... = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat n)"
+  also have " ... = x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat n)"
     using nat_pow_consistent by simp
-  also have " ... = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+  also have " ... = x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
     using group.int_pow_def2[OF subgroup.subgroup_is_group[OF assms(1) is_group]] ge by auto
   finally show ?thesis .
 next 
   assume "\<not> n \<ge> 0" hence lt: "n < 0" by simp
-  hence "x (^) n = inv (x (^) (nat (- n)))"
+  hence "x [^] n = inv (x [^] (nat (- n)))"
     using int_pow_def2 by auto
-  also have " ... = (inv x) (^) (nat (- n))"
+  also have " ... = (inv x) [^] (nat (- n))"
     by (metis assms nat_pow_inv subgroup.mem_carrier)
-  also have " ... = (inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> x) (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat (- n))"
+  also have " ... = (inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> x) [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat (- n))"
     using m_inv_consistent[OF assms] nat_pow_consistent by auto
-  also have " ... = inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat (- n)))"
+  also have " ... = inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> (nat (- n)))"
     using group.nat_pow_inv[OF subgroup.subgroup_is_group[OF assms(1) is_group]] assms(2) by auto
-  also have " ... = x (^)\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
+  also have " ... = x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
     using group.int_pow_def2[OF subgroup.subgroup_is_group[OF assms(1) is_group]] lt by auto
   finally show ?thesis .
 qed
@@ -1079,7 +1079,7 @@ qed
 
 (* Contributed by Joachim Breitner *)
 lemma (in group) int_pow_is_hom:
-  "x \<in> carrier G \<Longrightarrow> (op(^) x) \<in> hom \<lparr> carrier = UNIV, mult = op +, one = 0::int \<rparr> G "
+  "x \<in> carrier G \<Longrightarrow> (([^]) x) \<in> hom \<lparr> carrier = UNIV, mult = (+), one = 0::int \<rparr> G "
   unfolding hom_def by (simp add: int_pow_mult)
 
 (* Next six lemmas contributed by Paulo Emílio de Vilhena. *)
@@ -1125,11 +1125,11 @@ lemma (in group) canonical_inj_is_hom:
         is_group subgroup_imp_subset[OF assms] by auto
 
 lemma (in group_hom) nat_pow_hom:
-  "x \<in> carrier G \<Longrightarrow> h (x (^) (n :: nat)) = (h x) (^)\<^bsub>H\<^esub> n"
+  "x \<in> carrier G \<Longrightarrow> h (x [^] (n :: nat)) = (h x) [^]\<^bsub>H\<^esub> n"
   by (induction n) auto
 
 lemma (in group_hom) int_pow_hom:
-  "x \<in> carrier G \<Longrightarrow> h (x (^) (n :: int)) = (h x) (^)\<^bsub>H\<^esub> n"
+  "x \<in> carrier G \<Longrightarrow> h (x [^] (n :: int)) = (h x) [^]\<^bsub>H\<^esub> n"
   using int_pow_def2 nat_pow_hom by (simp add: G.int_pow_def2)
 
 
@@ -1190,7 +1190,7 @@ qed*)
 
 lemma (in comm_monoid) nat_pow_distr:
   "[| x \<in> carrier G; y \<in> carrier G |] ==>
-  (x \<otimes> y) (^) (n::nat) = x (^) n \<otimes> y (^) n"
+  (x \<otimes> y) [^] (n::nat) = x [^] n \<otimes> y [^] n"
   by (induct n) (simp, simp add: m_ac)
 
 lemma (in comm_monoid) submonoid_is_comm_monoid :
@@ -1311,7 +1311,7 @@ subsection \<open>The Lattice of Subgroups of a Group\<close>
 text_raw \<open>\label{sec:subgroup-lattice}\<close>
 
 theorem (in group) subgroups_partial_order:
-  "partial_order \<lparr>carrier = {H. subgroup H G}, eq = op =, le = op \<subseteq>\<rparr>"
+  "partial_order \<lparr> carrier = { H. subgroup H G }, eq = (=), le = (\<subseteq>) \<rparr>"
   by standard simp_all
 
 lemma (in group) subgroup_self:
@@ -1365,7 +1365,7 @@ lemma (in group) subgroups_Inter_pair :
   shows "subgroup (I\<inter>J) G" using subgroups_Inter[ where ?A = "{I,J}"] assms by auto
 
 theorem (in group) subgroups_complete_lattice:
-  "complete_lattice \<lparr>carrier = {H. subgroup H G}, eq = op =, le = op \<subseteq>\<rparr>"
+  "complete_lattice \<lparr> carrier = { H. subgroup H G }, eq = (=), le = (\<subseteq>) \<rparr>"
     (is "complete_lattice ?L")
 proof (rule partial_order.complete_lattice_criterion1)
   show "partial_order ?L" by (rule subgroups_partial_order)

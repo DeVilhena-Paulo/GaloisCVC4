@@ -708,7 +708,7 @@ using assms
 by (rule subgroup.rcos_module [OF a_subgroup a_group,
     folded a_r_coset_def a_inv_def, simplified monoid_record_simps])
 
-\<comment>"variant"
+\<comment>\<open>"variant"\<close>
 lemma (in abelian_subgroup) a_rcos_module_minus:
   assumes "ring G"
   assumes carr: "x \<in> carrier G" "x' \<in> carrier G"

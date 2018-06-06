@@ -18,7 +18,7 @@ section \<open>In this section we present another approach to the study of integ
 subsection \<open>Definitions\<close>
 
 abbreviation integers :: "int ring" ("\<Z>")
-  where "integers \<equiv> \<lparr> carrier = UNIV, mult = op *, one = 1, zero = 0, add = op + \<rparr>"
+  where "integers \<equiv> \<lparr> carrier = UNIV, mult = ( * ), one = 1, zero = 0, add = (+) \<rparr>"
 
 abbreviation prime' :: "int \<Rightarrow> bool"
   where "prime' \<equiv> Factorial_Ring.prime"
@@ -95,18 +95,18 @@ proof -
 qed
 
 lemma (in ring) elt_of_int_pow:
-  "\<lbrakk> n \<rbrakk> (^) (k :: nat) = \<lbrakk> n ^ k \<rbrakk>"
-  "\<lbrakk> n \<rbrakk> (^) (k :: int) = (if k < 0 then \<lbrakk> - (n ^ (nat k)) \<rbrakk> else \<lbrakk> n ^ (nat k) \<rbrakk>)"
+  "\<lbrakk> n \<rbrakk> [^] (k :: nat) = \<lbrakk> n ^ k \<rbrakk>"
+  "\<lbrakk> n \<rbrakk> [^] (k :: int) = (if k < 0 then \<lbrakk> - (n ^ (nat k)) \<rbrakk> else \<lbrakk> n ^ (nat k) \<rbrakk>)"
 proof -
-  have aux_lemma: "\<And>k. \<lbrakk> n \<rbrakk> (^) k = \<lbrakk> n ^ k \<rbrakk>"
+  have aux_lemma: "\<And>k. \<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
   proof -
-    fix k show "\<lbrakk> n \<rbrakk> (^) k = \<lbrakk> n ^ k \<rbrakk>"
+    fix k show "\<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
       by (induction k) (auto simp add: elt_of_int_mult mult.commute)
   qed
 
-  show "\<lbrakk> n \<rbrakk> (^) k = \<lbrakk> n ^ k \<rbrakk>"
+  show "\<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
     using aux_lemma by simp
-  show "\<lbrakk> n \<rbrakk> (^) (k :: int) = (if k < 0 then \<lbrakk> - (n ^ (nat k)) \<rbrakk> else \<lbrakk> n ^ (nat k) \<rbrakk>)"
+  show "\<lbrakk> n \<rbrakk> [^] (k :: int) = (if k < 0 then \<lbrakk> - (n ^ (nat k)) \<rbrakk> else \<lbrakk> n ^ (nat k) \<rbrakk>)"
     using aux_lemma elt_of_int_inv add.int_pow_def2 by (simp add: int_pow_int)
 qed
 
@@ -851,7 +851,7 @@ lemma (in int_ring) FactRing_is_int_mod:
 proof -
   have "ring (R Quot (PIdl a))"
     using assms by (simp add: cgenideal_ideal ideal.quotient_is_ring)
-  moreover have "op +> (PIdl a) ` carrier R = carrier (R Quot PIdl a)"
+  moreover have "(+>) (PIdl a) ` carrier R = carrier (R Quot PIdl a)"
     unfolding FactRing_def A_RCOSETS_def' by auto
   ultimately show ?thesis
     using surj_hom_imp_int_mod[OF ideal.rcos_ring_hom[OF cgenideal_ideal[OF assms]]] by simp

@@ -427,8 +427,8 @@ next
                      I (Suc (Suc n)) \<cdot> (I 0)"
     by (simp add: ideals_set_def)
   finally have I0: "I 0 = (\<Otimes>\<^bsub>(ideals_set R)\<^esub> k \<in> {..Suc n}. I k) <+> I (Suc (Suc n)) \<cdot> (I 0)"
-    using ISet.finprod_insert[of "{Suc 0..Suc n}" 0 I] Iic_Suc_eq_insert_0
-          I_carr I'_carr atMost_atLeast0 by auto
+    using ISet.finprod_insert[of "{Suc 0..Suc n}" 0 I]
+          I_carr I'_carr atMost_atLeast0 ISet.finprod_0' atMost_Suc by auto
 
   have I_SucSuc_I0: "ideal (I (Suc (Suc n))) R \<and> ideal (I 0) R"
     using Suc.prems(1) by auto
@@ -469,7 +469,7 @@ next
   hence IH: "(\<Otimes>\<^bsub>(ideals_set R)\<^esub> k \<in> {..n}. I k) = (\<Inter> k \<in> {..n}. I k)"
     by (simp add: atMost_Suc)
   hence "(\<Otimes>\<^bsub>(ideals_set R)\<^esub> k \<in> {..Suc n}. I k) = I (Suc n) \<otimes>\<^bsub>(ideals_set R)\<^esub> (\<Inter> k \<in> {..n}. I k)"
-    using ISet.finprod_insert[of "{Suc 0..Suc n}" 0 I] Iic_Suc_eq_insert_0[of n]
+    using ISet.finprod_insert[of "{Suc 0..Suc n}" 0 I] atMost_Suc_eq_insert_0[of n]
     by (metis ISet.finprod_Suc Suc.prems(1) ideals_set_def partial_object.select_convs(1))
   hence "(\<Otimes>\<^bsub>(ideals_set R)\<^esub> k \<in> {..Suc n}. I k) = I (Suc n) \<cdot> (\<Inter> k \<in> {..n}. I k)"
     by (simp add: ideals_set_def)

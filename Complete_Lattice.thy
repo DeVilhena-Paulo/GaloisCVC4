@@ -1170,8 +1170,9 @@ subsection \<open>Examples\<close>
 
 subsubsection \<open>The Powerset of a Set is a Complete Lattice\<close>
 
+
 theorem powerset_is_complete_lattice:
-  "complete_lattice \<lparr>carrier = Pow A, eq = op =, le = op \<subseteq>\<rparr>"
+  "complete_lattice \<lparr>carrier = Pow A, eq = (=), le = (\<subseteq>)\<rparr>"
   (is "complete_lattice ?L")
 proof (rule partial_order.complete_latticeI)
   show "partial_order ?L"

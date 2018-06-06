@@ -52,11 +52,11 @@ definition
 
 definition
   LEAST_FP :: "('a, 'b) gorder_scheme \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a" ("LFP\<index>") where
-  "LEAST_FP L f = \<Sqinter>\<^bsub>L\<^esub> {u \<in> carrier L. f u \<sqsubseteq>\<^bsub>L\<^esub> u}"    --\<open>least fixed point\<close>
+  "LEAST_FP L f = \<Sqinter>\<^bsub>L\<^esub> {u \<in> carrier L. f u \<sqsubseteq>\<^bsub>L\<^esub> u}"    \<comment> \<open>least fixed point\<close>
 
 definition
   GREATEST_FP:: "('a, 'b) gorder_scheme \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a" ("GFP\<index>") where
-  "GREATEST_FP L f = \<Squnion>\<^bsub>L\<^esub> {u \<in> carrier L. u \<sqsubseteq>\<^bsub>L\<^esub> f u}"    --\<open>greatest fixed point\<close>
+  "GREATEST_FP L f = \<Squnion>\<^bsub>L\<^esub> {u \<in> carrier L. u \<sqsubseteq>\<^bsub>L\<^esub> f u}"    \<comment> \<open>greatest fixed point\<close>
 
 
 subsection \<open>Dual operators\<close>
@@ -98,11 +98,11 @@ subsection \<open>Lattices\<close>
 
 locale weak_upper_semilattice = weak_partial_order +
   assumes sup_of_two_exists:
-    "[| x \<in> carrier L; y \<in> carrier L |] ==> EX s. least L s (Upper L {x, y})"
+    "[| x \<in> carrier L; y \<in> carrier L |] ==> \<exists>s. least L s (Upper L {x, y})"
 
 locale weak_lower_semilattice = weak_partial_order +
   assumes inf_of_two_exists:
-    "[| x \<in> carrier L; y \<in> carrier L |] ==> EX s. greatest L s (Lower L {x, y})"
+    "[| x \<in> carrier L; y \<in> carrier L |] ==> \<exists>s. greatest L s (Lower L {x, y})"
 
 locale weak_lattice = weak_upper_semilattice + weak_lower_semilattice
 
@@ -143,7 +143,7 @@ lemma (in weak_upper_semilattice) join_cong_l:
 proof (rule joinI, rule joinI)
   fix a b
   from xx' carr
-      have seq: "{x, y} {.=} {x', y}" using set_eq_pairI by simp
+      have seq: "{x, y} {.=} {x', y}" by (rule set_eq_pairI)
 
   assume leasta: "least L a (Upper L {x, y})"
   assume "least L b (Upper L {x', y})"
@@ -250,7 +250,7 @@ proof (unfold sup_def)
 qed
 
 lemma (in weak_upper_semilattice) finite_sup_least:
-  "[| finite A; A \<subseteq> carrier L; A ~= {} |] ==> least L (\<Squnion>A) (Upper L A)"
+  "[| finite A; A \<subseteq> carrier L; A \<noteq> {} |] ==> least L (\<Squnion>A) (Upper L A)"
 proof (induct set: finite)
   case empty
   then show ?case by simp
@@ -284,7 +284,7 @@ next
 qed
 
 lemma (in weak_upper_semilattice) finite_sup_closed [simp]:
-  "[| finite A; A \<subseteq> carrier L; A ~= {} |] ==> \<Squnion>A \<in> carrier L"
+  "[| finite A; A \<subseteq> carrier L; A \<noteq> {} |] ==> \<Squnion>A \<in> carrier L"
 proof (induct set: finite)
   case empty then show ?case by simp
 next
@@ -356,16 +356,10 @@ proof -
   (* FIXME: could be simplified by improved simp: uniform use of .=,
      omit [symmetric] in last step. *)
   have "(x \<squnion> y) \<squnion> z = z \<squnion> (x \<squnion> y)" by (simp only: join_comm)
-  also have "... .= \<Squnion>{z, x, y}" using assms by (simp add: weak_join_assoc_lemma)
-  finally have 1: "(x \<squnion> y) \<squnion> z .= \<Squnion>{z, x, y}" by simp
-
-  have "\<Squnion>{z, x, y} = \<Squnion>{x, y, z}" using assms by (simp add: insert_commute)
-  also have "... .= x \<squnion> (y \<squnion> z)" using assms by (simp add: local.sym weak_join_assoc_lemma) 
-  finally have 2: "\<Squnion>{z, x, y} .= x \<squnion> (y \<squnion> z)" by simp
-
-  show ?thesis using 1 2
-    by (metis (no_types, hide_lams) assms(1) assms(2) assms(3) bot.extremum empty_not_insert
-        finite.emptyI finite_insert finite_sup_closed insert_subset join_closed local.trans) 
+  also from L have "... .= \<Squnion>{z, x, y}" by (simp add: weak_join_assoc_lemma)
+  also from L have "... = \<Squnion>{x, y, z}" by (simp add: insert_commute)
+  also from L have "... .= x \<squnion> (y \<squnion> z)" by (simp add: weak_join_assoc_lemma [symmetric])
+  finally show ?thesis by (simp add: L)
 qed
 
 
@@ -394,7 +388,7 @@ lemma (in weak_lower_semilattice) meet_cong_l:
 proof (rule meetI, rule meetI)
   fix a b
   from xx' carr
-      have seq: "{x, y} {.=} {x', y}" by (simp add: set_eq_pairI)
+      have seq: "{x, y} {.=} {x', y}" by (rule set_eq_pairI)
 
   assume greatesta: "greatest L a (Lower L {x, y})"
   assume "greatest L b (Lower L {x', y})"
@@ -501,7 +495,7 @@ proof (unfold inf_def)
 qed
 
 lemma (in weak_lower_semilattice) finite_inf_greatest:
-  "[| finite A; A \<subseteq> carrier L; A ~= {} |] ==> greatest L (\<Sqinter>A) (Lower L A)"
+  "[| finite A; A \<subseteq> carrier L; A \<noteq> {} |] ==> greatest L (\<Sqinter>A) (Lower L A)"
 proof (induct set: finite)
   case empty then show ?case by simp
 next
@@ -534,7 +528,7 @@ next
 qed
 
 lemma (in weak_lower_semilattice) finite_inf_closed [simp]:
-  "[| finite A; A \<subseteq> carrier L; A ~= {} |] ==> \<Sqinter>A \<in> carrier L"
+  "[| finite A; A \<subseteq> carrier L; A \<noteq> {} |] ==> \<Sqinter>A \<in> carrier L"
 proof (induct set: finite)
   case empty then show ?case by simp
 next
@@ -605,17 +599,10 @@ lemma (in weak_lower_semilattice) weak_meet_assoc:
 proof -
   (* FIXME: improved simp, see weak_join_assoc above *)
   have "(x \<sqinter> y) \<sqinter> z = z \<sqinter> (x \<sqinter> y)" by (simp only: meet_comm)
-  also have "... .= \<Sqinter> {z, x, y}" using assms by (simp add: weak_meet_assoc_lemma)
-  finally have 1: "(x \<sqinter> y) \<sqinter> z .= \<Sqinter> {z, x, y}" by simp
-
-  have "\<Sqinter> {z, x, y} = \<Sqinter> {x, y, z}" by (simp add: insert_commute)
-  also have "... .= x \<sqinter> (y \<sqinter> z)" using assms
-    by (simp add: equivalence.sym equivalence_axioms weak_meet_assoc_lemma)
-  finally have "\<Sqinter> {z, x, y} .= x \<sqinter> (y \<sqinter> z)" by simp
-
-  show "(x \<sqinter> y) \<sqinter> z .= x \<sqinter> (y \<sqinter> z)" using equivalence.trans equivalence_axioms assms
-    by (simp add: \<open>\<And>za xa S. \<lbrakk>equivalence S; xa \<in> carrier S; \<Sqinter>{z, x, y} \<in> carrier S; za \<in> carrier S; xa .=\<^bsub>S\<^esub> \<Sqinter>{z, x, y}; \<Sqinter>{z, x, y} .=\<^bsub>S\<^esub> za\<rbrakk> \<Longrightarrow> xa .=\<^bsub>S\<^esub> za\<close> "1" \<open>\<Sqinter>{z, x, y} .= x \<sqinter> (y \<sqinter> z)\<close>)
-    
+  also from L have "... .= \<Sqinter> {z, x, y}" by (simp add: weak_meet_assoc_lemma)
+  also from L have "... = \<Sqinter> {x, y, z}" by (simp add: insert_commute)
+  also from L have "... .= x \<sqinter> (y \<sqinter> z)" by (simp add: weak_meet_assoc_lemma [symmetric])
+  finally show ?thesis by (simp add: L)
 qed
 
 text \<open>Total orders are lattices.\<close>
@@ -624,7 +611,7 @@ sublocale weak_total_order \<subseteq> weak?: weak_lattice
 proof
   fix x y
   assume L: "x \<in> carrier L"  "y \<in> carrier L"
-  show "EX s. least L s (Upper L {x, y})"
+  show "\<exists>s. least L s (Upper L {x, y})"
   proof -
     note total L
     moreover
@@ -644,7 +631,7 @@ proof
 next
   fix x y
   assume L: "x \<in> carrier L"  "y \<in> carrier L"
-  show "EX i. greatest L i (Lower L {x, y})"
+  show "\<exists>i. greatest L i (Lower L {x, y})"
   proof -
     note total L
     moreover
@@ -700,14 +687,14 @@ subsection \<open>Lattices where \<open>eq\<close> is the Equality\<close>
 
 locale upper_semilattice = partial_order +
   assumes sup_of_two_exists:
-    "[| x \<in> carrier L; y \<in> carrier L |] ==> EX s. least L s (Upper L {x, y})"
+    "[| x \<in> carrier L; y \<in> carrier L |] ==> \<exists>s. least L s (Upper L {x, y})"
 
 sublocale upper_semilattice \<subseteq> weak?: weak_upper_semilattice
   by unfold_locales (rule sup_of_two_exists)
 
 locale lower_semilattice = partial_order +
   assumes inf_of_two_exists:
-    "[| x \<in> carrier L; y \<in> carrier L |] ==> EX s. greatest L s (Lower L {x, y})"
+    "[| x \<in> carrier L; y \<in> carrier L |] ==> \<exists>s. greatest L s (Lower L {x, y})"
 
 sublocale lower_semilattice \<subseteq> weak?: weak_lower_semilattice
   by unfold_locales (rule inf_of_two_exists)

@@ -107,34 +107,6 @@ next
   thus "generate G H \<subseteq> \<Inter>{K. subgroup K G \<and> H \<subseteq> K}" by blast
 qed
 
-(*
-lemma (in group) subgroup_gen_equality:
-  assumes "subgroup H G" "K \<subseteq> H"
-  shows "generate G K = generate (G \<lparr> carrier := H \<rparr>) K"
-proof -
-  { fix I J K assume A: "subgroup I G" "subgroup J G" "K \<subseteq> I" "K \<subseteq> J"
-    have "generate (G \<lparr> carrier := I \<rparr>) K \<subseteq> generate (G \<lparr> carrier := J \<rparr>) K"
-    proof
-      fix k show "k \<in> generate (G \<lparr> carrier := I \<rparr>) K \<Longrightarrow> k \<in> generate (G \<lparr> carrier := J \<rparr>) K"
-      proof (induction rule: generate.induct)
-        case one thus ?case using generate.one[of "G\<lparr>carrier := J\<rparr>"] by simp
-      next
-        case (incl h) thus ?case using generate.incl[of h K "G\<lparr>carrier := J\<rparr>"] by simp
-      next
-        case (inv h) thus ?case using generate.inv[of h K "G\<lparr>carrier := J\<rparr>"] A
-                                      subgroup_inv_equality by (metis contra_subsetD)
-      next
-        case (eng h1 h2)
-        then show ?case 
-      qed
-    qed
-  have "generate G K \<subseteq> H"
-    by (meson assms generate_min_subgroup1 order.trans subgroup_imp_subset)
-  show ?thesis
-  proof
-  qed
-qed *)
-
 
 subsection\<open>Representation of Elements from a Generated Group\<close>
 
@@ -327,11 +299,11 @@ subsection\<open>Basic Properties of Generated Groups - Second Part\<close>
 
 lemma (in group) generate_pow:
   assumes "a \<in> carrier G"
-  shows "generate G { a } = { a (^) k | k. k \<in> (UNIV :: int set) }"
+  shows "generate G { a } = { a [^] k | k. k \<in> (UNIV :: int set) }"
 proof
-  show "generate G { a } \<subseteq> { a (^) k | k. k \<in> (UNIV :: int set) }"
+  show "generate G { a } \<subseteq> { a [^] k | k. k \<in> (UNIV :: int set) }"
   proof
-    fix h  show "h \<in> generate G { a } \<Longrightarrow> h \<in> { a (^) k | k. k \<in> (UNIV :: int set) }"
+    fix h  show "h \<in> generate G { a } \<Longrightarrow> h \<in> { a [^] k | k. k \<in> (UNIV :: int set) }"
     proof (induction rule: generate.induct)
       case one thus ?case by (metis (mono_tags, lifting) UNIV_I int_pow_0 mem_Collect_eq) 
     next
@@ -346,17 +318,17 @@ proof
     qed
   qed
 
-  show "{ a (^) k | k. k \<in> (UNIV :: int set) } \<subseteq> generate G { a }"
+  show "{ a [^] k | k. k \<in> (UNIV :: int set) } \<subseteq> generate G { a }"
   proof
-    { fix k :: "nat" have "a (^) k \<in> generate G { a }"
+    { fix k :: "nat" have "a [^] k \<in> generate G { a }"
       proof (induction k)
         case 0 thus ?case by (simp add: generate.one)
       next
         case (Suc k) thus ?case by (simp add: generate.eng generate.incl)
       qed } note aux_lemma = this
 
-    fix h assume "h \<in> { a (^) k | k. k \<in> (UNIV :: int set) }"
-    then obtain k :: "nat" where "h = a (^) k \<or> h = inv (a (^) k)"
+    fix h assume "h \<in> { a [^] k | k. k \<in> (UNIV :: int set) }"
+    then obtain k :: "nat" where "h = a [^] k \<or> h = inv (a [^] k)"
       by (smt group.int_pow_def2 is_group mem_Collect_eq)
     thus "h \<in> generate G { a }" using aux_lemma
       using assms generate_m_inv_closed by auto
@@ -371,7 +343,7 @@ corollary (in group) generate_empty: "generate G {} = { \<one> }"
 
 corollary (in group)
   assumes "H \<subseteq> carrier G" "h \<in> H"
-  shows "h (^) (k :: int) \<in> generate G H"
+  shows "h [^] (k :: int) \<in> generate G H"
   using mono_generate[of "{ h }" H] generate_pow[of h] assms by auto
 
 
@@ -615,8 +587,8 @@ proof -
       case 0 thus ?case using A by simp
     next
       case (Suc n) thus ?case
-        by (smt aux_lemma1 derived_self_is_normal funpow_simps_right(2) funpow_swap1
-                normal_def o_apply order.trans order_refl subgroup_imp_subset)
+        using aux_lemma1 derived_self_is_normal funpow_simps_right(2) funpow_swap1
+                normal_def o_apply order.trans order_refl subgroup_imp_subset by smt
     qed } note aux_lemma2 = this
 
   show ?thesis

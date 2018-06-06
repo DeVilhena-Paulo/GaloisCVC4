@@ -23,7 +23,7 @@ done
 subsection \<open>\<open>\<Z>\<close>: The Set of Integers as Algebraic Structure\<close>
 
 abbreviation int_ring :: "int ring" ("\<Z>")
-  where "int_ring \<equiv> \<lparr>carrier = UNIV, mult = op *, one = 1, zero = 0, add = op +\<rparr>"
+  where "int_ring \<equiv> \<lparr> carrier = UNIV, mult = ( * ), one = 1, zero = 0, add = (+) \<rparr>"
 
 lemma int_Zcarr [intro!, simp]: "k \<in> carrier \<Z>"
   by simp
@@ -59,14 +59,14 @@ interpretation int: monoid \<Z>
     and "one \<Z> = 1"
     and "pow \<Z> x n = x^n"
 proof -
-  \<comment> "Specification"
+  \<comment> \<open>"Specification"\<close>
   show "monoid \<Z>" by standard auto
   then interpret int: monoid \<Z> .
 
-  \<comment> "Carrier"
+  \<comment> \<open>"Carrier"\<close>
   show "carrier \<Z> = UNIV" by simp
 
-  \<comment> "Operations"
+  \<comment> \<open>"Operations"\<close>
   { fix x y show "mult \<Z> x y = x * y" by simp }
   show "one \<Z> = 1" by simp
   show "pow \<Z> x n = x^n" by (induct n) simp_all
@@ -75,11 +75,11 @@ qed
 interpretation int: comm_monoid \<Z>
   rewrites "finprod \<Z> f A = prod f A"
 proof -
-  \<comment> "Specification"
+  \<comment> \<open>"Specification"\<close>
   show "comm_monoid \<Z>" by standard auto
   then interpret int: comm_monoid \<Z> .
 
-  \<comment> "Operations"
+  \<comment> \<open>"Operations"\<close>
   { fix x y have "mult \<Z> x y = x * y" by simp }
   note mult = this
   have one: "one \<Z> = 1" by simp
@@ -93,14 +93,14 @@ interpretation int: abelian_monoid \<Z>
     and int_add_eq: "add \<Z> x y = x + y"
     and int_finsum_eq: "finsum \<Z> f A = sum f A"
 proof -
-  \<comment> "Specification"
+  \<comment> \<open>"Specification"\<close>
   show "abelian_monoid \<Z>" by standard auto
   then interpret int: abelian_monoid \<Z> .
 
-  \<comment> "Carrier"
+  \<comment> \<open>"Carrier"\<close>
   show "carrier \<Z> = UNIV" by simp
 
-  \<comment> "Operations"
+  \<comment> \<open>"Operations"\<close>
   { fix x y show "add \<Z> x y = x + y" by simp }
   note add = this
   show zero: "zero \<Z> = 0"
@@ -121,7 +121,7 @@ interpretation int: abelian_group \<Z>
     and int_a_inv_eq: "a_inv \<Z> x = - x"
     and int_a_minus_eq: "a_minus \<Z> x y = x - y"
 proof -
-  \<comment> "Specification"
+  \<comment> \<open>"Specification"\<close>
   show "abelian_group \<Z>"
   proof (rule abelian_groupI)
     fix x
@@ -130,7 +130,7 @@ proof -
       by simp arith
   qed auto
   then interpret int: abelian_group \<Z> .
-  \<comment> "Operations"
+  \<comment> \<open>"Operations"\<close>
   { fix x y have "add \<Z> x y = x + y" by simp }
   note add = this
   have zero: "zero \<Z> = 0" by simp
@@ -172,27 +172,27 @@ lemma UNIV:
   by simp_all
 
 interpretation int (* FIXME [unfolded UNIV] *) :
-  partial_order "\<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr>"
-  rewrites "carrier \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> = UNIV"
-    and "le \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> x y = (x \<le> y)"
-    and "lless \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> x y = (x < y)"
+  partial_order "\<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr>"
+  rewrites "carrier \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> = UNIV"
+    and "le \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> x y = (x \<le> y)"
+    and "lless \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> x y = (x < y)"
 proof -
-  show "partial_order \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr>"
+  show "partial_order \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr>"
     by standard simp_all
-  show "carrier \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> = UNIV"
+  show "carrier \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> = UNIV"
     by simp
-  show "le \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> x y = (x \<le> y)"
+  show "le \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> x y = (x \<le> y)"
     by simp
-  show "lless \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> x y = (x < y)"
+  show "lless \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> x y = (x < y)"
     by (simp add: lless_def) auto
 qed
 
 interpretation int (* FIXME [unfolded UNIV] *) :
-  lattice "\<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr>"
-  rewrites "join \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> x y = max x y"
-    and "meet \<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr> x y = min x y"
+  lattice "\<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr>"
+  rewrites "join \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> x y = max x y"
+    and "meet \<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr> x y = min x y"
 proof -
-  let ?Z = "\<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr>"
+  let ?Z = "\<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr>"
   show "lattice ?Z"
     apply unfold_locales
     apply (simp add: least_def Upper_def)
@@ -214,7 +214,7 @@ proof -
 qed
 
 interpretation int (* [unfolded UNIV] *) :
-  total_order "\<lparr>carrier = UNIV::int set, eq = op =, le = op \<le>\<rparr>"
+  total_order "\<lparr>carrier = UNIV::int set, eq = (=), le = (\<le>)\<rparr>"
   by standard clarsimp
 
 
@@ -247,11 +247,13 @@ proof -
   then show "(\<exists>x. a = x * p) \<or> (\<exists>x. b = x * p)"
     by (metis dvd_def mult.commute)
 next
-  assume "UNIV = {uu. EX x. uu = x * p}"
-  then obtain x where "1 = x * p" by best
-  then have "\<bar>p * x\<bar> = 1" by (simp add: mult.commute)
+  assume "UNIV = {uu. \<exists>x. uu = x * p}"
+  then obtain x where "1 = x * p"
+    by best
+  then have "\<bar>p * x\<bar> = 1"
+    by (simp add: ac_simps)
   then show False using prime
-    by (auto dest!: abs_zmult_eq_1 simp: prime_def)
+    by (auto simp add: abs_mult zmult_eq_1_iff)
 qed
 
 

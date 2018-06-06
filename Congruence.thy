@@ -68,10 +68,10 @@ abbreviation
 
 locale equivalence =
   fixes S (structure)
-  assumes refl [simp, intro]: "\<lbrakk> x \<in> carrier S \<rbrakk> \<Longrightarrow> x .= x"
-    and sym [sym]:            "\<lbrakk> x \<in> carrier S; y \<in> carrier S \<rbrakk> \<Longrightarrow> x .= y \<Longrightarrow> y .= x"
-    and trans [trans]:        "\<lbrakk> x \<in> carrier S; y \<in> carrier S; z \<in> carrier S \<rbrakk> \<Longrightarrow> 
-                                 x .= y \<Longrightarrow> y .= z \<Longrightarrow> x .= z"
+  assumes refl [simp, intro]: "x \<in> carrier S \<Longrightarrow> x .= x"
+    and sym [sym]: "\<lbrakk> x .= y; x \<in> carrier S; y \<in> carrier S \<rbrakk> \<Longrightarrow> y .= x"
+    and trans [trans]:
+      "\<lbrakk> x .= y; y .= z; x \<in> carrier S; y \<in> carrier S; z \<in> carrier S \<rbrakk> \<Longrightarrow> x .= z"
 
 lemma equivalenceI:
   fixes P :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and E :: "'a set"
@@ -273,20 +273,15 @@ lemma closure_ofE2:
 
 lemma (in partition) equivalence_from_partition:
   "equivalence \<lparr> carrier = A, eq = (\<lambda>x y. y \<in> (THE b. b \<in> B \<and> x \<in> b))\<rparr>"
-  unfolding partition_def equivalence_def apply simp 
-proof -
+    unfolding partition_def equivalence_def
+proof (auto)
   let ?f = "\<lambda>x. THE b. b \<in> B \<and> x \<in> b"
-  have "\<And>x. x \<in> A \<Longrightarrow> x \<in> ?f x"
+  show "\<And>x. x \<in> A \<Longrightarrow> x \<in> ?f x"
     using unique_class by (metis (mono_tags, lifting) theI')
-  moreover have "\<And>x y. \<lbrakk> x \<in> A; y \<in> A \<rbrakk> \<Longrightarrow> y \<in> ?f x \<Longrightarrow> x \<in> ?f y"
+  show "\<And>x y. \<lbrakk> x \<in> A; y \<in> A \<rbrakk> \<Longrightarrow> y \<in> ?f x \<Longrightarrow> x \<in> ?f y"
     using unique_class by (metis (mono_tags, lifting) the_equality)
-  moreover have "\<And>x y z. \<lbrakk> x \<in> A; y \<in> A; z \<in> A \<rbrakk> \<Longrightarrow> y \<in> ?f x \<Longrightarrow> z \<in> ?f y \<Longrightarrow> z \<in> ?f x"
+  show "\<And>x y z. \<lbrakk> x \<in> A; y \<in> A; z \<in> A \<rbrakk> \<Longrightarrow> y \<in> ?f x \<Longrightarrow> z \<in> ?f y \<Longrightarrow> z \<in> ?f x"
     using unique_class by (metis (mono_tags, lifting) the_equality)
-  ultimately
-    show "(\<forall>x. x \<in> A \<longrightarrow> x \<in> ?f x) \<and>
-          (\<forall>x. x \<in> A \<longrightarrow> (\<forall>y. y \<in> A \<longrightarrow> y \<in> ?f x \<longrightarrow> x \<in> ?f y)) \<and>
-          (\<forall>x. x \<in> A \<longrightarrow> (\<forall>y. y \<in> A \<longrightarrow> (\<forall>z. z \<in> A \<longrightarrow>
-            y \<in> ?f x \<longrightarrow> z \<in> ?f y \<longrightarrow> z \<in> ?f x)))" by blast
 qed
 
 lemma (in partition) partition_coverture: "\<Union>B = A"
@@ -370,10 +365,10 @@ corollary (in equivalence) set_eq_insert:
   by (meson set_eqI assms set_eq_insert_aux sym equivalence_axioms)
 
 lemma (in equivalence) set_eq_pairI:
-  assumes "x \<in> carrier S" "x' \<in> carrier S" "x .= x'"
-    and "y \<in> carrier S"
+  assumes xx': "x .= x'"
+    and carr: "x \<in> carrier S" "x' \<in> carrier S" "y \<in> carrier S"
   shows "{x, y} {.=} {x', y}"
-  by (simp add: assms set_eq_insert)
+  using assms set_eq_insert by simp
 
 lemma (in equivalence) closure_inclusion:
   assumes "A \<subseteq> B"

@@ -115,7 +115,7 @@ done
 
 text \<open>This is a ring homomorphism\<close>
 
-lemma (in ideal) rcos_ring_hom: "(op +> I) \<in> ring_hom R (R Quot I)"
+lemma (in ideal) rcos_ring_hom: "((+>) I) \<in> ring_hom R (R Quot I)"
 apply (rule ring_hom_memI)
    apply (simp add: FactRing_def a_rcosetsI[OF a_subset])
   apply (simp add: FactRing_def rcoset_mult_add)
@@ -123,7 +123,7 @@ apply (rule ring_hom_memI)
 apply (simp add: FactRing_def)
 done
 
-lemma (in ideal) rcos_ring_hom_ring: "ring_hom_ring R (R Quot I) (op +> I)"
+lemma (in ideal) rcos_ring_hom_ring: "ring_hom_ring R (R Quot I) ((+>) I)"
 apply (rule ring_hom_ringI)
      apply (rule is_ring, rule quotient_is_ring)
    apply (simp add: FactRing_def a_rcosetsI[OF a_subset])
@@ -151,7 +151,7 @@ qed
 text \<open>Cosets as a ring homomorphism on crings\<close>
 lemma (in ideal) rcos_ring_hom_cring:
   assumes "cring R"
-  shows "ring_hom_cring R (R Quot I) (op +> I)"
+  shows "ring_hom_cring R (R Quot I) ((+>) I)"
 proof -
   interpret cring R by fact
   show ?thesis
@@ -203,7 +203,7 @@ qed
 
 text \<open>Generating right cosets of a prime ideal is a homomorphism
         on commutative rings\<close>
-lemma (in primeideal) rcos_ring_hom_cring: "ring_hom_cring R (R Quot I) (op +> I)"
+lemma (in primeideal) rcos_ring_hom_cring: "ring_hom_cring R (R Quot I) ((+>) I)"
   by (rule rcos_ring_hom_cring) (rule is_cring)
 
 
@@ -348,21 +348,21 @@ qed
 
 lemma (in ring) ring_ideal_imp_quot_ideal:
   assumes "ideal I R"
-  shows "ideal J R \<Longrightarrow> ideal ((op +> I) ` J) (R Quot I)"
+  shows "ideal J R \<Longrightarrow> ideal ((+>) I ` J) (R Quot I)"
 proof -
-  assume A: "ideal J R" show "ideal ((op +> I) ` J) (R Quot I)"
+  assume A: "ideal J R" show "ideal (((+>) I) ` J) (R Quot I)"
   proof (rule idealI)
     show "ring (R Quot I)"
       by (simp add: assms(1) ideal.quotient_is_ring) 
   next
     have "subgroup J (add_monoid R)"
       by (simp add: additive_subgroup.a_subgroup A ideal.axioms(1))
-    moreover have "(op +> I) \<in> ring_hom R (R Quot I)"
+    moreover have "((+>) I) \<in> ring_hom R (R Quot I)"
       by (simp add: assms(1) ideal.rcos_ring_hom)
-    ultimately show "subgroup (op +> I ` J) (add_monoid (R Quot I))"
+    ultimately show "subgroup ((+>) I ` J) (add_monoid (R Quot I))"
       using assms(1) ideal.rcos_ring_hom_ring ring_hom_ring.img_is_add_subgroup by blast
   next
-    fix a x assume "a \<in> ((op +> I) ` J)" "x \<in> carrier (R Quot I)"
+    fix a x assume "a \<in> (+>) I ` J" "x \<in> carrier (R Quot I)"
     then obtain i j where i: "i \<in> carrier R" "x = I +> i"
                       and j: "j \<in> J" "a = I +> j"
       unfolding FactRing_def using A_RCOSETS_def'[of R I] by auto
@@ -370,14 +370,14 @@ proof -
       unfolding FactRing_def by simp
     hence "a \<otimes>\<^bsub>R Quot I\<^esub> x = I +> (j \<otimes> i)"
       using ideal.rcoset_mult_add[OF assms(1), of j i] i(1) j(1) A ideal.Icarr by force
-    thus "a \<otimes>\<^bsub>R Quot I\<^esub> x \<in> ((op +> I) ` J)"
+    thus "a \<otimes>\<^bsub>R Quot I\<^esub> x \<in> (+>) I ` J"
       using A i(1) j(1) by (simp add: ideal.I_r_closed)
   
     have "x \<otimes>\<^bsub>R Quot I\<^esub> a = [mod I:] (I +> i) \<Otimes> (I +> j)"
       unfolding FactRing_def i j by simp
     hence "x \<otimes>\<^bsub>R Quot I\<^esub> a = I +> (i \<otimes> j)"
       using ideal.rcoset_mult_add[OF assms(1), of i j] i(1) j(1) A ideal.Icarr by force
-    thus "x \<otimes>\<^bsub>R Quot I\<^esub> a \<in> ((op +> I) ` J)"
+    thus "x \<otimes>\<^bsub>R Quot I\<^esub> a \<in> (+>) I ` J"
       using A i(1) j(1) by (simp add: ideal.I_l_closed)
   qed
 qed
@@ -506,12 +506,12 @@ qed
 
 theorem (in ring) quot_ideal_correspondence:
   assumes "ideal I R"
-  shows "bij_betw (\<lambda>J. (op +> I) ` J) { J. ideal J R \<and> I \<subseteq> J } { J . ideal J (R Quot I) }"
+  shows "bij_betw (\<lambda>J. (+>) I ` J) { J. ideal J R \<and> I \<subseteq> J } { J . ideal J (R Quot I) }"
 proof (rule bij_betw_byWitness[where ?f' = "\<lambda>X. \<Union> X"])
-  show "\<forall>J \<in> { J. ideal J R \<and> I \<subseteq> J }. (\<lambda>X. \<Union> X) (op +> I ` J) = J"
+  show "\<forall>J \<in> { J. ideal J R \<and> I \<subseteq> J }. (\<lambda>X. \<Union> X) ((+>) I ` J) = J"
     using assms ideal_incl_iff by blast
 next
-  show "op ` (op +> I) ` { J. ideal J R \<and> I \<subseteq> J } \<subseteq> { J. ideal J (R Quot I) }"
+  show "(\<lambda>J. (+>) I ` J) ` { J. ideal J R \<and> I \<subseteq> J } \<subseteq> { J. ideal J (R Quot I) }"
     using assms ring_ideal_imp_quot_ideal by auto
 next
   show "(\<lambda>X. \<Union> X) ` { J. ideal J (R Quot I) } \<subseteq> { J. ideal J R \<and> I \<subseteq> J }"
@@ -525,24 +525,24 @@ next
     ultimately show "J \<in> { J. ideal J R \<and> I \<subseteq> J }" using J'(2) by auto
   qed
 next
-  show "\<forall>J' \<in> { J. ideal J (R Quot I) }. ((op +> I) ` (\<Union> J')) = J'"
+  show "\<forall>J' \<in> { J. ideal J (R Quot I) }. ((+>) I ` (\<Union> J')) = J'"
   proof
     fix J' assume "J' \<in> { J. ideal J (R Quot I) }"
     hence subset: "J' \<subseteq> carrier (R Quot I) \<and> ideal J' (R Quot I)"
       using additive_subgroup.a_subset ideal_def by blast
-    hence "((op +> I) ` (\<Union> J')) \<subseteq> J'"
+    hence "((+>) I ` (\<Union> J')) \<subseteq> J'"
       using canonical_proj_vimage_in_carrier canonical_proj_vimage_mem_iff
       by (meson assms contra_subsetD image_subsetI)
-    moreover have "J' \<subseteq> ((op +> I) ` (\<Union> J'))"
+    moreover have "J' \<subseteq> ((+>) I ` (\<Union> J'))"
     proof
       fix x assume "x \<in> J'"
       then obtain r where r: "r \<in> carrier R" "x = I +> r"
         using subset unfolding FactRing_def A_RCOSETS_def'[of R I] by auto
       hence "r \<in> (\<Union> J')"
         using \<open>x \<in> J'\<close> assms canonical_proj_vimage_mem_iff subset by blast
-      thus "x \<in> ((op +> I) ` (\<Union> J'))" using r(2) by blast
+      thus "x \<in> ((+>) I ` (\<Union> J'))" using r(2) by blast
     qed
-    ultimately show "((op +> I) ` (\<Union> J')) = J'" by blast
+    ultimately show "((+>) I ` (\<Union> J')) = J'" by blast
   qed
 qed
 
@@ -1025,11 +1025,11 @@ proposition (in ring_hom_ring) primeideal_vimage:
 proof -
   assume A: "primeideal P S"
   hence is_ideal: "ideal P S" unfolding primeideal_def by simp
-  have "ring_hom_ring R (S Quot P) (op +>\<^bsub>S\<^esub> P \<circ> h)" (is "ring_hom_ring ?A ?B ?h")
-    using ring_hom_trans[OF homh, of "op +>\<^bsub>S\<^esub> P" "S Quot P"]
+  have "ring_hom_ring R (S Quot P) (((+>\<^bsub>S\<^esub>) P) \<circ> h)" (is "ring_hom_ring ?A ?B ?h")
+    using ring_hom_trans[OF homh, of "(+>\<^bsub>S\<^esub>) P" "S Quot P"]
           ideal.rcos_ring_hom_ring[OF is_ideal] assms
     unfolding ring_hom_ring_def ring_hom_ring_axioms_def cring_def by simp
-  then interpret hom: ring_hom_ring R "S Quot P" "(op +>\<^bsub>S\<^esub> P \<circ> h)" by simp
+  then interpret hom: ring_hom_ring R "S Quot P" "((+>\<^bsub>S\<^esub>) P) \<circ> h" by simp
   
   have "inj_on (\<lambda>X. the_elem (?h ` X)) (carrier (R Quot (a_kernel R (S Quot P) ?h)))"
     using hom.the_elem_inj unfolding inj_on_def by simp

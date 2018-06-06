@@ -119,14 +119,14 @@ lemma (in group) r_cancel_one' [simp]: "x : carrier G \<Longrightarrow> a : carr
 lemma (in comm_group) power_order_eq_one:
   assumes fin [simp]: "finite (carrier G)"
     and a [simp]: "a : carrier G"
-  shows "a (^) card(carrier G) = one G"
+  shows "a [^] card(carrier G) = one G"
 proof -
   have "(\<Otimes>x\<in>carrier G. x) = (\<Otimes>x\<in>carrier G. a \<otimes> x)"
     by (subst (2) finprod_reindex [symmetric],
       auto simp add: Pi_def inj_on_const_mult surj_const_mult)
   also have "\<dots> = (\<Otimes>x\<in>carrier G. a) \<otimes> (\<Otimes>x\<in>carrier G. x)"
     by (auto simp add: finprod_multf Pi_def)
-  also have "(\<Otimes>x\<in>carrier G. a) = a (^) card(carrier G)"
+  also have "(\<Otimes>x\<in>carrier G. a) = a [^] card(carrier G)"
     by (auto simp add: finprod_const)
   finally show ?thesis
 (* uses the preceeding lemma *)
