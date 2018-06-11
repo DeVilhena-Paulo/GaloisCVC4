@@ -1,9 +1,9 @@
 (* ************************************************************************** *)
-(* Title:      Polynomial.thy                                                 *)
+(* Title:      More_Polynomials.thy                                           *)
 (* Author:     Paulo Emílio de Vilhena                                        *)
 (* ************************************************************************** *)
 
-theory Polynomial
+theory More_Polynomials
   imports Ring Module
 
 begin
