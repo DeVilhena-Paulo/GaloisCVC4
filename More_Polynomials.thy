@@ -58,7 +58,7 @@ subsection \<open>Basic Properties\<close>
 context ring
 begin
 
-lemma polynomial_in_carrier: "polynomial R p \<Longrightarrow> set p \<subseteq> carrier R"
+lemma polynomial_in_carrier [intro]: "polynomial R p \<Longrightarrow> set p \<subseteq> carrier R"
   unfolding polynomial_def by auto
 
 lemma zero_is_polynomial: "polynomial R []"
@@ -1145,25 +1145,80 @@ lemma poly_mult_assoc_aux:
     shows "poly_mult ((map (\<lambda>b. a \<otimes> b) p2) @ (replicate (length p1) \<zero>)) p3 =
            poly_mult (monon a (length p1)) (poly_mult p2 p3)"
 proof -
-  let ?a_p2 = "(map (\<lambda>b. a \<otimes> b) p2) @ (replicate (length p1) \<zero>)"
+  let ?len = "length p1"
+  let ?a_p2 = "(map (\<lambda>b. a \<otimes> b) p2) @ (replicate ?len \<zero>)"
+  let ?c2 = "coeff p2" and ?c3 = "coeff p3"
   have coeff_a_p2:
-    "coeff ?a_p2 = (\<lambda>i. if i < length p1 then \<zero> else a \<otimes> (coeff p2) (i - length p1))"
-(is "coeff ?a_p2 = (\<lambda>i. ?f i)")
-    using append_coeff[of "map ((\<otimes>) a) p2" "replicate (length p1) \<zero>"]
-          replicate_zero_coeff[of "length p1"] scalar_coeff[OF assms(4), of p2] by auto
+    "coeff ?a_p2 = (\<lambda>i. if i < ?len then \<zero> else a \<otimes> ?c2 (i - ?len))" (is
+    "coeff ?a_p2 = (\<lambda>i. ?f i)")
+    using append_coeff[of "map ((\<otimes>) a) p2" "replicate ?len \<zero>"]
+          replicate_zero_coeff[of ?len] scalar_coeff[OF assms(4), of p2] by auto
   have in_carrier:
-    "set ?a_p2 \<subseteq> carrier R" "\<And>i. (coeff p2) i \<in> carrier R" "\<And>i. (coeff p3) i \<in> carrier R"
-    using assms(2-4) by auto
-  have "coeff (poly_mult ?a_p2 p3) = (\<lambda>n. (\<Oplus>i \<in> {..n}. (coeff ?a_p2) i \<otimes> (coeff p3) (n - i)))"
+    "set ?a_p2 \<subseteq> carrier R" "\<And>i. ?c2 i \<in> carrier R" "\<And>i. ?c3 i \<in> carrier R"
+    "\<And>i. coeff (poly_mult p2 p3) i \<in> carrier R"
+    using assms(2-4) poly_mult_in_carrier by auto
+  have "coeff (poly_mult ?a_p2 p3) = (\<lambda>n. (\<Oplus>i \<in> {..n}. (coeff ?a_p2) i \<otimes> ?c3 (n - i)))"
     using poly_mult_coeff[OF in_carrier(1) assms(3)] .
-  also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (?f i) \<otimes> (coeff p3) (n - i)))"
+  also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (?f i) \<otimes> ?c3 (n - i)))"
     using coeff_a_p2 by simp
-  also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (if i = length p1 then a else \<zero>) \<otimes>
-                                       (coeff (poly_mult p2 p3)) (n - i)))"
-    (is "(\<lambda>n. (\<Oplus>i \<in> {..n}. ?h n i)) = (\<lambda>n. (\<Oplus>i \<in> {..n}. ?g n i))")
+  also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (if i = ?len then a else \<zero>) \<otimes> (coeff (poly_mult p2 p3)) (n - i)))"
+    (is "(\<lambda>n. (\<Oplus>i \<in> {..n}. ?side1 n i)) = (\<lambda>n. (\<Oplus>i \<in> {..n}. ?side2 n i))")
   proof
     fix n
-    have "\<And>i. i < length 
+    have in_carrier': "\<And>i. ?side1 n i \<in> carrier R" "\<And>i. ?side2 n i \<in> carrier R"
+      using in_carrier assms coeff_in_carrier poly_mult_in_carrier by auto
+    show "(\<Oplus>i \<in> {..n}. ?side1 n i) = (\<Oplus>i \<in> {..n}. ?side2 n i)"
+    proof (cases "n < ?len")
+      assume "n < ?len"
+      hence "\<And>i. i \<le> n \<Longrightarrow> ?side1 n i = ?side2 n i"
+        using in_carrier assms coeff_in_carrier poly_mult_in_carrier by simp
+      thus ?thesis
+        using add.finprod_cong'[of "{..n}" "{..n}" "?side1 n" "?side2 n"] in_carrier'
+        by (metis (no_types, lifting) Pi_I' atMost_iff)
+    next
+      assume "\<not> n < ?len"
+      hence n_ge: "n \<ge> ?len" by simp
+      define h where "h = (\<lambda>i. if i < ?len then \<zero> else (a \<otimes> ?c2 (i - ?len)) \<otimes> ?c3 (n - i))"
+      hence h_in_carrier: "\<And>i. h i \<in> carrier R"
+        using assms(4) in_carrier by auto
+      have "\<And>i. (?f i) \<otimes> ?c3 (n - i) = h i"
+        using in_carrier(2-3) assms(4) h_def by auto
+      hence "(\<Oplus>i \<in> {..n}. ?side1 n i) = (\<Oplus>i \<in> {..n}. h i)"
+        by simp
+      also have " ... = (\<Oplus>i \<in> {..<?len}. h i) \<oplus> (\<Oplus>i \<in> {?len..n}. h i)"
+        using add.finprod_Un_disjoint[of "{..<?len}" "{?len..n}" h] h_in_carrier n_ge
+        by (simp add: ivl_disj_int_one(4) ivl_disj_un_one(4))
+      also have " ... = (\<Oplus>i \<in> {..<?len}. \<zero>) \<oplus> (\<Oplus>i \<in> {?len..n}. h i)"
+        using add.finprod_cong'[of "{..<?len}" "{..<?len}" h "\<lambda>_. \<zero>"] h_in_carrier
+        unfolding h_def by auto
+      also have " ... = (\<Oplus>i \<in> {?len..n}. h i)"
+        using add.finprod_one h_in_carrier by simp
+      also have " ... = (\<Oplus>i \<in> (\<lambda>i. i + ?len) ` {..n - ?len}. h i)"
+        using n_ge atLeast0AtMost image_add_atLeastAtMost'[of ?len 0 "n - ?len"] by auto
+      also have " ... = (\<Oplus>i \<in> {..n - ?len}. h (i + ?len))"
+        using add.finprod_reindex[of h "\<lambda>i. i + ?len" "{..n - ?len}"] h_in_carrier by simp
+      also have " ... = (\<Oplus>i \<in> {..n - ?len}. (a \<otimes> ?c2 i) \<otimes> ?c3 (n - (i + ?len)))"
+        unfolding h_def by simp
+      also have " ... = (\<Oplus>i \<in> {..n - ?len}. a \<otimes> (?c2 i \<otimes> ?c3 (n - (i + ?len))))"
+        using in_carrier assms(4) by (simp add: m_assoc) 
+      also have " ... = a \<otimes> (\<Oplus>i \<in> {..n - ?len}. ?c2 i \<otimes> ?c3 (n - (i + ?len)))"
+        using finsum_rdistr[of "{..n - ?len}" a "\<lambda>i. ?c2 i \<otimes> ?c3 (n - (i + ?len))"]
+              in_carrier(2-3) assms(4) by simp
+      also have " ... = a \<otimes> (coeff (poly_mult p2 p3)) (n - ?len)"
+        using poly_mult_coeff[OF assms(2-3)] n_ge by (simp add: add.commute)
+      also have " ... =
+        (\<Oplus>i \<in> {..n}. if ?len = i then a \<otimes> (coeff (poly_mult p2 p3)) (n - i) else \<zero>)"
+        using add.finprod_singleton[of ?len "{..n}" "\<lambda>i. a \<otimes> (coeff (poly_mult p2 p3)) (n - i)"]
+              n_ge in_carrier(2-4) assms by simp
+      also have " ... = (\<Oplus>i \<in> {..n}. (if ?len = i then a else \<zero>) \<otimes> (coeff (poly_mult p2 p3)) (n - i))"
+        using in_carrier(2-4) assms(4) add.finprod_cong'[of "{..n}" "{..n}"] by simp
+      also have " ... = (\<Oplus>i \<in> {..n}. ?side2 n i)"
+      proof -
+        have "(\<lambda>i. (if ?len = i then a else \<zero>) \<otimes> (coeff (poly_mult p2 p3)) (n - i)) = ?side2 n" by auto
+        thus ?thesis by simp
+      qed
+      finally show ?thesis .
+    qed
   qed
   also have " ... = coeff (poly_mult (monon a (length p1)) (poly_mult p2 p3))"
     using monon_coeff[of a "length p1"] poly_mult_coeff[of "monon a (length p1)" "poly_mult p2 p3"]
@@ -1222,7 +1277,7 @@ proof (auto simp add: poly_add_closed poly_mult_closed one_is_polynomial monoid_
         using Cons(1)[OF in_carrier(1)] by simp
       also have " ... = poly_add (poly_mult (a # (replicate (length p1) \<zero>)) (poly_mult p2 p3))
                                  (poly_mult p1 (poly_mult p2 p3))"
-        sorry
+        using poly_mult_assoc_aux in_carrier unfolding monon_def by simp
       also have " ... = poly_mult (poly_add (a # (replicate (length p1) \<zero>)) p1) (poly_mult p2 p3)"
         using poly_mult_l_distr'[of "a # (replicate (length p1) \<zero>)" p1 "poly_mult p2 p3"]
               poly_mult_in_carrier[OF in_carrier(2-3)] in_carrier by force
@@ -1232,6 +1287,88 @@ proof (auto simp add: poly_add_closed poly_mult_closed one_is_polynomial monoid_
     qed
   qed
 qed
+
+declare poly_add.simps[simp del]
+
+lemma univ_poly_is_abelian_monoid: "abelian_monoid (univ_poly R)"
+  unfolding univ_poly_def
+  using poly_add_closed poly_add_zero zero_is_polynomial
+proof (auto simp add: abelian_monoid_def comm_monoid_def monoid_def comm_monoid_axioms_def)
+  fix p1 p2 p3
+  let ?c = "\<lambda>p. coeff p"
+  assume A: "polynomial R p1" "polynomial R p2" "polynomial R p3"
+  hence
+    p1: "\<And>i. (?c p1) i \<in> carrier R" "set p1 \<subseteq> carrier R" and
+    p2: "\<And>i. (?c p2) i \<in> carrier R" "set p2 \<subseteq> carrier R" and
+    p3: "\<And>i. (?c p3) i \<in> carrier R" "set p3 \<subseteq> carrier R"
+    using polynomial_in_carrier by auto
+  have "?c (poly_add (poly_add p1 p2) p3) = (\<lambda>i. (?c p1 i \<oplus> ?c p2 i) \<oplus> (?c p3 i))"
+    using poly_add_coeff[OF poly_add_in_carrier[OF p1(2) p2(2)] p3(2)]
+          poly_add_coeff[OF p1(2) p2(2)] by simp
+  also have " ... = (\<lambda>i. (?c p1 i) \<oplus> ((?c p2 i) \<oplus> (?c p3 i)))"
+    using p1 p2 p3 add.m_assoc by simp
+  also have " ... = ?c (poly_add p1 (poly_add p2 p3))"
+    using poly_add_coeff[OF p1(2) poly_add_in_carrier[OF p2(2) p3(2)]]
+          poly_add_coeff[OF p2(2) p3(2)] by simp
+  finally have "?c (poly_add (poly_add p1 p2) p3) = ?c (poly_add p1 (poly_add p2 p3))" .
+  thus "poly_add (poly_add p1 p2) p3 = poly_add p1 (poly_add p2 p3)"
+    using coeff_iff_polynomial_cond poly_add_closed A by auto
+  show "poly_add p1 p2 = poly_add p2 p1"
+    using poly_add_comm[OF p1(2) p2(2)] .
+qed
+
+lemma univ_poly_is_abelian_group: "abelian_group (univ_poly R)"
+proof -
+  interpret abelian_monoid "univ_poly R"
+    using univ_poly_is_abelian_monoid .
+  show ?thesis
+  proof (unfold_locales)
+    show "carrier (add_monoid (univ_poly R)) \<subseteq> Units (add_monoid (univ_poly R))"
+      unfolding univ_poly_def Units_def
+    proof (auto)
+      fix p assume p: "polynomial R p"
+      have "polynomial R [ \<ominus> \<one> ]"
+        unfolding polynomial_def using r_neg by fastforce 
+      hence cond0: "polynomial R (poly_mult [ \<ominus> \<one> ] p)"
+        using poly_mult_closed[of "[ \<ominus> \<one> ]" p] p by simp
+      
+      have "poly_add p (poly_mult [ \<ominus> \<one> ] p) = poly_add (poly_mult [ \<one> ] p) (poly_mult [ \<ominus> \<one> ] p)"
+        using poly_mult_one[OF p] by simp
+      also have " ... = poly_mult (poly_add [ \<one> ] [ \<ominus> \<one> ]) p"
+        using poly_mult_l_distr' polynomial_in_carrier[OF p] by auto
+      also have " ... = poly_mult [] p"
+        using poly_add.simps[of "[ \<one> ]" "[ \<ominus> \<one> ]"]
+        by (simp add: case_prod_unfold r_neg)
+      also have " ... = []" by simp
+      finally have cond1: "poly_add p (poly_mult [ \<ominus> \<one> ] p) = []" .
+
+      have "poly_add (poly_mult [ \<ominus> \<one> ] p) p = poly_add (poly_mult [ \<ominus> \<one> ] p) (poly_mult [ \<one> ] p)"
+        using poly_mult_one[OF p] by simp
+      also have " ... = poly_mult (poly_add [ \<ominus>  \<one> ] [ \<one> ]) p"
+        using poly_mult_l_distr' polynomial_in_carrier[OF p] by auto
+      also have " ... = poly_mult [] p"
+        using \<open>poly_mult (poly_add [\<one>] [\<ominus> \<one>]) p = poly_mult [] p\<close> poly_add_comm by auto
+      also have " ... = []" by simp
+      finally have cond2: "poly_add (poly_mult [ \<ominus> \<one> ] p) p = []" .
+
+      from cond0 cond1 cond2 show "\<exists>q. polynomial R q \<and> poly_add q p = [] \<and> poly_add p q = []"
+        by auto
+    qed
+  qed
+qed
+
+lemma univ_poly_is_ring: "ring (univ_poly R)"
+proof -
+  interpret abelian_group "univ_poly R" + monoid "univ_poly R"
+    using univ_poly_is_abelian_group univ_poly_is_monoid .
+  show ?thesis
+    apply unfold_locales
+    apply (auto simp add: univ_poly_def poly_mult_r_distr poly_mult_l_distr)
+    done
+qed
+
+lemma univ_poly_is_cring: "cring (univ_poly R)"
+  sorry
 
 end
 
