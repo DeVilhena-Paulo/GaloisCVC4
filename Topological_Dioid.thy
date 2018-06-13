@@ -9,7 +9,7 @@ proof
   show P1 : "\<And>x y. (x <\<^bsub>D\<^esub> y) = (x \<le>\<^bsub>D\<^esub> y \<and> \<not> y \<le>\<^bsub>D\<^esub> x)"
     unfolding dioid_canonic_strict_order_def dioid_canonic_order_def factor_def apply auto
   proof (rule ccontr)
-    fix x y z assume xyz : "x \<noteq> x \<oplus> y" "y \<in> carrier D" "x \<in> carrier D" "z \<in> carrier D" "x = x \<oplus> y \<oplus> z"
+    fix x y z assume xyz : "x \<noteq> x \<oplus> y" "y \<in> carrier D" "x \<in> carrier D" "z \<in> carrier D" "x = x\<oplus>y\<oplus>z"
     from this have "\<zero> = y \<oplus> z "
       using a_comm_cancel_monoid 
       by (metis add.m_assoc add.m_closed cancel r_zero zero_closed)

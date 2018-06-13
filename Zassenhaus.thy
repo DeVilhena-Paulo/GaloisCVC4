@@ -1,4 +1,4 @@
-theory Papillon
+theory Zassenhaus
   imports Coset Group_Action
 begin
 
@@ -418,7 +418,7 @@ proposition (in group) weak_snd_iso_thme :
     and "N\<lhd>G"
   shows "(G\<lparr>carrier := N<#>H\<rparr> Mod N \<cong> G\<lparr>carrier:=H\<rparr> Mod (N\<inter>H))"
 proof-
-  define f where "f = op #> N"
+  define f where "f =  (#>) N"
   have GroupNH : "Group.group (G\<lparr>carrier := N<#>H\<rparr>)"
     using subgroup_imp_group assms mult_norm_subgroup by simp
   have  HcarrierNH :"H \<subseteq> carrier(G\<lparr>carrier := N<#>H\<rparr>)"
@@ -427,16 +427,16 @@ proof-
   have op_hom : "f \<in> hom (G\<lparr>carrier := H\<rparr>) (G\<lparr>carrier := N <#> H\<rparr> Mod N)" unfolding hom_def
   proof
     have "\<And>x . x \<in> carrier (G\<lparr>carrier :=H\<rparr>) \<Longrightarrow>
-       op #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N x \<in>  carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
+       (#>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub>) N x \<in>  carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
     proof-
       fix x assume  "x \<in> carrier (G\<lparr>carrier :=H\<rparr>)"
       hence xH : "x \<in> H" by simp
-      hence "op #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N x \<in> rcosets\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N"
+      hence "(#>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub>) N x \<in> rcosets\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N"
         using HcarrierNH RCOSETS_def[where ?G = "G\<lparr>carrier := N <#> H\<rparr>"] by blast
-      thus "op #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N x \<in>  carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
+      thus "(#>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub>) N x \<in>  carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
         unfolding FactGroup_def by simp
     qed
-    hence "op #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N \<in> carrier (G\<lparr>carrier :=H\<rparr>) \<rightarrow>
+    hence "(#>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub>) N \<in> carrier (G\<lparr>carrier :=H\<rparr>) \<rightarrow>
             carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)" by auto
     hence "f \<in> carrier (G\<lparr>carrier :=H\<rparr>) \<rightarrow> carrier (G\<lparr>carrier := N <#> H\<rparr> Mod N)"
       unfolding r_coset_def f_def  by simp
@@ -483,16 +483,16 @@ proof-
       from hyp obtain nh where nhNH:"nh \<in>carrier (G\<lparr>carrier := N <#> H\<rparr>)"
                           and "x \<in> {N #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> nh}"
         by blast
-      hence K: "x = op #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N nh" by simp
+      hence K: "x = (#>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub>) N nh" by simp
       have "nh \<in> N <#> H" using nhNH by simp
       from this obtain n h where nN : "n \<in> N" and hH : " h \<in> H" and nhnh: "n \<otimes> h = nh"
         unfolding set_mult_def by blast
-      have  "x = op #>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub> N (n \<otimes> h)" using K nhnh by simp
-      hence  "x = op #> N (n \<otimes> h)" using K nhnh unfolding r_coset_def by auto
+      have  "x = (#>\<^bsub>G\<lparr>carrier := N <#> H\<rparr>\<^esub>) N (n \<otimes> h)" using K nhnh by simp
+      hence  "x = (#>) N (n \<otimes> h)" using K nhnh unfolding r_coset_def by auto
       also have "... = (N #> n) #>h"
         using coset_mult_assoc hH nN assms subgroup_imp_subset normal_imp_subgroup
         by (metis subgroup.mem_carrier)
-      finally have "x = op #> N h"
+      finally have "x = (#>) N h"
         using coset_join2[of n N] nN assms by (simp add: normal_imp_subgroup subgroup.mem_carrier)
       thus "x \<in> f ` carrier (G\<lparr>carrier := H\<rparr>)" using hH unfolding f_def by simp
     qed

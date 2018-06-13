@@ -78,13 +78,13 @@ lemma same_order :
 abbreviation canonical_order ::  "_ \<Rightarrow> 'a gorder" where
   "canonical_order D \<equiv>
    \<lparr> carrier = carrier D,
-     eq = op =,
+     eq = (=),
      le = canonic_order D \<rparr>"
 
 abbreviation dioid_canonical_order ::  "_ \<Rightarrow> 'a gorder" where
   "dioid_canonical_order D \<equiv>
    \<lparr> carrier = carrier D,
-     eq = op =,
+     eq = (=),
      le = dioid_canonic_order D \<rparr>"
 
 lemma same_canonical_order : 
@@ -314,7 +314,7 @@ proof(intro dioid.intro semiring.intro abelian_hemi_group.intro)
 qed
 
 definition R :: "real ring"
-  where "R =(\<lparr>carrier = {r :: real . r \<ge> 0}, monoid.mult = op *, one = 1, zero = 0, add = op +\<rparr>)"
+  where "R =(\<lparr>carrier = {r :: real . r \<ge> 0}, monoid.mult = times, one = 1, zero = 0, add = (+)\<rparr>)"
 
 
 lemma real_is_dioid :
@@ -328,12 +328,12 @@ lemma real_is_dioid :
 
 
 lemma order_topology_R :
-"class.order_topology (op \<le> :: real \<Rightarrow> real \<Rightarrow> bool) (op < :: real \<Rightarrow> real \<Rightarrow> bool)
-(generate_topology (range (ord.lessThan (op < :: real \<Rightarrow> real \<Rightarrow> bool)) \<union>
-   range (ord.greaterThan (op < :: real \<Rightarrow> real \<Rightarrow> bool))))"
+"class.order_topology ((\<le>) :: real \<Rightarrow> real \<Rightarrow> bool) ((<) :: real \<Rightarrow> real \<Rightarrow> bool)
+(generate_topology (range (ord.lessThan ((<):: real \<Rightarrow> real \<Rightarrow> bool)) \<union>
+   range (ord.greaterThan ((<) :: real \<Rightarrow> real \<Rightarrow> bool))))"
 proof 
-    show "generate_topology (range (ord.lessThan op <) \<union> range (ord.greaterThan op <)) =
-    generate_topology (range (ord.lessThan op <) \<union> range (ord.greaterThan op <))"
+    show "generate_topology (range (ord.lessThan (<)) \<union> range (ord.greaterThan (<))) =
+    generate_topology (range (ord.lessThan (<)) \<union> range (ord.greaterThan (<)))"
       by simp
   qed
 
