@@ -674,12 +674,12 @@ proof (simp add: subgroup_def assms)
   show "\<one> \<in> H" by (rule one_in_subset) (auto simp only: assms)
 qed
 
-lemma subgroupE:
+lemma (in group) subgroupE:
   assumes "subgroup H G"
   shows "H \<subseteq> carrier G"
     and "H \<noteq> {}"
-    and "\<And>a. a \<in> H \<Longrightarrow> inv\<^bsub>G\<^esub> a \<in> H"
-    and "\<And>a b. \<lbrakk> a \<in> H; b \<in> H \<rbrakk> \<Longrightarrow> a \<otimes>\<^bsub>G\<^esub> b \<in> H"
+    and "\<And>a. a \<in> H \<Longrightarrow> inv a \<in> H"
+    and "\<And>a b. \<lbrakk> a \<in> H; b \<in> H \<rbrakk> \<Longrightarrow> a \<otimes> b \<in> H"
   using assms unfolding subgroup_def[of H G] by auto
 
 declare monoid.one_closed [iff] group.inv_closed [simp]
@@ -1093,7 +1093,7 @@ lemma (in group_hom) subgroup_img_is_subgroup:
   shows "subgroup (h ` I) H"
 proof -
   have "h \<in> hom (G \<lparr> carrier := I \<rparr>) H"
-    using subgroupE[OF assms] subgroup.mem_carrier[OF assms] homh
+    using G.subgroupE[OF assms] subgroup.mem_carrier[OF assms] homh
     unfolding hom_def by auto
   hence "group_hom (G \<lparr> carrier := I \<rparr>) H h"
     using subgroup.subgroup_is_group[OF assms G.is_group] is_group
