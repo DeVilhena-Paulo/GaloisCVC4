@@ -341,7 +341,7 @@ proof -
     hence "solvable_seq H (carrier H)" unfolding solvable_def by simp
     hence "solvable_seq H (h ` (carrier G))"
       using aux_lemma[of "h ` (carrier G)" "carrier H"]
-      by (metis G.generateI subgroupE(1) G.subgroup_self H.generateE(1)
+      by (metis G.generateI G.subgroupE(1) G.subgroup_self H.generateE(1)
           H.subgroup_self generate_of_img hom_closed image_subsetI)
     hence "solvable_seq G (carrier G)"
       using G.subgroup_self assms(1) solvable_img_imp_solvable by blast
@@ -363,7 +363,7 @@ proof -
   obtain n where "(derived G ^^ n) I = { \<one>\<^bsub>G\<^esub> }"
     using G.solvable_imp_trivial_derived_seq[OF assms(2) assms(1)] ..
   hence "(derived H ^^ n) (h ` I) = { \<one>\<^bsub>H\<^esub> }"
-    using derived_of_img[OF subgroupE(1)[OF assms(1)], of n] by simp
+    using derived_of_img[OF G.subgroupE(1)[OF assms(1)], of n] by simp
   thus ?thesis
     using H.trivial_derived_seq_imp_solvable[OF subgroup_img_is_subgroup[OF assms(1)]] by simp
 qed
