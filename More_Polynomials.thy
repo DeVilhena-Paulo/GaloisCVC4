@@ -1229,7 +1229,7 @@ subsection \<open>Algebraic Structure of Polynomials\<close>
 definition univ_poly :: "('a, 'b) ring_scheme \<Rightarrow> ('a list) ring"
   where "univ_poly R =
            \<lparr> carrier = { p. polynomial R p },
-                mult = ring.poly_mult R,
+         monoid.mult = ring.poly_mult R,
                  one = [ \<one>\<^bsub>R\<^esub> ],
                 zero = [],
                  add = ring.poly_add R \<rparr>"
@@ -1238,28 +1238,27 @@ context domain
 begin
 
 lemma poly_mult_assoc_aux:
-  assumes "set p1 \<subseteq> carrier R" "set p2 \<subseteq> carrier R" "set p3 \<subseteq> carrier R"
-      and "a \<in> carrier R"
-    shows "poly_mult ((map (\<lambda>b. a \<otimes> b) p2) @ (replicate (length p1) \<zero>)) p3 =
-           poly_mult (monon a (length p1)) (poly_mult p2 p3)"
+  assumes "set p \<subseteq> carrier R" "set q \<subseteq> carrier R" and "a \<in> carrier R"
+    shows "poly_mult ((map (\<lambda>b. a \<otimes> b) p) @ (replicate (length r) \<zero>)) q =
+           poly_mult (monon a (length r)) (poly_mult p q)"
 proof -
-  let ?len = "length p1"
-  let ?a_p2 = "(map (\<lambda>b. a \<otimes> b) p2) @ (replicate ?len \<zero>)"
-  let ?c2 = "coeff p2" and ?c3 = "coeff p3"
-  have coeff_a_p2:
-    "coeff ?a_p2 = (\<lambda>i. if i < ?len then \<zero> else a \<otimes> ?c2 (i - ?len))" (is
-    "coeff ?a_p2 = (\<lambda>i. ?f i)")
-    using append_coeff[of "map ((\<otimes>) a) p2" "replicate ?len \<zero>"]
-          replicate_zero_coeff[of ?len] scalar_coeff[OF assms(4), of p2] by auto
+  let ?len = "length r"
+  let ?a_p = "(map (\<lambda>b. a \<otimes> b) p) @ (replicate ?len \<zero>)"
+  let ?c2 = "coeff p" and ?c3 = "coeff q"
+  have coeff_a_p:
+    "coeff ?a_p = (\<lambda>i. if i < ?len then \<zero> else a \<otimes> ?c2 (i - ?len))" (is
+    "coeff ?a_p = (\<lambda>i. ?f i)")
+    using append_coeff[of "map ((\<otimes>) a) p" "replicate ?len \<zero>"]
+          replicate_zero_coeff[of ?len] scalar_coeff[OF assms(3), of p] by auto
   have in_carrier:
-    "set ?a_p2 \<subseteq> carrier R" "\<And>i. ?c2 i \<in> carrier R" "\<And>i. ?c3 i \<in> carrier R"
-    "\<And>i. coeff (poly_mult p2 p3) i \<in> carrier R"
-    using assms(2-4) poly_mult_in_carrier by auto
-  have "coeff (poly_mult ?a_p2 p3) = (\<lambda>n. (\<Oplus>i \<in> {..n}. (coeff ?a_p2) i \<otimes> ?c3 (n - i)))"
-    using poly_mult_coeff[OF in_carrier(1) assms(3)] .
+    "set ?a_p \<subseteq> carrier R" "\<And>i. ?c2 i \<in> carrier R" "\<And>i. ?c3 i \<in> carrier R"
+    "\<And>i. coeff (poly_mult p q) i \<in> carrier R"
+    using assms poly_mult_in_carrier by auto
+  have "coeff (poly_mult ?a_p q) = (\<lambda>n. (\<Oplus>i \<in> {..n}. (coeff ?a_p) i \<otimes> ?c3 (n - i)))"
+    using poly_mult_coeff[OF in_carrier(1) assms(2)] .
   also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (?f i) \<otimes> ?c3 (n - i)))"
-    using coeff_a_p2 by simp
-  also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (if i = ?len then a else \<zero>) \<otimes> (coeff (poly_mult p2 p3)) (n - i)))"
+    using coeff_a_p by simp
+  also have " ... = (\<lambda>n. (\<Oplus>i \<in> {..n}. (if i = ?len then a else \<zero>) \<otimes> (coeff (poly_mult p q)) (n - i)))"
     (is "(\<lambda>n. (\<Oplus>i \<in> {..n}. ?side1 n i)) = (\<lambda>n. (\<Oplus>i \<in> {..n}. ?side2 n i))")
   proof
     fix n
@@ -1278,9 +1277,9 @@ proof -
       hence n_ge: "n \<ge> ?len" by simp
       define h where "h = (\<lambda>i. if i < ?len then \<zero> else (a \<otimes> ?c2 (i - ?len)) \<otimes> ?c3 (n - i))"
       hence h_in_carrier: "\<And>i. h i \<in> carrier R"
-        using assms(4) in_carrier by auto
+        using assms(3) in_carrier by auto
       have "\<And>i. (?f i) \<otimes> ?c3 (n - i) = h i"
-        using in_carrier(2-3) assms(4) h_def by auto
+        using in_carrier(2-3) assms(3) h_def by auto
       hence "(\<Oplus>i \<in> {..n}. ?side1 n i) = (\<Oplus>i \<in> {..n}. h i)"
         by simp
       also have " ... = (\<Oplus>i \<in> {..<?len}. h i) \<oplus> (\<Oplus>i \<in> {?len..n}. h i)"
@@ -1298,36 +1297,36 @@ proof -
       also have " ... = (\<Oplus>i \<in> {..n - ?len}. (a \<otimes> ?c2 i) \<otimes> ?c3 (n - (i + ?len)))"
         unfolding h_def by simp
       also have " ... = (\<Oplus>i \<in> {..n - ?len}. a \<otimes> (?c2 i \<otimes> ?c3 (n - (i + ?len))))"
-        using in_carrier assms(4) by (simp add: m_assoc) 
+        using in_carrier assms(3) by (simp add: m_assoc) 
       also have " ... = a \<otimes> (\<Oplus>i \<in> {..n - ?len}. ?c2 i \<otimes> ?c3 (n - (i + ?len)))"
         using finsum_rdistr[of "{..n - ?len}" a "\<lambda>i. ?c2 i \<otimes> ?c3 (n - (i + ?len))"]
-              in_carrier(2-3) assms(4) by simp
-      also have " ... = a \<otimes> (coeff (poly_mult p2 p3)) (n - ?len)"
-        using poly_mult_coeff[OF assms(2-3)] n_ge by (simp add: add.commute)
+              in_carrier(2-3) assms(3) by simp
+      also have " ... = a \<otimes> (coeff (poly_mult p q)) (n - ?len)"
+        using poly_mult_coeff[OF assms(1-2)] n_ge by (simp add: add.commute)
       also have " ... =
-        (\<Oplus>i \<in> {..n}. if ?len = i then a \<otimes> (coeff (poly_mult p2 p3)) (n - i) else \<zero>)"
-        using add.finprod_singleton[of ?len "{..n}" "\<lambda>i. a \<otimes> (coeff (poly_mult p2 p3)) (n - i)"]
+        (\<Oplus>i \<in> {..n}. if ?len = i then a \<otimes> (coeff (poly_mult p q)) (n - i) else \<zero>)"
+        using add.finprod_singleton[of ?len "{..n}" "\<lambda>i. a \<otimes> (coeff (poly_mult p q)) (n - i)"]
               n_ge in_carrier(2-4) assms by simp
-      also have " ... = (\<Oplus>i \<in> {..n}. (if ?len = i then a else \<zero>) \<otimes> (coeff (poly_mult p2 p3)) (n - i))"
-        using in_carrier(2-4) assms(4) add.finprod_cong'[of "{..n}" "{..n}"] by simp
+      also have " ... = (\<Oplus>i \<in> {..n}. (if ?len = i then a else \<zero>) \<otimes> (coeff (poly_mult p q)) (n - i))"
+        using in_carrier(2-4) assms(3) add.finprod_cong'[of "{..n}" "{..n}"] by simp
       also have " ... = (\<Oplus>i \<in> {..n}. ?side2 n i)"
       proof -
-        have "(\<lambda>i. (if ?len = i then a else \<zero>) \<otimes> (coeff (poly_mult p2 p3)) (n - i)) = ?side2 n" by auto
+        have "(\<lambda>i. (if ?len = i then a else \<zero>) \<otimes> (coeff (poly_mult p q)) (n - i)) = ?side2 n" by auto
         thus ?thesis by simp
       qed
       finally show ?thesis .
     qed
   qed
-  also have " ... = coeff (poly_mult (monon a (length p1)) (poly_mult p2 p3))"
-    using monon_coeff[of a "length p1"] poly_mult_coeff[of "monon a (length p1)" "poly_mult p2 p3"]
-          poly_mult_in_carrier[OF assms(2-3)] assms(4) unfolding monon_def by force
+  also have " ... = coeff (poly_mult (monon a (length r)) (poly_mult p q))"
+    using monon_coeff[of a "length r"] poly_mult_coeff[of "monon a (length r)" "poly_mult p q"]
+          poly_mult_in_carrier[OF assms(1-2)] assms(3) unfolding monon_def by force
   finally
-  have "coeff (poly_mult ?a_p2 p3) = coeff (poly_mult (monon a (length p1)) (poly_mult p2 p3))" .
-  moreover have "polynomial R (poly_mult ?a_p2 p3)"
-    using poly_mult_is_polynomial[OF in_carrier(1) assms(3)] by simp
-  moreover have "polynomial R (poly_mult (monon a (length p1)) (poly_mult p2 p3))"
-    using poly_mult_is_polynomial[of "monon a (length p1)" "poly_mult p2 p3"]
-          poly_mult_in_carrier[OF assms(2-3)] assms(4) unfolding monon_def
+  have "coeff (poly_mult ?a_p q) = coeff (poly_mult (monon a (length r)) (poly_mult p q))" .
+  moreover have "polynomial R (poly_mult ?a_p q)"
+    using poly_mult_is_polynomial[OF in_carrier(1) assms(2)] by simp
+  moreover have "polynomial R (poly_mult (monon a (length r)) (poly_mult p q))"
+    using poly_mult_is_polynomial[of "monon a (length r)" "poly_mult p q"]
+          poly_mult_in_carrier[OF assms(1-2)] assms(3) unfolding monon_def
     using in_carrier(1) by auto
   ultimately show ?thesis
     using coeff_iff_polynomial_cond by simp
@@ -1375,7 +1374,7 @@ proof (auto simp add: poly_add_closed poly_mult_closed one_is_polynomial monoid_
         using Cons(1)[OF in_carrier(1)] by simp
       also have " ... = poly_add (poly_mult (a # (replicate (length p1) \<zero>)) (poly_mult p2 p3))
                                  (poly_mult p1 (poly_mult p2 p3))"
-        using poly_mult_assoc_aux in_carrier unfolding monon_def by simp
+        using poly_mult_assoc_aux[of p2 p3 a p1] in_carrier unfolding monon_def by simp
       also have " ... = poly_mult (poly_add (a # (replicate (length p1) \<zero>)) p1) (poly_mult p2 p3)"
         using poly_mult_l_distr'[of "a # (replicate (length p1) \<zero>)" p1 "poly_mult p2 p3"]
               poly_mult_in_carrier[OF in_carrier(2-3)] in_carrier by force
@@ -1497,12 +1496,12 @@ proof -
       (auto simp add: univ_poly_def domain.poly_mult_integral[OF assms])
 qed
 
-lemma (in field) long_division_theorem:
-  assumes "polynomial R p" "polynomial R b" and "b \<noteq> []"
+lemma (in factorial_domain) long_division_theorem:
+  assumes "polynomial R p" "polynomial R b" and "b \<noteq> []" and "lead_coeff b \<in> Units R"
   shows "\<exists>q r. polynomial R r \<and> polynomial R q \<and>
-               p = poly_add (poly_mult q b) r \<and> (degree r = 0 \<or> degree r < degree b)"
+               p = poly_add (poly_mult q b) r \<and> (r = [] \<or> degree r < degree b)"
     (is "\<exists>q r. ?long_division p q r")
-  using assms field_axioms
+  using assms
 proof (induct "length p" arbitrary: p rule: less_induct)
   case less thus ?case
   proof (cases p)
@@ -1514,42 +1513,42 @@ proof (induct "length p" arbitrary: p rule: less_induct)
     case (Cons a p') thus ?thesis
     proof (cases "length b > length p")
       assume "length b > length p"
+      hence "p = [] \<or> degree p < degree b" unfolding degree_def
+        by (meson diff_less_mono length_0_conv less_one not_le) 
       hence "?long_division p [] p"
-        unfolding degree_def
-        using less(2) Cons poly_add_zero[OF less(2)] zero_is_polynomial
-        by (simp del: poly_add.simps) linarith
+        using poly_add_zero[OF less(2)] less(2) zero_is_polynomial
+              poly_mult_zero[OF less(3)] by simp
       thus ?thesis by blast
     next
-      interpret field R
-        using less(5) .
+      interpret UP: ring "univ_poly R"
+        using univ_poly_is_ring[OF is_domain] .
 
       assume "\<not> length b > length p"
       hence len_ge: "length p \<ge> length b" by simp
       obtain c b' where b: "b = c # b'"
         using less(4) list.exhaust_sel by blast
-      hence in_carrier: "c \<in> carrier R - { \<zero> }" "a \<in> carrier R - { \<zero> }"
-        using less(2-3) Cons unfolding polynomial_def by auto
+      hence c: "c \<in> Units R" "c \<in> carrier R - { \<zero> }" and a: "a \<in> carrier R - { \<zero> }"
+        using assms(4) less(2-3) Cons unfolding polynomial_def by auto
       hence "(\<ominus> a) \<in> carrier R - { \<zero> }"
         using r_neg by force
-      hence "(\<ominus> a) \<otimes> inv c \<in> carrier R - { \<zero> }"
-        using in_carrier(1) Units_inv_Units Units_m_closed field_Units by auto
-      note in_carrier = this in_carrier
+      hence in_carrier: "(\<ominus> a) \<otimes> inv c \<in> carrier R - { \<zero> }"
+        using a c(2) Units_inv_closed[OF c(1)] Units_l_inv[OF c(1)]
+             empty_iff insert_iff integral_iff m_closed
+        by (metis Diff_iff zero_not_one)
 
       let ?len = "length"
       define s where "s = poly_mult (monon ((\<ominus> a) \<otimes> inv c) (?len p - ?len b)) b"
       hence s_coeff: "lead_coeff s = (\<ominus> a)"
-        using poly_mult_lead_coeff[OF monon_is_polynomial[OF in_carrier(1)] less(3)] in_carrier
-        unfolding monon_def s_def b using field_Units m_assoc by force
+        using poly_mult_lead_coeff[OF monon_is_polynomial[OF in_carrier] less(3)] a c
+        unfolding monon_def s_def b using m_assoc by force
       
       have "degree s = degree (monon ((\<ominus> a) \<otimes> inv c) (?len p - ?len b)) + degree b"
-        using poly_mult_degree_eq[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
+        using poly_mult_degree_eq[OF monon_is_polynomial[OF in_carrier] less(3)]
         unfolding s_def b monon_def by auto
-      hence "?len s - 1 = (?len p - ?len b) + (?len b - 1)"
-        by (simp add: monon_def degree_def)
       hence "?len s - 1 = ?len p - 1"
-        using len_ge unfolding b Cons by simp
+        using len_ge unfolding b Cons by (simp add: monon_def degree_def)
       moreover have "s \<noteq> []"
-        using poly_mult_integral[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
+        using poly_mult_integral[OF monon_is_polynomial[OF in_carrier] less(3)]
         unfolding s_def monon_def b by blast
       hence "?len s > 0" by simp
       ultimately have len_eq: "?len s  = ?len p"
@@ -1560,7 +1559,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
 
       define p_diff where "p_diff = poly_add p s"
       hence "?len p_diff < ?len p"
-        using len_eq s_coeff in_carrier unfolding s Cons apply simp
+        using len_eq s_coeff in_carrier a c unfolding s Cons apply simp
         by (metis le_imp_less_Suc length_map map_fst_zip normalize_length_le r_neg)
       moreover have "polynomial R p_diff" unfolding p_diff_def s_def
         using poly_mult_closed[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
@@ -1568,7 +1567,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
       ultimately obtain q' r'
         where r': "polynomial R r'" and q': "polynomial R q'"
           and div: "p_diff = poly_add (poly_mult q' b) r'"
-          and deg: "degree r' = 0 \<or> degree r' < degree b"
+          and deg: "r' = [] \<or> degree r' < degree b"
         using less(1)[of p_diff] less(3-5) by blast
 
       obtain m where m: "polynomial R m" "s = poly_mult m b"
@@ -1584,21 +1583,14 @@ proof (induct "length p" arbitrary: p rule: less_induct)
         unfolding univ_poly_def by auto
       hence
         "(p \<oplus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)) \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b) =
-       ((q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
+        ((q'\<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
         by simp
-      hence "p =
-       ((q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
-        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]]
-        using in_univ_carrier(1) in_univ_carrier(2) in_univ_carrier(3) by auto
-      also have " ... = ((q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
-        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]] in_univ_carrier by simp
-      also have " ... = ((q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
-        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]] in_univ_carrier by simp
-      finally have "p = ((q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'" .
+      hence "p = ((q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'" 
+        using UP.ring_simprules in_univ_carrier by auto
       hence "p = poly_add (poly_mult (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) b) r'"
         unfolding univ_poly_def by simp
       moreover have "q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m \<in> carrier (univ_poly R)"
-        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]] in_univ_carrier by simp
+        using UP.ring_simprules in_univ_carrier by simp
       hence "polynomial R (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m)"
         unfolding univ_poly_def by simp
       ultimately have "?long_division p (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) r'"
@@ -1607,6 +1599,13 @@ proof (induct "length p" arbitrary: p rule: less_induct)
     qed
   qed
 qed
+
+lemma (in field) field_long_division_theorem:
+  assumes "polynomial R p" "polynomial R b" and "b \<noteq> []"
+  shows "\<exists>q r. polynomial R r \<and> polynomial R q \<and>
+               p = poly_add (poly_mult q b) r \<and> (r = [] \<or> degree r < degree b)"
+  using long_division_theorem[OF assms] assms lead_coeff_not_zero[of "hd b" "tl b"]
+  by (simp add: field_Units)
 
 
 end

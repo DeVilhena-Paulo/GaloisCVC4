@@ -4,9 +4,32 @@
 (* ************************************************************************** *)
 
 theory Ring_Divisibility
-imports Ideal Divisibility Multiplicative_Group QuotRing
+imports Ideal Divisibility  QuotRing
 
 begin
+
+(* ************************************************************************** *)
+(* Definitions ported from Multiplicative_Group.thy                           *)
+
+definition mult_of :: "('a, 'b) ring_scheme \<Rightarrow> 'a monoid" where
+  "mult_of R \<equiv> \<lparr> carrier = carrier R - { \<zero>\<^bsub>R\<^esub> }, mult = mult R, one = \<one>\<^bsub>R\<^esub> \<rparr>"
+
+lemma carrier_mult_of [simp]: "carrier (mult_of R) = carrier R - { \<zero>\<^bsub>R\<^esub> }"
+  by (simp add: mult_of_def)
+
+lemma mult_mult_of [simp]: "mult (mult_of R) = mult R"
+ by (simp add: mult_of_def)
+
+lemma nat_pow_mult_of: "([^]\<^bsub>mult_of R\<^esub>) = (([^]\<^bsub>R\<^esub>) :: _ \<Rightarrow> nat \<Rightarrow> _)"
+  by (simp add: mult_of_def fun_eq_iff nat_pow_def)
+
+lemma one_mult_of [simp]: "\<one>\<^bsub>mult_of R\<^esub> = \<one>\<^bsub>R\<^esub>"
+  by (simp add: mult_of_def)
+
+lemmas mult_of_simps = carrier_mult_of mult_mult_of nat_pow_mult_of one_mult_of
+
+(* ************************************************************************** *)
+
 
 section \<open>The Arithmetic of Rings\<close>
 
@@ -774,5 +797,18 @@ next
   qed
 qed
 
+sublocale field \<subseteq> euclidean_domain R "\<lambda>_. 0"
+proof (rule euclidean_domainI)
+  fix a b
+  let ?eucl_div = "\<lambda>q r. q \<in> carrier R \<and> r \<in> carrier R \<and> a = b \<otimes> q \<oplus> r \<and> (r = \<zero> \<or> 0 < 0)"
+
+  assume a: "a \<in> carrier R - { \<zero> }" and b: "b \<in> carrier R - { \<zero> }"
+  hence "a = b \<otimes> ((inv b) \<otimes> a) \<oplus> \<zero>"
+    by (metis DiffD1 Units_inv_closed Units_r_inv field_Units l_one m_assoc r_zero)
+  hence "?eucl_div _ ((inv b) \<otimes> a) \<zero>"
+    using a b field_Units by auto
+  thus "\<exists>q r. ?eucl_div _ q r"
+    by blast
+qed
 
 end
