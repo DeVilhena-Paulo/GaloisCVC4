@@ -52,6 +52,16 @@ fun (in ring) poly_mult :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"
   | "poly_mult p1 p2 =
        poly_add ((map (\<lambda>a. lead_coeff p1 \<otimes> a) p2) @ (replicate (degree p1) \<zero>)) (poly_mult (tl p1) p2)"
 
+fun (in ring) dense_repr :: "'a list \<Rightarrow> ('a \<times> nat) list"
+  where
+    "dense_repr [] = []"
+  | "dense_repr p = (if lead_coeff p \<noteq> \<zero>
+                     then (lead_coeff p, degree p) # (dense_repr (tl p))
+                     else (dense_repr (tl p)))"
+
+fun (in ring) of_dense :: "('a \<times> nat) list \<Rightarrow> 'a list"
+  where "of_dense dl = foldr (\<lambda>(a, n) l. poly_add (monon a n) l) dl []"
+
 
 subsection \<open>Basic Properties\<close>
 
@@ -63,6 +73,9 @@ lemma polynomialI [intro]: "\<lbrakk> set p \<subseteq> carrier R; lead_coeff p 
 
 lemma polynomial_in_carrier [intro]: "polynomial R p \<Longrightarrow> set p \<subseteq> carrier R"
   unfolding polynomial_def by auto
+
+lemma lead_coeff_not_zero [intro]: "polynomial R (a # p) \<Longrightarrow> a \<in> carrier R - { \<zero> }"
+  unfolding polynomial_def by simp
 
 lemma zero_is_polynomial [intro]: "polynomial R []"
   unfolding polynomial_def by simp
@@ -654,74 +667,60 @@ lemma poly_add_replicate_zero:
   shows "poly_add p (replicate n \<zero>) = p" and "poly_add (replicate n \<zero>) p = p"
   using poly_add_replicate_zero' normalize_idem polynomial_in_carrier assms by auto
 
-(*
+
+subsection \<open>Dense Representation\<close>
+
+lemma dense_repr_replicate_zero: "dense_repr ((replicate n \<zero>) @ p) = dense_repr p"
+  by (induction n) (auto)
+
+lemma polynomial_dense_repr:
+  assumes "polynomial R p" and "p \<noteq> []"
+  shows "dense_repr p = (lead_coeff p, degree p) # dense_repr (normalize (tl p))"
+proof -
+  let ?len = length and ?norm = normalize
+  obtain a p' where p: "p = a # p'"
+    using assms(2) list.exhaust_sel by blast 
+  hence a: "a \<in> carrier R - { \<zero> }" and p': "set p' \<subseteq> carrier R"
+    using assms(1) unfolding p by (auto simp add: polynomial_def)
+  hence "dense_repr p = (lead_coeff p, degree p) # dense_repr p'"
+    unfolding p by simp
+  also have " ... =
+    (lead_coeff p, degree p) # dense_repr ((replicate (?len p' - ?len (?norm p')) \<zero>) @ ?norm p')"
+    using normalize_def' dense_repr_replicate_zero by simp
+  also have " ... = (lead_coeff p, degree p) # dense_repr (?norm p')"
+    using dense_repr_replicate_zero by simp
+  finally show ?thesis
+    unfolding p by simp
+qed
+
 lemma monon_decomp:
   assumes "polynomial R p"
-  shows "p = foldr (\<lambda>a l. (poly_add (monon a (length l)) l)) p []"
-    (is "p = ?foldr p []")
+  shows "p = of_dense (dense_repr p)"
   using assms
 proof (induct "length p" arbitrary: p rule: less_induct)
   case less thus ?case
   proof (cases p)
     case Nil thus ?thesis by simp
   next
-    { fix n p assume "set p \<subseteq> carrier R"
-      hence "?foldr p [] = ?foldr ((replicate n \<zero>) @ p) []"
-      proof (induction n)
-        case 0 thus ?case by simp
-      next
-        { fix p assume "set p \<subseteq> carrier R"
-          hence "polynomial R (?foldr p [])"
-          proof (induction p)
-            case Nil thus ?case
-              by (simp add: zero_is_polynomial)
-          next
-            case (Cons a l)
-            have "?foldr (a # l) [] = poly_add (monon a (length (?foldr l []))) (?foldr l [])"
-              by (auto simp del: poly_add.simps)
-            moreover have "set (monon a (length (?foldr l []))) \<subseteq> carrier R"
-              unfolding monon_def using Cons(2) by auto
-            moreover have "set (?foldr l []) \<subseteq> carrier R"
-              using Cons polynomial_in_carrier by auto
-            ultimately show ?case
-              using poly_add_is_polynomial[of "monon a (length (?foldr l []))" "?foldr l []"] by auto
-          qed } note aux_lemma = this
-
-        let ?rep_foldr = "\<lambda>n p. ?foldr ((replicate n \<zero>) @ p)"
-        case (Suc n)
-        define m where "m = Suc (length (?rep_foldr n p []))"
-        hence m: "monon \<zero> (length (?rep_foldr n p [])) = replicate m \<zero>"
-          by (simp add: monon_def)
-        have is_polynomial: "polynomial R (?rep_foldr n p [])"
-          using aux_lemma Suc(2) Suc.IH by auto
-        hence "set (?rep_foldr n p []) \<subseteq> carrier R"
-          using polynomial_in_carrier by simp
-        hence "poly_add (replicate m \<zero>) (?rep_foldr n p []) = ?rep_foldr n p []"
-          using poly_add_replicate_zero' normalize_idem[OF is_polynomial] by simp
-        hence "?rep_foldr n p [] = poly_add (monon \<zero> (length (?rep_foldr n p []))) (?rep_foldr n p [])"
-          unfolding m_def m by simp
-        also have " ... = ?rep_foldr (Suc n) p []"
-          by (simp add: replicate_app_Cons_same)
-        finally show ?case
-          using Suc by simp
-      qed } note aux_lemma = this
-    
     case (Cons a l)
-    have in_carrier: "set (normalize l) \<subseteq> carrier R"
-      using normalize_in_carrier polynomial_in_carrier[OF less(2)] Cons by simp
-    have "?foldr l [] = ?foldr ((replicate (length l - length (normalize l)) \<zero>) @ (normalize l)) []"
-      using normalize_def' by simp
-    also have " ... = ?foldr (normalize l) []"
-      using aux_lemma[OF in_carrier] by simp
-    finally have "?foldr l [] = ?foldr (normalize l) []" .
-    moreover have "?foldr (normalize l) [] = normalize l"
-      using less(1)[of "normalize l"] normalize_gives_polynomial[of l] 
-            Cons normalize_length_le[of l] polynomial_in_carrier[OF less(2)] by simp
-    ultimately have "?foldr l [] = normalize l" by simp
-    hence "?foldr p [] = poly_add (monon a (length (normalize l))) (normalize l)"
-      using Cons by simp
+    hence a: "a \<in> carrier R - { \<zero> }" and l: "set l \<subseteq> carrier R"
+      using less(2) by (auto simp add: polynomial_def)
+    hence "a # l = poly_add (monon a (degree (a # l))) l"
+      using poly_add_monon by (simp add: degree_def)
+    also have " ... = poly_add (monon a (degree (a # l))) (normalize l)"
+      using poly_add_normalize(2)[of "monon a (degree (a # l))", OF _ l] a
+      unfolding monon_def by force
+    also have " ... = poly_add (monon a (degree (a # l))) (of_dense (dense_repr (normalize l)))"
+      using less(1)[of "normalize l"] normalize_length_le normalize_gives_polynomial[OF l]
+      unfolding Cons by (simp add: le_imp_less_Suc)
+    also have " ... = of_dense ((a, degree (a # l)) # dense_repr (normalize l))"
+      by simp
+    also have " ... = of_dense (dense_repr (a # l))"
+      using polynomial_dense_repr[OF less(2)] unfolding Cons by simp
+    finally show ?thesis
+      unfolding Cons by simp
+  qed
 qed
-*)
 
 end
 
