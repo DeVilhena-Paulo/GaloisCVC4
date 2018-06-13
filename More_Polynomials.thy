@@ -4,7 +4,7 @@
 (* ************************************************************************** *)
 
 theory More_Polynomials
-  imports Ring Module
+  imports Ring Module Ring_Divisibility
 
 begin
 
@@ -23,7 +23,7 @@ definition polynomial :: "_ \<Rightarrow> 'a list \<Rightarrow> bool"
   where "polynomial R p \<longleftrightarrow> p = [] \<or> (set p \<subseteq> carrier R \<and> lead_coeff p \<noteq> \<zero>\<^bsub>R\<^esub>)"
 
 definition (in ring) monon :: "'a \<Rightarrow> nat \<Rightarrow> 'a list"
-  where "monon a n = a # (replicate n \<zero>)"
+  where "monon a n = a # (replicate n \<zero>\<^bsub>R\<^esub>)"
 
 fun (in ring) eval :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a"
   where
@@ -58,20 +58,26 @@ subsection \<open>Basic Properties\<close>
 context ring
 begin
 
+lemma polynomialI [intro]: "\<lbrakk> set p \<subseteq> carrier R; lead_coeff p \<noteq> \<zero> \<rbrakk> \<Longrightarrow> polynomial R p"
+  unfolding polynomial_def by auto
+
 lemma polynomial_in_carrier [intro]: "polynomial R p \<Longrightarrow> set p \<subseteq> carrier R"
   unfolding polynomial_def by auto
 
-lemma zero_is_polynomial: "polynomial R []"
+lemma zero_is_polynomial [intro]: "polynomial R []"
   unfolding polynomial_def by simp
 
-lemma const_is_polynomial: "a \<in> carrier R - { \<zero> } \<Longrightarrow> polynomial R [ a ]"
+lemma const_is_polynomial [intro]: "a \<in> carrier R - { \<zero> } \<Longrightarrow> polynomial R [ a ]"
   unfolding polynomial_def by auto
 
-lemma monon_is_polynomial: "a \<in> carrier R - { \<zero> } \<Longrightarrow> polynomial R (monon a n)"
+lemma monon_is_polynomial [intro]: "a \<in> carrier R - { \<zero> } \<Longrightarrow> polynomial R (monon a n)"
   unfolding polynomial_def monon_def by auto
 
 lemma normalize_gives_polynomial: "set p \<subseteq> carrier R \<Longrightarrow> polynomial R (normalize p)"
   by (induction p) (auto simp add: polynomial_def)
+
+lemma normalize_in_carrier: "set p \<subseteq> carrier R \<Longrightarrow> set (normalize p) \<subseteq> carrier R"
+  using normalize_gives_polynomial polynomial_in_carrier by simp
 
 lemma normalize_idem: "polynomial R p \<Longrightarrow> normalize p = p"
   unfolding polynomial_def by (cases p) (auto)
@@ -143,20 +149,20 @@ qed
 lemma coeff_img_restrict: "(coeff p) ` {..< length p} = set p"
   using coeff_list[of p] by (metis atLeast_upt image_set set_rev)
 
-lemma coeff_degree: "\<And>i. i > degree p \<Longrightarrow> (coeff p) i = \<zero>"
-  by (induction p) (auto simp add: degree_def)
-
 lemma coeff_length: "\<And>i. i \<ge> length p \<Longrightarrow> (coeff p) i = \<zero>"
   by (induction p) (auto simp add: degree_def)
 
-lemma replicate_zero_coeff: "coeff (replicate n \<zero>) = (\<lambda>_. \<zero>)"
+lemma coeff_degree: "\<And>i. i > degree p \<Longrightarrow> (coeff p) i = \<zero>"
+  using coeff_length by (simp add: degree_def)
+
+lemma replicate_zero_coeff [simp]: "coeff (replicate n \<zero>) = (\<lambda>_. \<zero>)"
   by (induction n) (auto)
 
 lemma scalar_coeff: "a \<in> carrier R \<Longrightarrow> coeff (map (\<lambda>b. a \<otimes> b) p) = (\<lambda>i. a \<otimes> (coeff p) i)"
   by (induction p) (auto simp add:degree_def)
 
 lemma monon_coeff: "coeff (monon a n) = (\<lambda>i. if i = n then a else \<zero>)"
-  unfolding monon_def by (induction n) (auto simp add:degree_def replicate_zero_coeff)
+  unfolding monon_def by (induction n) (auto simp add: degree_def)
 
 lemma coeff_img:
   "(coeff p) ` {..< length p} = set p"
@@ -514,25 +520,6 @@ lemma poly_add_monon:
   shows "poly_add (monon a (length p)) p = a # p"
   unfolding monon_def using assms by (induction p) (auto)
 
-lemma poly_add_replicate_zero:
-  assumes "polynomial R p"
-  shows "poly_add p (replicate n \<zero>) = p" and "poly_add (replicate n \<zero>) p = p"
-proof -
-  have in_carrier: "set (replicate n \<zero>) \<subseteq> carrier R" by auto
-  show "poly_add p (replicate n \<zero>) = p"
-  proof -
-    have "coeff (poly_add p (replicate n \<zero>)) = coeff p"
-      using poly_add_coeff[of p "replicate n \<zero>"] polynomial_in_carrier[OF assms]
-            replicate_zero_coeff[of n] in_carrier by auto
-    moreover have "polynomial R (poly_add p (replicate n \<zero>))"
-      using poly_add_is_polynomial[OF polynomial_in_carrier[OF assms] in_carrier] by simp
-    ultimately show ?thesis
-      using coeff_iff_polynomial_cond[OF assms, of "poly_add p (replicate n \<zero>)"] by simp 
-  qed
-  thus "poly_add (replicate n \<zero>) p = p"
-    using poly_add_comm[OF polynomial_in_carrier[OF assms] in_carrier] by simp
-qed
-
 lemma poly_add_normalize_aux:
   assumes "set p1 \<subseteq> carrier R" "set p2 \<subseteq> carrier R"
   shows "poly_add p1 p2 = poly_add (normalize p1) p2"
@@ -619,10 +606,122 @@ next
   finally show "poly_add p1 p2 = poly_add (normalize p1) (normalize p2)" .
 qed
 
+lemma poly_add_zero':
+  assumes "set p \<subseteq> carrier R"
+  shows "poly_add p [] = normalize p" and "poly_add [] p = normalize p"
+proof -
+  show "poly_add p [] = normalize p" using assms
+  proof (induction p)
+    case Nil thus ?case by simp
+  next
+    { fix p assume A: "set p \<subseteq> carrier R" "lead_coeff p \<noteq> \<zero>"
+      hence "polynomial R p"
+        unfolding polynomial_def by simp
+      moreover have "coeff (poly_add p []) = coeff p"
+        using poly_add_coeff[of p "[]"] A(1) by simp
+      ultimately have "poly_add p [] = p"
+        using coeff_iff_polynomial_cond[OF
+              poly_add_is_polynomial[OF A(1), of "[]"], of p] by simp }
+    note aux_lemma = this
+    case (Cons a p) thus ?case
+      using aux_lemma[of "a # p"] by auto
+  qed
+  thus "poly_add [] p = normalize p"
+    using poly_add_comm[OF assms, of "[]"] by simp
+qed
+
 lemma poly_add_zero:
   assumes "polynomial R p"
   shows "poly_add p [] = p" and "poly_add [] p = p"
-  using poly_add_replicate_zero[OF assms, of 0] by simp+
+  using poly_add_zero' normalize_idem polynomial_in_carrier assms by auto
+
+lemma poly_add_replicate_zero':
+  assumes "set p \<subseteq> carrier R"
+  shows "poly_add p (replicate n \<zero>) = normalize p" and "poly_add (replicate n \<zero>) p = normalize p"
+proof -
+  have "poly_add p (replicate n \<zero>) = poly_add p []"
+    using poly_add_normalize(2)[OF assms, of "replicate n \<zero>"]
+          normalize_replicate_zero[of n "[]"] by force
+  also have " ... = normalize p"
+    using poly_add_zero'[OF assms] by simp
+  finally show "poly_add p (replicate n \<zero>) = normalize p" .
+  thus "poly_add (replicate n \<zero>) p = normalize p"
+    using poly_add_comm[OF assms, of "replicate n \<zero>"] by force
+qed
+
+lemma poly_add_replicate_zero:
+  assumes "polynomial R p"
+  shows "poly_add p (replicate n \<zero>) = p" and "poly_add (replicate n \<zero>) p = p"
+  using poly_add_replicate_zero' normalize_idem polynomial_in_carrier assms by auto
+
+(*
+lemma monon_decomp:
+  assumes "polynomial R p"
+  shows "p = foldr (\<lambda>a l. (poly_add (monon a (length l)) l)) p []"
+    (is "p = ?foldr p []")
+  using assms
+proof (induct "length p" arbitrary: p rule: less_induct)
+  case less thus ?case
+  proof (cases p)
+    case Nil thus ?thesis by simp
+  next
+    { fix n p assume "set p \<subseteq> carrier R"
+      hence "?foldr p [] = ?foldr ((replicate n \<zero>) @ p) []"
+      proof (induction n)
+        case 0 thus ?case by simp
+      next
+        { fix p assume "set p \<subseteq> carrier R"
+          hence "polynomial R (?foldr p [])"
+          proof (induction p)
+            case Nil thus ?case
+              by (simp add: zero_is_polynomial)
+          next
+            case (Cons a l)
+            have "?foldr (a # l) [] = poly_add (monon a (length (?foldr l []))) (?foldr l [])"
+              by (auto simp del: poly_add.simps)
+            moreover have "set (monon a (length (?foldr l []))) \<subseteq> carrier R"
+              unfolding monon_def using Cons(2) by auto
+            moreover have "set (?foldr l []) \<subseteq> carrier R"
+              using Cons polynomial_in_carrier by auto
+            ultimately show ?case
+              using poly_add_is_polynomial[of "monon a (length (?foldr l []))" "?foldr l []"] by auto
+          qed } note aux_lemma = this
+
+        let ?rep_foldr = "\<lambda>n p. ?foldr ((replicate n \<zero>) @ p)"
+        case (Suc n)
+        define m where "m = Suc (length (?rep_foldr n p []))"
+        hence m: "monon \<zero> (length (?rep_foldr n p [])) = replicate m \<zero>"
+          by (simp add: monon_def)
+        have is_polynomial: "polynomial R (?rep_foldr n p [])"
+          using aux_lemma Suc(2) Suc.IH by auto
+        hence "set (?rep_foldr n p []) \<subseteq> carrier R"
+          using polynomial_in_carrier by simp
+        hence "poly_add (replicate m \<zero>) (?rep_foldr n p []) = ?rep_foldr n p []"
+          using poly_add_replicate_zero' normalize_idem[OF is_polynomial] by simp
+        hence "?rep_foldr n p [] = poly_add (monon \<zero> (length (?rep_foldr n p []))) (?rep_foldr n p [])"
+          unfolding m_def m by simp
+        also have " ... = ?rep_foldr (Suc n) p []"
+          by (simp add: replicate_app_Cons_same)
+        finally show ?case
+          using Suc by simp
+      qed } note aux_lemma = this
+    
+    case (Cons a l)
+    have in_carrier: "set (normalize l) \<subseteq> carrier R"
+      using normalize_in_carrier polynomial_in_carrier[OF less(2)] Cons by simp
+    have "?foldr l [] = ?foldr ((replicate (length l - length (normalize l)) \<zero>) @ (normalize l)) []"
+      using normalize_def' by simp
+    also have " ... = ?foldr (normalize l) []"
+      using aux_lemma[OF in_carrier] by simp
+    finally have "?foldr l [] = ?foldr (normalize l) []" .
+    moreover have "?foldr (normalize l) [] = normalize l"
+      using less(1)[of "normalize l"] normalize_gives_polynomial[of l] 
+            Cons normalize_length_le[of l] polynomial_in_carrier[OF less(2)] by simp
+    ultimately have "?foldr l [] = normalize l" by simp
+    hence "?foldr p [] = poly_add (monon a (length (normalize l))) (normalize l)"
+      using Cons by simp
+qed
+*)
 
 end
 
@@ -869,7 +968,7 @@ subsection \<open>Properties Within a Domain\<close>
 context domain
 begin
 
-lemma one_is_polynomial: "polynomial R [ \<one> ]"
+lemma one_is_polynomial [intro]: "polynomial R [ \<one> ]"
   unfolding polynomial_def by auto
 
 lemma poly_mult_comm:
@@ -1357,19 +1456,158 @@ proof -
   qed
 qed
 
-lemma univ_poly_is_ring: "ring (univ_poly R)"
+declare poly_add.simps[simp]
+
+end
+
+lemma univ_poly_is_ring:
+  assumes "domain R"
+  shows "ring (univ_poly R)"
 proof -
   interpret abelian_group "univ_poly R" + monoid "univ_poly R"
-    using univ_poly_is_abelian_group univ_poly_is_monoid .
+    using domain.univ_poly_is_abelian_group[OF assms] domain.univ_poly_is_monoid[OF assms] .
+  have R: "ring R"
+    using assms unfolding domain_def cring_def by simp
   show ?thesis
     apply unfold_locales
-    apply (auto simp add: univ_poly_def poly_mult_r_distr poly_mult_l_distr)
+    apply (auto simp add: univ_poly_def assms domain.poly_mult_r_distr ring.poly_mult_l_distr[OF R])
     done
 qed
 
-lemma univ_poly_is_cring: "cring (univ_poly R)"
-  sorry
+lemma univ_poly_is_cring:
+  assumes "domain R"
+  shows "cring (univ_poly R)"
+proof -
+  interpret ring "univ_poly R"
+    using univ_poly_is_ring[OF assms] by simp
+  have "\<And>p q. \<lbrakk> p \<in> carrier (univ_poly R); q \<in> carrier (univ_poly R) \<rbrakk> \<Longrightarrow>
+                p \<otimes>\<^bsub>univ_poly R\<^esub> q = q \<otimes>\<^bsub>univ_poly R\<^esub> p"
+    unfolding univ_poly_def polynomial_def using domain.poly_mult_comm[OF assms] by auto
+  thus ?thesis
+    by unfold_locales auto
+qed
 
-end
+lemma univ_poly_is_domain:
+  assumes "domain R"
+  shows "domain (univ_poly R)"
+proof -
+  interpret cring "univ_poly R"
+    using univ_poly_is_cring[OF assms] by simp
+  show ?thesis
+    by unfold_locales
+      (auto simp add: univ_poly_def domain.poly_mult_integral[OF assms])
+qed
+
+lemma (in field) long_division_theorem:
+  assumes "polynomial R p" "polynomial R b" and "b \<noteq> []"
+  shows "\<exists>q r. polynomial R r \<and> polynomial R q \<and>
+               p = poly_add (poly_mult q b) r \<and> (degree r = 0 \<or> degree r < degree b)"
+    (is "\<exists>q r. ?long_division p q r")
+  using assms field_axioms
+proof (induct "length p" arbitrary: p rule: less_induct)
+  case less thus ?case
+  proof (cases p)
+    case Nil
+    hence "?long_division p [] []"
+      using zero_is_polynomial by (simp add: degree_def)
+    thus ?thesis by blast
+  next
+    case (Cons a p') thus ?thesis
+    proof (cases "length b > length p")
+      assume "length b > length p"
+      hence "?long_division p [] p"
+        unfolding degree_def
+        using less(2) Cons poly_add_zero[OF less(2)] zero_is_polynomial
+        by (simp del: poly_add.simps) linarith
+      thus ?thesis by blast
+    next
+      interpret field R
+        using less(5) .
+
+      assume "\<not> length b > length p"
+      hence len_ge: "length p \<ge> length b" by simp
+      obtain c b' where b: "b = c # b'"
+        using less(4) list.exhaust_sel by blast
+      hence in_carrier: "c \<in> carrier R - { \<zero> }" "a \<in> carrier R - { \<zero> }"
+        using less(2-3) Cons unfolding polynomial_def by auto
+      hence "(\<ominus> a) \<in> carrier R - { \<zero> }"
+        using r_neg by force
+      hence "(\<ominus> a) \<otimes> inv c \<in> carrier R - { \<zero> }"
+        using in_carrier(1) Units_inv_Units Units_m_closed field_Units by auto
+      note in_carrier = this in_carrier
+
+      let ?len = "length"
+      define s where "s = poly_mult (monon ((\<ominus> a) \<otimes> inv c) (?len p - ?len b)) b"
+      hence s_coeff: "lead_coeff s = (\<ominus> a)"
+        using poly_mult_lead_coeff[OF monon_is_polynomial[OF in_carrier(1)] less(3)] in_carrier
+        unfolding monon_def s_def b using field_Units m_assoc by force
+      
+      have "degree s = degree (monon ((\<ominus> a) \<otimes> inv c) (?len p - ?len b)) + degree b"
+        using poly_mult_degree_eq[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
+        unfolding s_def b monon_def by auto
+      hence "?len s - 1 = (?len p - ?len b) + (?len b - 1)"
+        by (simp add: monon_def degree_def)
+      hence "?len s - 1 = ?len p - 1"
+        using len_ge unfolding b Cons by simp
+      moreover have "s \<noteq> []"
+        using poly_mult_integral[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
+        unfolding s_def monon_def b by blast
+      hence "?len s > 0" by simp
+      ultimately have len_eq: "?len s  = ?len p"
+        by (simp add: Nitpick.size_list_simp(2) local.Cons)
+
+      obtain s' where s: "s = (\<ominus> a) # s'"
+        using s_coeff len_eq by (metis \<open>s \<noteq> []\<close> hd_Cons_tl) 
+
+      define p_diff where "p_diff = poly_add p s"
+      hence "?len p_diff < ?len p"
+        using len_eq s_coeff in_carrier unfolding s Cons apply simp
+        by (metis le_imp_less_Suc length_map map_fst_zip normalize_length_le r_neg)
+      moreover have "polynomial R p_diff" unfolding p_diff_def s_def
+        using poly_mult_closed[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
+              poly_add_closed[OF less(2)] by simp
+      ultimately obtain q' r'
+        where r': "polynomial R r'" and q': "polynomial R q'"
+          and div: "p_diff = poly_add (poly_mult q' b) r'"
+          and deg: "degree r' = 0 \<or> degree r' < degree b"
+        using less(1)[of p_diff] less(3-5) by blast
+
+      obtain m where m: "polynomial R m" "s = poly_mult m b"
+        using s_def monon_is_polynomial[OF in_carrier(1)] by auto
+      have in_univ_carrier:
+         "p \<in> carrier (univ_poly R)"  "m \<in> carrier (univ_poly R)" "b \<in> carrier (univ_poly R)"
+        "r' \<in> carrier (univ_poly R)" "q' \<in> carrier (univ_poly R)" 
+        using r' q' less(2-3) m(1) unfolding univ_poly_def by auto
+
+      hence "poly_add p (poly_mult m b) = poly_add (poly_mult q' b) r'"
+        using m div unfolding p_diff_def by simp
+      hence "p \<oplus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b) = (q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
+        unfolding univ_poly_def by auto
+      hence
+        "(p \<oplus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)) \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b) =
+       ((q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
+        by simp
+      hence "p =
+       ((q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
+        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]]
+        using in_univ_carrier(1) in_univ_carrier(2) in_univ_carrier(3) by auto
+      also have " ... = ((q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
+        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]] in_univ_carrier by simp
+      also have " ... = ((q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
+        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]] in_univ_carrier by simp
+      finally have "p = ((q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'" .
+      hence "p = poly_add (poly_mult (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) b) r'"
+        unfolding univ_poly_def by simp
+      moreover have "q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m \<in> carrier (univ_poly R)"
+        using ring.ring_simprules[OF univ_poly_is_ring[OF is_domain]] in_univ_carrier by simp
+      hence "polynomial R (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m)"
+        unfolding univ_poly_def by simp
+      ultimately have "?long_division p (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) r'"
+        using div deg r' by simp
+      thus ?thesis by blast
+    qed
+  qed
+qed
+
 
 end
