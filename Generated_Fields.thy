@@ -15,7 +15,7 @@ inductive_set
   | eng_add : "h1 \<in> generate_f R H \<Longrightarrow> h2 \<in> generate_f R H \<Longrightarrow> h1 \<oplus>\<^bsub>R\<^esub> h2 \<in> generate_f R H"
   | eng_mult:  "h1 \<in> generate_f R H \<Longrightarrow> h2 \<in> generate_f R H \<Longrightarrow> h1 \<otimes>\<^bsub>R\<^esub> h2 \<in> generate_f R H"
 
-subsection\<open>Basic Properties of Generated Rings - First Part\<close>
+subsection\<open>Basic Properties of Generated Fields - First Part\<close>
 
 lemma (in field) generate_f_in_carrier:
   assumes "H \<subseteq> carrier R"
@@ -295,5 +295,7 @@ lemma (in field) subfield_gen_equality:
   using subfield_gen_incl[OF assms(1)carrier_is_subfield assms(2)] assms subfieldE(1)
         subfield_gen_incl[OF carrier_is_subfield assms(1) _ assms(2)]
   by force
+
+end
 
 

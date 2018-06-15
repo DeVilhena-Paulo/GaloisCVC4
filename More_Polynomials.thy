@@ -1621,11 +1621,11 @@ proof(intro euclidean_domain.intro)
       using a_def b_def unfolding univ_poly_def by auto
     ultimately show "\<exists>q r. q \<in> carrier (univ_poly R) \<and> r \<in> carrier (univ_poly R) \<and>
               a = b \<otimes>\<^bsub>univ_poly R\<^esub> q \<oplus>\<^bsub>univ_poly R\<^esub> r \<and> (r = \<zero>\<^bsub>univ_poly R\<^esub> \<or> degree r < degree b)" 
-      using field_long_division_theorem[of a b] unfolding univ_poly_def
+      using field_long_division_theorem[of a b]  unfolding univ_poly_def
       by (metis mem_Collect_eq monoid.select_convs(1) partial_object.select_convs(1) poly_mult_comm
           polynomial_in_carrier ring_record_simps(11) ring_record_simps(12))
   qed
 qed
-      
+
 
 end

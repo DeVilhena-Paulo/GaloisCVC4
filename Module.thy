@@ -105,6 +105,20 @@ lemma (in algebra) module:
 
 subsection \<open>Basic Properties of Algebras\<close>
 
+lemma (in module) smult_zero [simp] :
+ "x \<in> carrier M ==> \<zero> \<odot>\<^bsub>M\<^esub> x = \<zero>\<^bsub>M\<^esub>"
+proof-
+  assume M : "x \<in> carrier M"
+  note facts = M smult_closed [OF R.zero_closed]
+  from facts have "\<zero> \<odot>\<^bsub>M\<^esub> x = (\<zero> \<oplus> \<zero>) \<odot>\<^bsub>M\<^esub> x "
+    using smult_l_distr by auto
+  also have calc : "... = \<zero> \<odot>\<^bsub>M\<^esub> x \<oplus>\<^bsub>M\<^esub> \<zero> \<odot>\<^bsub>M\<^esub> x"
+    using smult_l_distr[of \<zero> \<zero> x] facts by auto
+  finally have "\<zero> \<odot>\<^bsub>M\<^esub> x \<ominus>\<^bsub>M\<^esub> \<zero> \<odot>\<^bsub>M\<^esub> x = \<zero> \<odot>\<^bsub>M\<^esub> x \<oplus>\<^bsub>M\<^esub> \<zero> \<odot>\<^bsub>M\<^esub> x \<ominus>\<^bsub>M\<^esub> \<zero> \<odot>\<^bsub>M\<^esub> x" by auto
+  thus "\<zero> \<odot>\<^bsub>M\<^esub> x = \<zero>\<^bsub>M\<^esub>" using facts
+    by (metis M.add.l_cancel M.r_zero M.zero_closed R.l_zero R.zero_closed calc)
+qed
+
 lemma (in algebra) smult_l_null [simp]:
   "x \<in> carrier M ==> \<zero> \<odot>\<^bsub>M\<^esub> x = \<zero>\<^bsub>M\<^esub>"
 proof -
@@ -130,37 +144,43 @@ proof -
   finally show ?thesis .
 qed
 
-lemma (in algebra) smult_l_minus:
-  "[| a \<in> carrier R; x \<in> carrier M |] ==> (\<ominus>a) \<odot>\<^bsub>M\<^esub> x = \<ominus>\<^bsub>M\<^esub> (a \<odot>\<^bsub>M\<^esub> x)"
-proof -
+lemma (in module) smult_l_opposite :
+"\<lbrakk> a \<in> carrier R; x \<in> carrier M \<rbrakk> \<Longrightarrow> (\<ominus>a) \<odot>\<^bsub>M\<^esub> x = \<ominus>\<^bsub>M\<^esub> (a \<odot>\<^bsub>M\<^esub> x)"
+proof-
   assume RM: "a \<in> carrier R" "x \<in> carrier M"
   from RM have a_smult: "a \<odot>\<^bsub>M\<^esub> x \<in> carrier M" by simp
   from RM have ma_smult: "\<ominus>a \<odot>\<^bsub>M\<^esub> x \<in> carrier M" by simp
   note facts = RM a_smult ma_smult
   from facts have "(\<ominus>a) \<odot>\<^bsub>M\<^esub> x = (\<ominus>a \<odot>\<^bsub>M\<^esub> x \<oplus>\<^bsub>M\<^esub> a \<odot>\<^bsub>M\<^esub> x) \<oplus>\<^bsub>M\<^esub> \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
-    by algebra
+    by (simp add: M.add.inv_solve_right)
   also from RM have "... = (\<ominus>a \<oplus> a) \<odot>\<^bsub>M\<^esub> x \<oplus>\<^bsub>M\<^esub> \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
     by (simp add: smult_l_distr)
-  also from facts smult_l_null have "... = \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
-    apply algebra apply algebra done
+  also from facts smult_zero have "... = \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
+    by (simp add: R.l_neg)
   finally show ?thesis .
 qed
 
-lemma (in algebra) smult_r_minus:
+lemma (in algebra) smult_l_minus:
+  "[| a \<in> carrier R; x \<in> carrier M |] ==> (\<ominus>a) \<odot>\<^bsub>M\<^esub> x = \<ominus>\<^bsub>M\<^esub> (a \<odot>\<^bsub>M\<^esub> x)"
+  using smult_l_opposite by auto
+
+lemma (in module) smult_r_opposite :
   "[| a \<in> carrier R; x \<in> carrier M |] ==> a \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub>x) = \<ominus>\<^bsub>M\<^esub> (a \<odot>\<^bsub>M\<^esub> x)"
 proof -
   assume RM: "a \<in> carrier R" "x \<in> carrier M"
   note facts = RM smult_closed
   from facts have "a \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub>x) = (a \<odot>\<^bsub>M\<^esub> \<ominus>\<^bsub>M\<^esub>x \<oplus>\<^bsub>M\<^esub> a \<odot>\<^bsub>M\<^esub> x) \<oplus>\<^bsub>M\<^esub> \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
-    by algebra
+    by (simp add: M.add.inv_solve_right)
   also from RM have "... = a \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub>x \<oplus>\<^bsub>M\<^esub> x) \<oplus>\<^bsub>M\<^esub> \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
     by (simp add: smult_r_distr)
-  also from facts smult_r_null have "... = \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)" by algebra
+  also from facts smult_zero have "... = \<ominus>\<^bsub>M\<^esub>(a \<odot>\<^bsub>M\<^esub> x)"
+    by (metis M.add.inv_closed M.add.inv_solve_right M.l_neg R.zero_closed r_null smult_assoc1)
   finally show ?thesis .
 qed
 
-locale field_algebra = algebra + field R
 
-
+lemma (in algebra) smult_r_minus:
+  "[| a \<in> carrier R; x \<in> carrier M |] ==> a \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub>x) = \<ominus>\<^bsub>M\<^esub> (a \<odot>\<^bsub>M\<^esub> x)"
+  using smult_r_opposite by auto
 
 end
