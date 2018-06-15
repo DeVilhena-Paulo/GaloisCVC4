@@ -39,14 +39,6 @@ lemma (in field) generate_f_is_add_subgroup :
   by fastforce
 
 
-lemma (in field) generate_f_is_field :
-  assumes "H \<subseteq> carrier R"
-  shows "field (R\<lparr>carrier := generate_f R H\<rparr>)"
-  apply (unfold_locales)
-  using generate_f_in_carrier[OF assms] add.m_assoc a_comm
-  apply (simp_all add : eng_add a_inv eng_mult zero_in_generate one incl) using generate_f_in_carrier assms a_inv Units_def
-  sorry
-
 subsection \<open>Subfields\<close>
 
 locale subfield = subring H R + subgroup "H - {\<zero>}" "mult_of R" for H and R (structure)
@@ -101,7 +93,7 @@ qed
 
 lemma (in field) carrier_is_subfield :
 "subfield (carrier R) R"
-  apply (intro  subfieldI)using field_Units by simp_all
+  apply (intro  subfieldI) using field_Units by simp_all
 
 lemma (in subfield) subfield_is_field :
   assumes "field R"
@@ -138,14 +130,36 @@ lemma (in field) field_incl_imp_subfield :
   shows "subfield H R"
   apply (intro subfield.intro)
   using ring_incl_imp_subring assms ring_axioms fieldE(1) cring_def apply blast
-  using group.group_incl_imp_subgroup[OF field_mult_group, of H ]
-         field.field_mult_group[OF assms(2)] assms apply simp 
+proof( intro group.group_incl_imp_subgroup[OF field_mult_group, of "H - {\<zero>}" ])
+  show "H - {\<zero>} \<subseteq> carrier (mult_of R)" using assms carrier_mult_of by auto
+  have egal : "(mult_of R\<lparr>carrier := H - {\<zero>}\<rparr>)  = (mult_of (R\<lparr>carrier := H\<rparr>))"
+    unfolding mult_of_def by simp
+  thus "group (mult_of R\<lparr>carrier := H - {\<zero>}\<rparr>)"
+    using field.field_mult_group[OF assms(2)]
+    by (simp add : egal)
+qed
+
 
 lemma (in field) generate_f_is_subfield :
   assumes "H \<subseteq> (carrier R)"
   shows "subfield (generate_f R H) R"
-  apply (intro field_incl_imp_subfield)
-  using  generate_f_in_carrier assms generate_f_is_field by auto
+proof (intro subfieldI)
+  show "generate_f R H \<subseteq> carrier R" using generate_f_in_carrier assms by auto
+  show "\<one> \<in> generate_f R H" using  one assms by auto
+  show "\<And>a. a \<in> generate_f R H \<Longrightarrow> \<ominus> a \<in> generate_f R H" using a_inv[of _ R H] assms by auto 
+  show "\<And>a b. a \<in> generate_f R H \<Longrightarrow> b \<in> generate_f R H \<Longrightarrow> a \<otimes> b \<in> generate_f R H"
+    using eng_mult[of _ R H] assms by auto
+  show "\<And>a b. a \<in> generate_f R H \<Longrightarrow> b \<in> generate_f R H \<Longrightarrow> a \<oplus> b \<in> generate_f R H"
+    using eng_add[of _ R H] by auto
+  show "\<And>x. x \<in> generate_f R H \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> inv x \<in> generate_f R H"
+    using m_inv[of _ R H] by auto
+qed
+
+lemma (in field) generate_f_is_field :
+  assumes "H \<subseteq> carrier R"
+  shows "field (R\<lparr>carrier := generate_f R H\<rparr>)"
+  by (intro subfield.subfield_is_field[OF generate_f_is_subfield[OF assms] field_axioms])
+
 
 lemma (in field) generate_f_min_subfield1:
   assumes "H \<subseteq> carrier R"
@@ -155,17 +169,19 @@ proof
   fix h show "h \<in> generate_f R H \<Longrightarrow> h \<in> E"
   proof (induct rule: generate_f.induct)
     case one  thus ?case
-      using assms(2) submonoid.one_closed subfield.axioms(2) by blast
+      using assms(2) submonoid.one_closed subfield.axioms(1) subring.axioms by blast
   next
     case incl thus ?case using assms(3) by blast
   next
-    case a_inv thus ?case using assms(2) by (simp add: subfield.subfieldE(3))
+    case a_inv thus ?case using assms(2)  subfieldE(3) by auto
+  next
+    case m_inv thus ?case using subfieldE(6)[OF assms(2)] by auto
   next
     case eng_add thus ?case
-      using subfield.subfieldE(5)[OF assms(2)] by auto
+      using subfieldE(5)[OF assms(2)] by auto
   next
     case (eng_mult h1 h2) thus ?case
-      using subfield.subfieldE(4)[OF assms(2)] by auto
+      using subfieldE(4)[OF assms(2)] by auto
   qed
 qed
 
@@ -241,11 +257,27 @@ proof
       note hyp = this
       have "a_inv (R\<lparr>carrier := K\<rparr>) h = a_inv R h" 
         using assms group.m_inv_consistent[of "add_monoid R" K] a_comm_group incl_HK[of K] hyp
-        unfolding subfield_def comm_group_def a_inv_def by auto
+        unfolding subfield_def comm_group_def a_inv_def subring_def by auto
       moreover have "a_inv (R\<lparr>carrier := H\<rparr>) h = a_inv R h"
         using assms group.m_inv_consistent[of "add_monoid R" H] a_comm_group incl_HK[of H] hyp
-        unfolding subfield_def comm_group_def a_inv_def by auto
+        unfolding subfield_def subring_def comm_group_def a_inv_def by auto
       ultimately show ?case using generate_f.a_inv a_inv.IH by fastforce
+    next
+      case (m_inv h) 
+      note hyp = this
+      have h_K : "h \<in> (K - {\<zero>})" using incl_HK[OF assms(2) assms(4)] hyp by auto
+      hence "m_inv (R\<lparr>carrier := K\<rparr>) h = m_inv R h" 
+        using  field.m_inv_mult_of[OF subfield.subfield_is_field[OF assms(2) field_axioms]]
+               group.m_inv_consistent[of "mult_of R" "K - {\<zero>}"] field_mult_group 
+        subfield.axioms(2)[OF assms(2)] unfolding mult_of_def apply simp
+        by (metis h_K field_Units m_inv_mult_of mult_of_is_Units subgroup.mem_carrier units_of_def)
+      moreover have h_H : "h \<in> (H - {\<zero>})" using incl_HK[OF assms(1) assms(3)] hyp by auto
+      hence "m_inv (R\<lparr>carrier := H\<rparr>) h = m_inv R h"
+        using  field.m_inv_mult_of[OF subfield.subfield_is_field[OF assms(1) field_axioms]]
+               group.m_inv_consistent[of "mult_of R" "H - {\<zero>}"] field_mult_group 
+        subfield.axioms(2)[OF assms(1)] unfolding mult_of_def apply simp
+        by (metis h_H field_Units m_inv_mult_of mult_of_is_Units subgroup.mem_carrier units_of_def)
+      ultimately show ?case using generate_f.m_inv m_inv.IH by fastforce
     next
       case (eng_add h1 h2)
       thus ?case using incl_HK assms generate_f.eng_add by force
@@ -260,7 +292,7 @@ qed
 lemma (in field) subfield_gen_equality:
   assumes "subfield H R" "K \<subseteq> H"
   shows "generate_f R K = generate_f (R \<lparr> carrier := H \<rparr>) K"
-  using subfield_gen_incl[OF assms(1)carrier_is_subfield assms(2)] assms subfield.subfieldE(1)
+  using subfield_gen_incl[OF assms(1)carrier_is_subfield assms(2)] assms subfieldE(1)
         subfield_gen_incl[OF carrier_is_subfield assms(1) _ assms(2)]
   by force
 
