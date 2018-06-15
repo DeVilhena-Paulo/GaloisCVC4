@@ -159,4 +159,8 @@ proof -
   finally show ?thesis .
 qed
 
+locale field_algebra = algebra + field R
+
+
+
 end

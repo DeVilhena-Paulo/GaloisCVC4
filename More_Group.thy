@@ -69,6 +69,9 @@ lemma (in monoid) units_of_inv: "x : Units G ==> m_inv (units_of G) x = m_inv G 
   apply (erule group.l_inv, assumption)
   done
 
+lemma units_of_units [simp] : "Units (units_of G) = Units G"
+  unfolding units_of_def Units_def apply simp by blast
+
 lemma (in group) inj_on_const_mult: "a: (carrier G) ==> inj_on (%x. a \<otimes> x) (carrier G)"
   unfolding inj_on_def by auto
 

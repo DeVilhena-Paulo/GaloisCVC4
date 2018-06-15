@@ -2,7 +2,7 @@ theory Generated_Rings
   imports Ring
 begin
 
-section\<open>Generated Groups\<close>
+section\<open>Generated Rings\<close>
 
 inductive_set
   generate_r :: "('a, 'b) ring_scheme \<Rightarrow> 'a set \<Rightarrow> 'a set"
@@ -202,4 +202,4 @@ lemma (in ring) subring_gen_equality:
         subring_gen_incl[OF carrier_is_subring assms(1) _ assms(2)]
   by force
 
-
+end
