@@ -1608,4 +1608,24 @@ lemma (in field) field_long_division_theorem:
   by (simp add: field_Units)
 
 
+lemma (in field) univ_poly_is_euclidean_domain :
+  shows "euclidean_domain (univ_poly R) degree"
+proof(intro euclidean_domain.intro)
+  show "domain (univ_poly R)" using univ_poly_is_domain field_axioms field_def by auto
+  show "euclidean_domain_axioms (univ_poly R) degree" unfolding euclidean_domain_axioms
+  proof
+    fix a b assume a_def : "a \<in> carrier (univ_poly R) - {\<zero>\<^bsub>univ_poly R\<^esub>}"
+               and b_def : "b \<in> carrier (univ_poly R) - {\<zero>\<^bsub>univ_poly R\<^esub>}"
+    from a_def b_def have b_not_empty :  "b \<noteq> []" unfolding univ_poly_def by auto
+    moreover have "polynomial R a" "polynomial R b"
+      using a_def b_def unfolding univ_poly_def by auto
+    ultimately show "\<exists>q r. q \<in> carrier (univ_poly R) \<and> r \<in> carrier (univ_poly R) \<and>
+              a = b \<otimes>\<^bsub>univ_poly R\<^esub> q \<oplus>\<^bsub>univ_poly R\<^esub> r \<and> (r = \<zero>\<^bsub>univ_poly R\<^esub> \<or> degree r < degree b)" 
+      using field_long_division_theorem[of a b] unfolding univ_poly_def
+      by (metis mem_Collect_eq monoid.select_convs(1) partial_object.select_convs(1) poly_mult_comm
+          polynomial_in_carrier ring_record_simps(11) ring_record_simps(12))
+  qed
+qed
+      
+
 end
