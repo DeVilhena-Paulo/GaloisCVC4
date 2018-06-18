@@ -4,7 +4,7 @@
 (* ************************************************************************** *)
 
 theory More_Polynomials
-  imports Ring Module Ring_Divisibility
+  imports Ring Ring_Divisibility
 
 begin
 
@@ -1239,10 +1239,10 @@ begin
 
 lemma poly_mult_assoc_aux:
   assumes "set p \<subseteq> carrier R" "set q \<subseteq> carrier R" and "a \<in> carrier R"
-    shows "poly_mult ((map (\<lambda>b. a \<otimes> b) p) @ (replicate (length r) \<zero>)) q =
-           poly_mult (monon a (length r)) (poly_mult p q)"
+    shows "poly_mult ((map (\<lambda>b. a \<otimes> b) p) @ (replicate n \<zero>)) q =
+           poly_mult (monon a n) (poly_mult p q)"
 proof -
-  let ?len = "length r"
+  let ?len = "n"
   let ?a_p = "(map (\<lambda>b. a \<otimes> b) p) @ (replicate ?len \<zero>)"
   let ?c2 = "coeff p" and ?c3 = "coeff q"
   have coeff_a_p:
@@ -1317,15 +1317,15 @@ proof -
       finally show ?thesis .
     qed
   qed
-  also have " ... = coeff (poly_mult (monon a (length r)) (poly_mult p q))"
-    using monon_coeff[of a "length r"] poly_mult_coeff[of "monon a (length r)" "poly_mult p q"]
+  also have " ... = coeff (poly_mult (monon a n) (poly_mult p q))"
+    using monon_coeff[of a "n"] poly_mult_coeff[of "monon a n" "poly_mult p q"]
           poly_mult_in_carrier[OF assms(1-2)] assms(3) unfolding monon_def by force
   finally
-  have "coeff (poly_mult ?a_p q) = coeff (poly_mult (monon a (length r)) (poly_mult p q))" .
+  have "coeff (poly_mult ?a_p q) = coeff (poly_mult (monon a n) (poly_mult p q))" .
   moreover have "polynomial R (poly_mult ?a_p q)"
     using poly_mult_is_polynomial[OF in_carrier(1) assms(2)] by simp
-  moreover have "polynomial R (poly_mult (monon a (length r)) (poly_mult p q))"
-    using poly_mult_is_polynomial[of "monon a (length r)" "poly_mult p q"]
+  moreover have "polynomial R (poly_mult (monon a n) (poly_mult p q))"
+    using poly_mult_is_polynomial[of "monon a n" "poly_mult p q"]
           poly_mult_in_carrier[OF assms(1-2)] assms(3) unfolding monon_def
     using in_carrier(1) by auto
   ultimately show ?thesis
@@ -1374,7 +1374,7 @@ proof (auto simp add: poly_add_closed poly_mult_closed one_is_polynomial monoid_
         using Cons(1)[OF in_carrier(1)] by simp
       also have " ... = poly_add (poly_mult (a # (replicate (length p1) \<zero>)) (poly_mult p2 p3))
                                  (poly_mult p1 (poly_mult p2 p3))"
-        using poly_mult_assoc_aux[of p2 p3 a p1] in_carrier unfolding monon_def by simp
+        using poly_mult_assoc_aux[of p2 p3 a "length p1"] in_carrier unfolding monon_def by simp
       also have " ... = poly_mult (poly_add (a # (replicate (length p1) \<zero>)) p1) (poly_mult p2 p3)"
         using poly_mult_l_distr'[of "a # (replicate (length p1) \<zero>)" p1 "poly_mult p2 p3"]
               poly_mult_in_carrier[OF in_carrier(2-3)] in_carrier by force
@@ -1496,10 +1496,13 @@ proof -
       (auto simp add: univ_poly_def domain.poly_mult_integral[OF assms])
 qed
 
-lemma (in factorial_domain) long_division_theorem:
+
+subsection \<open>Long Division Theorem\<close>
+
+lemma (in domain) long_division_theorem:
   assumes "polynomial R p" "polynomial R b" and "b \<noteq> []" and "lead_coeff b \<in> Units R"
-  shows "\<exists>q r. polynomial R r \<and> polynomial R q \<and>
-               p = poly_add (poly_mult q b) r \<and> (r = [] \<or> degree r < degree b)"
+  shows "\<exists>q r. polynomial R q \<and> polynomial R r \<and>
+               p = poly_add (poly_mult b q) r \<and> (r = [] \<or> degree r < degree b)"
     (is "\<exists>q r. ?long_division p q r")
   using assms
 proof (induct "length p" arbitrary: p rule: less_induct)
@@ -1507,7 +1510,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
   proof (cases p)
     case Nil
     hence "?long_division p [] []"
-      using zero_is_polynomial by (simp add: degree_def)
+      using zero_is_polynomial poly_mult_zero[OF less(3)] by (simp add: degree_def)
     thus ?thesis by blast
   next
     case (Cons a p') thus ?thesis
@@ -1520,8 +1523,8 @@ proof (induct "length p" arbitrary: p rule: less_induct)
               poly_mult_zero[OF less(3)] by simp
       thus ?thesis by blast
     next
-      interpret UP: ring "univ_poly R"
-        using univ_poly_is_ring[OF is_domain] .
+      interpret UP: cring "univ_poly R"
+        using univ_poly_is_cring[OF is_domain] .
 
       assume "\<not> length b > length p"
       hence len_ge: "length p \<ge> length b" by simp
@@ -1564,11 +1567,10 @@ proof (induct "length p" arbitrary: p rule: less_induct)
       moreover have "polynomial R p_diff" unfolding p_diff_def s_def
         using poly_mult_closed[OF monon_is_polynomial[OF in_carrier(1)] less(3)]
               poly_add_closed[OF less(2)] by simp
-      ultimately obtain q' r'
-        where r': "polynomial R r'" and q': "polynomial R q'"
-          and div: "p_diff = poly_add (poly_mult q' b) r'"
-          and deg: "r' = [] \<or> degree r' < degree b"
+      ultimately
+      obtain q' r' where l_div: "?long_division p_diff q' r'"
         using less(1)[of p_diff] less(3-5) by blast
+      hence r': "polynomial R r'" and q': "polynomial R q'" by auto
 
       obtain m where m: "polynomial R m" "s = poly_mult m b"
         using s_def monon_is_polynomial[OF in_carrier(1)] by auto
@@ -1577,24 +1579,24 @@ proof (induct "length p" arbitrary: p rule: less_induct)
         "r' \<in> carrier (univ_poly R)" "q' \<in> carrier (univ_poly R)" 
         using r' q' less(2-3) m(1) unfolding univ_poly_def by auto
 
-      hence "poly_add p (poly_mult m b) = poly_add (poly_mult q' b) r'"
-        using m div unfolding p_diff_def by simp
-      hence "p \<oplus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b) = (q' \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
+      hence "poly_add p (poly_mult m b) = poly_add (poly_mult b q') r'"
+        using m l_div unfolding p_diff_def by simp
+      hence "p \<oplus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b) = (b \<otimes>\<^bsub>(univ_poly R)\<^esub> q') \<oplus>\<^bsub>(univ_poly R)\<^esub> r'"
         unfolding univ_poly_def by auto
       hence
         "(p \<oplus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)) \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b) =
-        ((q'\<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
+        ((b \<otimes>\<^bsub>(univ_poly R)\<^esub>q') \<oplus>\<^bsub>(univ_poly R)\<^esub> r') \<ominus>\<^bsub>(univ_poly R)\<^esub> (m \<otimes>\<^bsub>(univ_poly R)\<^esub> b)"
         by simp
-      hence "p = ((q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) \<otimes>\<^bsub>(univ_poly R)\<^esub> b) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'" 
-        using UP.ring_simprules in_univ_carrier by auto
-      hence "p = poly_add (poly_mult (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) b) r'"
+      hence "p = (b \<otimes>\<^bsub>(univ_poly R)\<^esub> (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m)) \<oplus>\<^bsub>(univ_poly R)\<^esub> r'" 
+        using UP.cring_simprules in_univ_carrier by auto
+      hence "p = poly_add (poly_mult b (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m)) r'"
         unfolding univ_poly_def by simp
       moreover have "q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m \<in> carrier (univ_poly R)"
         using UP.ring_simprules in_univ_carrier by simp
       hence "polynomial R (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m)"
         unfolding univ_poly_def by simp
       ultimately have "?long_division p (q' \<ominus>\<^bsub>(univ_poly R)\<^esub> m) r'"
-        using div deg r' by simp
+        using l_div r' by simp
       thus ?thesis by blast
     qed
   qed
@@ -1602,30 +1604,21 @@ qed
 
 lemma (in field) field_long_division_theorem:
   assumes "polynomial R p" "polynomial R b" and "b \<noteq> []"
-  shows "\<exists>q r. polynomial R r \<and> polynomial R q \<and>
-               p = poly_add (poly_mult q b) r \<and> (r = [] \<or> degree r < degree b)"
+  shows "\<exists>q r. polynomial R q \<and> polynomial R r \<and>
+               p = poly_add (poly_mult b q) r \<and> (r = [] \<or> degree r < degree b)"
   using long_division_theorem[OF assms] assms lead_coeff_not_zero[of "hd b" "tl b"]
   by (simp add: field_Units)
 
-
-lemma (in field) univ_poly_is_euclidean_domain :
+lemma univ_poly_is_euclidean_domain:
+  assumes "field R"
   shows "euclidean_domain (univ_poly R) degree"
-proof(intro euclidean_domain.intro)
-  show "domain (univ_poly R)" using univ_poly_is_domain field_axioms field_def by auto
-  show "euclidean_domain_axioms (univ_poly R) degree" unfolding euclidean_domain_axioms
-  proof
-    fix a b assume a_def : "a \<in> carrier (univ_poly R) - {\<zero>\<^bsub>univ_poly R\<^esub>}"
-               and b_def : "b \<in> carrier (univ_poly R) - {\<zero>\<^bsub>univ_poly R\<^esub>}"
-    from a_def b_def have b_not_empty :  "b \<noteq> []" unfolding univ_poly_def by auto
-    moreover have "polynomial R a" "polynomial R b"
-      using a_def b_def unfolding univ_poly_def by auto
-    ultimately show "\<exists>q r. q \<in> carrier (univ_poly R) \<and> r \<in> carrier (univ_poly R) \<and>
-              a = b \<otimes>\<^bsub>univ_poly R\<^esub> q \<oplus>\<^bsub>univ_poly R\<^esub> r \<and> (r = \<zero>\<^bsub>univ_poly R\<^esub> \<or> degree r < degree b)" 
-      using field_long_division_theorem[of a b]  unfolding univ_poly_def
-      by (metis mem_Collect_eq monoid.select_convs(1) partial_object.select_convs(1) poly_mult_comm
-          polynomial_in_carrier ring_record_simps(11) ring_record_simps(12))
-  qed
+proof -
+  interpret domain "univ_poly R"
+    using univ_poly_is_domain assms field_def by blast
+  show ?thesis
+    apply (rule euclidean_domainI)
+    unfolding univ_poly_def
+    using field.field_long_division_theorem[OF assms] by auto
 qed
-
 
 end
