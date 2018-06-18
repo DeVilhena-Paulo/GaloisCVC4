@@ -94,20 +94,10 @@ proof -
   finally show ?thesis.
 qed
 
-lemma (in ring) elt_of_int_pow:
-  "\<lbrakk> n \<rbrakk> [^] (k :: nat) = \<lbrakk> n ^ k \<rbrakk>"
-  "\<lbrakk> n \<rbrakk> [^] (k :: int) = (if k < 0 then \<lbrakk> - (n ^ (nat k)) \<rbrakk> else \<lbrakk> n ^ (nat k) \<rbrakk>)"
+lemma (in ring) elt_of_int_pow: "\<And>(k :: nat). \<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
 proof -
-  have aux_lemma: "\<And>k. \<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
-  proof -
-    fix k show "\<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
-      by (induction k) (auto simp add: elt_of_int_mult mult.commute)
-  qed
-
-  show "\<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
-    using aux_lemma by simp
-  show "\<lbrakk> n \<rbrakk> [^] (k :: int) = (if k < 0 then \<lbrakk> - (n ^ (nat k)) \<rbrakk> else \<lbrakk> n ^ (nat k) \<rbrakk>)"
-    using aux_lemma elt_of_int_inv add.int_pow_def2 by (simp add: int_pow_int)
+  fix k show "\<lbrakk> n \<rbrakk> [^] k = \<lbrakk> n ^ k \<rbrakk>"
+    by (induction k) (auto simp add: elt_of_int_mult mult.commute)
 qed
 
 lemma (in ring) elt_of_int_consistent:
@@ -156,7 +146,7 @@ proof -
   have aux_lemma2: "\<And>k :: nat. \<lbrakk> - int k \<rbrakk>\<^bsub>\<Z>\<^esub> = - int k"
     using aux_lemma1 by simp
 
-  have "n = nat n \<or> n = - int (nat (-n))" by simp
+  have "n = int (nat n) \<or> n = - int (nat (- n))" by simp
   thus ?thesis
     using aux_lemma1[of "nat n"] aux_lemma2[of "nat (-n)"] by auto
 qed
@@ -324,7 +314,7 @@ lemma (in int_ring) prime_iff_prime':
   shows "prime (mult_of R) p = prime' \<bar> int_repr p \<bar>"
 proof
   assume A: "prime (mult_of R) p" show "prime' \<bar> int_repr p \<bar>"
-    unfolding Factorial_Ring.prime_def prime_elem_def normalize_def
+    unfolding Factorial_Ring.prime_def prime_elem_def
   proof (auto)
     show "int_repr p = 0 \<Longrightarrow> False"
       using assms int_repr_wf by fastforce
@@ -771,9 +761,9 @@ qed
 
 lemma (in int_ring) mod_ring_card:
   assumes "a \<in> carrier R"
-  shows "card (carrier (R Quot (PIdl a))) = \<bar> int_repr a \<bar>"
+  shows "card (carrier (R Quot (PIdl a))) = nat \<bar> int_repr a \<bar>"
 proof -
-  have "card (carrier (R Quot (PIdl a))) = \<bar> int_repr a \<bar>" if "a \<in> carrier R - { \<zero> }"
+  have "card (carrier (R Quot (PIdl a))) = nat \<bar> int_repr a \<bar>" if "a \<in> carrier R - { \<zero> }"
   proof -
     have a_gt: "0 < \<bar> int_repr a \<bar>"
         using that int_repr_wf[of a] by auto
@@ -806,15 +796,15 @@ proof -
       unfolding inj_on_def by auto
     hence  "card ((\<lambda>i. PIdl a +> \<lbrakk> i \<rbrakk>) ` {0..< \<bar> int_repr a \<bar>}) = card{0..< \<bar> int_repr a \<bar>}"
       using card_image by blast
-    also have "... = \<bar> int_repr a \<bar>"
+    also have "... = nat \<bar> int_repr a \<bar>"
       using a_gt by auto
-    finally have "card ((\<lambda>i. PIdl a +> \<lbrakk> i \<rbrakk>) ` {0..< \<bar> int_repr a \<bar>}) = \<bar> int_repr a \<bar>" .
+    finally have "card ((\<lambda>i. PIdl a +> \<lbrakk> i \<rbrakk>) ` {0..< \<bar> int_repr a \<bar>}) = nat \<bar> int_repr a \<bar>" .
     thus ?thesis
       using mod_ring[OF that] by simp
   qed
 
   moreover
-  have "card (carrier (R Quot (PIdl a))) = \<bar> int_repr a \<bar>" if "a \<in> { \<zero> }"
+  have "card (carrier (R Quot (PIdl a))) = nat \<bar> int_repr a \<bar>" if "a \<in> { \<zero> }"
   proof -
     have "ring_hom_ring R R id"
       apply unfold_locales unfolding ring_hom_def by auto
@@ -832,16 +822,16 @@ proof -
       using bij_betw_same_card by simp
     hence "card (carrier (R Quot (PIdl a))) = 0"
       using char_eq_card char_eq_zero by simp
-    also have " ... = \<bar> int_repr a \<bar>"
+    also have " ... = nat \<bar> int_repr a \<bar>"
       using that elt_of_int_inj[of 0] elt_of_one_or_zero(2) by simp
-    finally show "card (carrier (R Quot (PIdl a))) = \<bar> int_repr a \<bar>" .
+    finally show "card (carrier (R Quot (PIdl a))) = nat \<bar> int_repr a \<bar>" .
   qed
 
   ultimately show ?thesis
     using assms by auto
 qed
 
-corollary (in int_ring) mod_ring_card': "card (carrier (R Quot (PIdl \<lbrakk> n \<rbrakk>))) = \<bar> n \<bar>"
+corollary (in int_ring) mod_ring_card': "card (carrier (R Quot (PIdl \<lbrakk> n \<rbrakk>))) = nat \<bar> n \<bar>"
   using mod_ring_card[of "\<lbrakk> n \<rbrakk>"] elt_of_int_inj[of n] by simp
 
 
@@ -859,8 +849,8 @@ qed
 
 lemma (in int_ring) FactRing_iso_int_mod:
   assumes "int_mod S"
-  shows "R Quot (PIdl \<lbrakk> char S \<rbrakk>) \<simeq> S"
-    and "PIdl \<lbrakk> char S \<rbrakk> = a_kernel R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)"
+  shows "R Quot (PIdl \<lbrakk> int (char S) \<rbrakk>) \<simeq> S"
+    and "PIdl \<lbrakk> int (char S) \<rbrakk> = a_kernel R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)"
 proof -
   have "(\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>) ` (carrier R) = (carrier S)"
     using int_mod.elt_of_int_surj[OF assms] char_hom_surj by simp
@@ -874,21 +864,21 @@ proof -
     using ideal_int_repr[OF ring_hom_ring.kernel_is_ideal[OF ring_hom]] by auto
   ultimately have iso: "R Quot (PIdl \<lbrakk> n \<rbrakk>) \<simeq> S"
     by simp
-  hence "\<bar> n \<bar> = card (carrier S)"
+  hence "nat \<bar> n \<bar> = card (carrier S)"
     using ring_iso_same_card[of "R Quot (PIdl \<lbrakk> n \<rbrakk>)" S] mod_ring_card'[of n] by simp
-  hence "\<bar> n \<bar> = char S"
+  hence "nat \<bar> n \<bar> = char S"
     using int_mod.char_eq_card[OF assms] by simp
-  hence "PIdl \<lbrakk> n \<rbrakk> = PIdl \<lbrakk> char S \<rbrakk>"
-    using associated_iff_same_abs[of "\<lbrakk> n \<rbrakk>" "\<lbrakk> char S \<rbrakk>"]
-          associated_iff_same_ideal[of "\<lbrakk> n \<rbrakk>" "\<lbrakk> char S \<rbrakk>"]
-          elt_of_int_inj[of n] elt_of_int_inj[of "char S"] by simp
-  thus "R Quot (PIdl \<lbrakk> char S \<rbrakk>) \<simeq> S" and "PIdl \<lbrakk> char S \<rbrakk> = a_kernel R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)"
+  hence "PIdl \<lbrakk> n \<rbrakk> = PIdl \<lbrakk> int (char S) \<rbrakk>"
+    using associated_iff_same_abs[of "\<lbrakk> n \<rbrakk>" "\<lbrakk> int (char S) \<rbrakk>"]
+          associated_iff_same_ideal[of "\<lbrakk> n \<rbrakk>" "\<lbrakk> int (char S) \<rbrakk>"]
+          elt_of_int_inj[of n] elt_of_int_inj[of "int (char S)"] by simp
+  thus "R Quot (PIdl \<lbrakk> int (char S) \<rbrakk>) \<simeq> S" and "PIdl \<lbrakk> int (char S) \<rbrakk> = a_kernel R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)"
     using iso n by auto
 qed
 
 lemma (in int_mod) Z_mod:
-  "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char R)) \<simeq> R"
-  "PIdl\<^bsub>\<Z>\<^esub> (char R) = a_kernel \<Z> R (\<lambda>k. \<lbrakk> k \<rbrakk>)"
+  "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char R)) \<simeq> R"
+  "PIdl\<^bsub>\<Z>\<^esub> int (char R) = a_kernel \<Z> R (\<lambda>k. \<lbrakk> k \<rbrakk>)"
   using int_ring.FactRing_iso_int_mod[OF int_ring_of_integers, of R]
         elt_of_integer integer_repr int_mod_axioms by auto
 
@@ -915,13 +905,13 @@ proof -
     using int_mod.Z_mod(2)[OF int_subring] by simp
   also have " ... = (n \<in> PIdl\<^bsub>\<Z>\<^esub> int (char R))"
     using int_mod.char_eq_card[OF int_subring] unfolding char_def by simp
-  also have " ... = ((char R) dvd n)"
-    using int_ring.in_ideal_iff[OF int_ring_of_integers, of n "char R"]
+  also have " ... = (int (char R) dvd n)"
+    using int_ring.in_ideal_iff[OF int_ring_of_integers, of n "int (char R)"]
           elt_of_integer integer_repr by auto
   finally show ?thesis .
 qed
 
-lemma (in field) char_of_field: "char R = 0 \<or> prime' (char R)"
+lemma (in field) char_of_field: "char R = 0 \<or> prime' (int (char R))"
 proof -
   let ?h = "\<lambda>k. \<lbrakk> k \<rbrakk>"
   let ?h_img = "R \<lparr> carrier := ?h ` (UNIV) \<rparr>"
@@ -929,38 +919,38 @@ proof -
   have char_eq: "char R = char ?h_img"
     using int_mod.char_eq_card[OF int_subring] unfolding char_def by simp
 
-  have "char R \<noteq> 0 \<Longrightarrow> prime' (char R)"
+  have "char R \<noteq> 0 \<Longrightarrow> prime' (int (char R))"
   proof -
     assume "char R \<noteq> 0"
-    hence A: "char R \<in> carrier \<Z> - { 0 }" "char ?h_img \<in> carrier \<Z> - { 0 }"
+    hence A: "int (char R) \<in> carrier \<Z> - { 0 }" "int (char ?h_img) \<in> carrier \<Z> - { 0 }"
       by (auto simp add: char_eq)
-    moreover have "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img)) \<simeq> ?h_img"
+    moreover have "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img)) \<simeq> ?h_img"
       using int_mod.Z_mod(1)[OF int_subring] by simp
     then obtain h
-      where hom: "h \<in> ring_hom (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img))) ?h_img"
-        and inj: "inj_on h (carrier (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img))))"
+      where hom: "h \<in> ring_hom (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img))) ?h_img"
+        and inj: "inj_on h (carrier (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img))))"
       unfolding is_ring_iso_def ring_iso_def bij_betw_def by auto
-    moreover have "ring (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img)))"
-      using ideal.quotient_is_ring cring.cgenideal_ideal[of \<Z> "char ?h_img"]
+    moreover have "ring (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img)))"
+      using ideal.quotient_is_ring cring.cgenideal_ideal[of \<Z> "int (char ?h_img)"]
             int_ring_of_integers
       by (simp add: int_mod.axioms(1) int_ring.FactRing_is_int_mod) 
-    hence "ring_hom_ring (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img))) ?h_img h"
+    hence "ring_hom_ring (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img))) ?h_img h"
       using z_lemmas(1) int_subring int_mod_def[of ?h_img] hom
-            ideal.quotient_is_ring cring.cgenideal_ideal[of \<Z> "char ?h_img"]
+            ideal.quotient_is_ring cring.cgenideal_ideal[of \<Z> "int (char ?h_img)"]
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def by simp
     moreover have "ring_hom_ring \<Z> R ?h"
       using int_ring.exists_hom[OF z_lemmas(7) is_ring] z_lemmas(1) is_ring
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def by (simp add: integer_repr)
     hence "domain ?h_img"
       using ring_hom_ring.img_is_domain[of \<Z> R ?h] is_domain by simp
-    ultimately have "domain (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img)))"
-      using ring_hom_ring.inj_on_domain[of "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> (char ?h_img))" ?h_img h] inj by simp
-    hence "prime (mult_of \<Z>) (char ?h_img)"
-      using principal_domain.domain_iff_prime[of \<Z> "char ?h_img"] A(2) char_eq
+    ultimately have "domain (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img)))"
+      using ring_hom_ring.inj_on_domain[of "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img))" ?h_img h] inj by simp
+    hence "prime (mult_of \<Z>) (int (char ?h_img))"
+      using principal_domain.domain_iff_prime[of \<Z> "int (char ?h_img)"] A(2) char_eq
             int_ring_of_integers z_lemmas(4) by auto
-    hence "prime' \<bar> int_repr\<^bsub>\<Z>\<^esub> (char R) \<bar>"
-      using int_ring.prime_iff_prime'[OF int_ring_of_integers, of "char ?h_img"] A(2) char_eq by simp
-    thus "prime' (char R)"
+    hence "prime' \<bar> int_repr\<^bsub>\<Z>\<^esub> int (char R) \<bar>"
+      using int_ring.prime_iff_prime'[OF int_ring_of_integers, of "int (char ?h_img)"] A(2) char_eq by simp
+    thus "prime' (int (char R))"
       using integer_repr unfolding char_def by simp
   qed
   thus ?thesis
