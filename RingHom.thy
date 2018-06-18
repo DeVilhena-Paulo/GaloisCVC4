@@ -106,10 +106,8 @@ lemma ring_hom_ringE:
     and  "\<And> x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<otimes>\<^bsub>R\<^esub> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
     and  "\<And> x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<oplus>\<^bsub>R\<^esub> y) = h x \<oplus>\<^bsub>S\<^esub> h y"
     and "h \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>"
-  using assms ring_hom_ring.axioms(1) apply blast
-  using assms ring_hom_ring.axioms(2) apply auto[1]
-  apply (meson Pi_I assms ring_hom_closed ring_hom_ring.homh)
-  by (auto simp add: assms ring_hom_one ring_hom_mult ring_hom_add ring_hom_ring.homh)
+  using ring_hom_ring.axioms[OF assms]
+  unfolding ring_hom_ring_axioms_def using ring_hom_memE[of h R S] by auto
 
 
 subsection \<open>The Kernel of a Ring Homomorphism\<close>
@@ -215,7 +213,7 @@ next
       show "x \<in> a_kernel R S h +> a" by (rule homeq_imp_rcos)
 qed
 
-(* Next two lemmas contributed by Paulo Emílio de Vilhena. *)
+(* Next lemma contributed by Paulo Emílio de Vilhena. *)
 
 lemma (in ring_hom_ring) inj_on_domain:
   assumes "inj_on h (carrier R)"

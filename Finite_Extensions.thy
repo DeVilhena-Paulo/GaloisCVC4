@@ -1,5 +1,5 @@
 theory Finite_Extensions
-  imports More_Polynomials Generated_Groups Generated_Rings Generated_Fields
+  imports More_Polynomials More_Finite_Product Generated_Groups Subrings
     
 begin
 
@@ -400,23 +400,23 @@ corollary (in ring) linear_dependence:
   shows "Span K S = Span K (insert a S)"
 proof
   have in_carrier: "\<And>s. s \<in> S' \<Longrightarrow> (f s) \<otimes> s \<in> carrier R"
-    using assms(2,4-5) subring.subringE(1)[OF assms(1)] by blast 
+    using assms(2,4-5) subringE(1)[OF assms(1)] by blast 
   hence a: "a \<in> carrier R"
     using assms(6) by auto
   thus "Span K S \<subseteq> Span K (insert a S)"
-    using mono_span[OF _ subring.subringE(1)[OF assms(1)], of K S "insert a S"] assms(2) by auto
+    using mono_span[OF _ subringE(1)[OF assms(1)], of K S "insert a S"] assms(2) by auto
 
   have "\<And>k. k \<in> K \<Longrightarrow> k \<otimes> a \<in> Span K S"
   proof -
     fix k assume k: "k \<in> K" hence k_carr: "k \<in> carrier R"
-      using subring.subringE(1)[OF assms(1)] by auto
+      using subringE(1)[OF assms(1)] by auto
     have f: "\<And>s. s \<in> S' \<Longrightarrow> f s \<in> carrier R"
-      using assms(5) subring.subringE(1)[OF assms(1)] by auto
+      using assms(5) subringE(1)[OF assms(1)] by auto
     define g where "g = (\<lambda>s. k \<otimes> (f s))"
     have assoc: "\<And>s. s \<in> S' \<Longrightarrow> k \<otimes> (f s \<otimes> s) = g s \<otimes> s"
       unfolding g_def using k_carr m_assoc f assms(2,4) by auto 
     have g: "g: S' \<rightarrow> K"
-      unfolding g_def using assms(5) subring.subringE(4)[OF assms(1)] k by auto
+      unfolding g_def using assms(5) subringE(6)[OF assms(1)] k by auto
     have "(\<lambda>s. f s \<otimes> s) \<in> S' \<rightarrow> carrier R"
       using in_carrier by simp
     hence "k \<otimes> a = (\<Oplus>s \<in> S'. k \<otimes> (f s \<otimes> s))" unfolding assms(6)

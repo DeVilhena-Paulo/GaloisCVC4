@@ -346,19 +346,6 @@ lemma (in cring) is_comm_monoid:
 lemma (in cring) is_cring:
   "cring R" by (rule cring_axioms)
 
-lemma fieldI :
-  fixes R (structure)
-  assumes "cring R"
-    and one_not_zero : "\<one> \<noteq> \<zero>"
-    and integral: "\<And>a b. \<lbrakk> a \<otimes> b = \<zero>; a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> a = \<zero> \<or> b = \<zero>"
-  and field_Units: "Units R = carrier R - {\<zero>}"
-  shows "field R"
-proof (intro field.intro domain.intro[OF assms(1)])
-  show "domain_axioms R"  unfolding domain_axioms_def  
-    by (auto simp add : one_not_zero integral)
-  show "field_axioms R" unfolding field_axioms_def using field_Units by simp
-qed
-
 lemma fieldE :
   fixes R (structure)
   assumes "field R"
@@ -704,6 +691,11 @@ next
     then show "a = \<zero> \<or> b = \<zero>" by simp
   qed
 qed (rule field_Units)
+
+corollary fieldI:
+  assumes "cring R" and "Units R = carrier R - { \<zero>\<^bsub>R\<^esub> }"
+  shows "field R"
+  using cring.cring_fieldI[OF assms] .
 
 text \<open>Another variant to show that something is a field\<close>
 lemma (in cring) cring_fieldI2:

@@ -88,6 +88,12 @@ proof -
   thus "r1 \<otimes> inv r2 \<in> H" by (metis assms(1) h1(1) h2(1) subgroup_def)
 qed
 
+lemma mono_set_mult: "\<lbrakk> H \<subseteq> H'; K \<subseteq> K' \<rbrakk> \<Longrightarrow> H <#>\<^bsub>G\<^esub> K \<subseteq> H' <#>\<^bsub>G\<^esub> K'"
+  unfolding set_mult_def by (simp add: UN_mono)
+
+lemma set_mult_consistent: "N <#>\<^bsub>G\<^esub> K = N <#>\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> K"
+  unfolding set_mult_def by simp
+
 
 subsection \<open>Stable Operations for Subgroups\<close>
 

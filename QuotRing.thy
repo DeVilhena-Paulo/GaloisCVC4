@@ -682,64 +682,58 @@ proof -
     using assms(1) bij_betw_cong eq0 ring_iso_memE(5) by blast
 qed
 
-lemma (in ring) ring_iso_imp_img_ring:
-  assumes "h \<in> ring_iso R S"
-  shows "ring (S \<lparr> one := h \<one>, zero := h \<zero> \<rparr>)" (is "ring ?h_img")
+lemma (in ring) ring_hom_imp_img_ring:
+  assumes "h \<in> ring_hom R S"
+  shows "ring (S \<lparr> carrier := h ` (carrier R), one := h \<one>, zero := h \<zero> \<rparr>)" (is "ring ?h_img")
 proof -
-  have "h \<in> iso (add_monoid R) (add_monoid S)"
-    using assms unfolding ring_iso_def iso_def ring_hom_def hom_def by auto
-  hence "comm_group ((add_monoid S) \<lparr> one := h \<zero> \<rparr>)"
-    using comm_group.iso_imp_img_comm_group[of "add_monoid R" h "add_monoid S"]
-          add.comm_group_axioms by auto
-  hence 1: "comm_group (add_monoid ?h_img)"
-    unfolding comm_group_def group_def group_axioms_def comm_monoid_def comm_monoid_axioms_def monoid_def
-    by (auto simp add: monoid.defs)
-  
-  have "h \<in> hom R S"
-    using assms unfolding ring_iso_def ring_hom_def hom_def by auto
-  hence "monoid (S \<lparr> carrier := h ` carrier R, one := h \<one> \<rparr>)"
-    using monoid.hom_imp_img_monoid[of R h S] monoid_axioms by blast
-  moreover have "carrier S = h ` carrier R"
-    using assms unfolding ring_iso_def bij_betw_def by simp
-  hence "S \<lparr> carrier := h ` carrier R, one := h \<one> \<rparr> = S \<lparr> one := h \<one> \<rparr>"
-    by simp
-  ultimately have "monoid (S \<lparr> one := h \<one> \<rparr>)"
-    by simp
-  hence 2: "monoid ?h_img"
+  have "h \<in> hom (add_monoid R) (add_monoid S)"
+    using assms unfolding hom_def ring_hom_def by auto
+  hence "comm_group ((add_monoid S) \<lparr>  carrier := h ` (carrier R), one := h \<zero> \<rparr>)"
+    using add.hom_imp_img_comm_group[of h "add_monoid S"] by simp
+  hence comm_group: "comm_group (add_monoid ?h_img)"
+    by (auto intro: comm_monoidI simp add: monoid.defs)
+
+  moreover have "h \<in> hom R S"
+    using assms unfolding ring_hom_def hom_def by auto
+  hence "monoid (S \<lparr>  carrier := h ` (carrier R), one := h \<one> \<rparr>)"
+    using hom_imp_img_monoid[of h S] by simp
+  hence monoid: "monoid ?h_img"
     unfolding monoid_def by (simp add: monoid.defs)
 
   show ?thesis
-  proof (rule ringI)
-    show "abelian_group ?h_img"
-      using comm_group_abelian_groupI[OF 1] .
-    show "monoid ?h_img"
-      using 2 .
-  next
-    fix x y z assume "x \<in> carrier ?h_img" "y \<in> carrier ?h_img" "z \<in> carrier ?h_img"
+  proof (rule ringI, simp_all add: comm_group_abelian_groupI[OF comm_group] monoid)
+    fix x y z assume "x \<in> h ` carrier R" "y \<in> h ` carrier R" "z \<in> h ` carrier R"
     then obtain r1 r2 r3
       where r1: "r1 \<in> carrier R" "x = h r1"
         and r2: "r2 \<in> carrier R" "y = h r2"
-        and r3: "r3 \<in> carrier R" "z = h r3"
-      using assms image_iff[where ?f = h and ?A = "carrier R"]
-      unfolding ring_iso_def bij_betw_def by auto
-    have "(x \<oplus>\<^bsub>(?h_img)\<^esub> y) \<otimes>\<^bsub>(?h_img)\<^esub> z = h ((r1 \<oplus> r2) \<otimes> r3)"
-      using r1 r2 r3 assms unfolding ring_iso_def ring_hom_def by auto
+        and r3: "r3 \<in> carrier R" "z = h r3" by blast
+    hence "(x \<oplus>\<^bsub>S\<^esub> y) \<otimes>\<^bsub>S\<^esub> z = h ((r1 \<oplus> r2) \<otimes> r3)"
+      using ring_hom_memE[OF assms] by auto
     also have " ... = h ((r1 \<otimes> r3) \<oplus> (r2 \<otimes> r3))"
       using l_distr[OF r1(1) r2(1) r3(1)] by simp
-    also have " ... = (x \<otimes>\<^bsub>(?h_img)\<^esub> z) \<oplus>\<^bsub>(?h_img)\<^esub> (y \<otimes>\<^bsub>(?h_img)\<^esub> z)"
-      using r1 r2 r3 assms unfolding ring_iso_def ring_hom_def by auto
-    finally
-    show "(x \<oplus>\<^bsub>(?h_img)\<^esub> y) \<otimes>\<^bsub>(?h_img)\<^esub> z = (x \<otimes>\<^bsub>(?h_img)\<^esub> z) \<oplus>\<^bsub>(?h_img)\<^esub> (y \<otimes>\<^bsub>(?h_img)\<^esub> z)" .
+    also have " ... = (x \<otimes>\<^bsub>S\<^esub> z) \<oplus>\<^bsub>S\<^esub> (y \<otimes>\<^bsub>S\<^esub> z)"
+      using ring_hom_memE[OF assms] r1 r2 r3 by auto
+    finally show "(x \<oplus>\<^bsub>S\<^esub> y) \<otimes>\<^bsub>S\<^esub> z = (x \<otimes>\<^bsub>S\<^esub> z) \<oplus>\<^bsub>S\<^esub> (y \<otimes>\<^bsub>S\<^esub> z)" .
 
-    have "z \<otimes>\<^bsub>(?h_img)\<^esub> (x \<oplus>\<^bsub>(?h_img)\<^esub> y) = h (r3 \<otimes> (r1 \<oplus> r2))"
-      using r1 r2 r3 assms unfolding ring_iso_def ring_hom_def by auto
-    also have " ... = h ((r3 \<otimes> r1) \<oplus> (r3 \<otimes> r2))"
+    have "z \<otimes>\<^bsub>S\<^esub> (x \<oplus>\<^bsub>S\<^esub> y) = h (r3 \<otimes> (r1 \<oplus> r2))"
+      using ring_hom_memE[OF assms] r1 r2 r3 by auto
+    also have " ... =  h ((r3 \<otimes> r1) \<oplus> (r3 \<otimes> r2))"
       using r_distr[OF r1(1) r2(1) r3(1)] by simp
-    also have " ... = (z \<otimes>\<^bsub>(?h_img)\<^esub> x) \<oplus>\<^bsub>(?h_img)\<^esub> (z \<otimes>\<^bsub>(?h_img)\<^esub> y)"
-      using r1 r2 r3 assms unfolding ring_iso_def ring_hom_def by auto
-    finally
-    show "z \<otimes>\<^bsub>(?h_img)\<^esub> (x \<oplus>\<^bsub>(?h_img)\<^esub> y) = (z \<otimes>\<^bsub>(?h_img)\<^esub> x) \<oplus>\<^bsub>(?h_img)\<^esub> (z \<otimes>\<^bsub>(?h_img)\<^esub> y)" .
+    also have " ... = (z \<otimes>\<^bsub>S\<^esub> x) \<oplus>\<^bsub>S\<^esub> (z \<otimes>\<^bsub>S\<^esub> y)"
+      using ring_hom_memE[OF assms] r1 r2 r3 by auto
+    finally show "z \<otimes>\<^bsub>S\<^esub> (x \<oplus>\<^bsub>S\<^esub> y) = (z \<otimes>\<^bsub>S\<^esub> x) \<oplus>\<^bsub>S\<^esub> (z \<otimes>\<^bsub>S\<^esub> y)" .
   qed
+qed
+
+lemma (in ring) ring_iso_imp_img_ring:
+  assumes "h \<in> ring_iso R S"
+  shows "ring (S \<lparr> one := h \<one>, zero := h \<zero> \<rparr>)"
+proof -
+  have "ring (S \<lparr> carrier := h ` (carrier R), one := h \<one>, zero := h \<zero> \<rparr>)"
+    using ring_hom_imp_img_ring[of h S] assms unfolding ring_iso_def by auto
+  moreover have "h ` (carrier R) = carrier S"
+    using assms unfolding ring_iso_def bij_betw_def by auto
+  ultimately show ?thesis by simp
 qed
 
 lemma (in cring) ring_iso_imp_img_cring:
@@ -767,6 +761,76 @@ proof -
   qed
 qed
 
+lemma (in domain) ring_iso_imp_img_domain:
+  assumes "h \<in> ring_iso R S"
+  shows "domain (S \<lparr> one := h \<one>, zero := h \<zero> \<rparr>)" (is "domain ?h_img")
+proof -
+  note aux = m_closed integral one_not_zero one_closed zero_closed
+  interpret h_img?: cring ?h_img
+    using ring_iso_imp_img_cring[OF assms] .
+  show ?thesis 
+  proof (unfold_locales)
+    show "\<one>\<^bsub>?h_img\<^esub> \<noteq> \<zero>\<^bsub>?h_img\<^esub>"
+      using ring_iso_memE(5)[OF assms] aux(3-4)
+      unfolding bij_betw_def inj_on_def by force
+  next
+    fix a b
+    assume A: "a \<otimes>\<^bsub>?h_img\<^esub> b = \<zero>\<^bsub>?h_img\<^esub>" "a \<in> carrier ?h_img" "b \<in> carrier ?h_img"
+    then obtain r1 r2
+      where r1: "r1 \<in> carrier R" "a = h r1"
+        and r2: "r2 \<in> carrier R" "b = h r2"
+      using assms image_iff[where ?f = h and ?A = "carrier R"]
+      unfolding ring_iso_def bij_betw_def by auto
+    hence "a \<otimes>\<^bsub>?h_img\<^esub> b = h (r1 \<otimes> r2)"
+      using assms r1 r2 unfolding ring_iso_def ring_hom_def by auto
+    hence "h (r1 \<otimes> r2) = h \<zero>"
+      using A(1) by simp
+    hence "r1 \<otimes> r2 = \<zero>"
+      using ring_iso_memE(5)[OF assms] aux(1)[OF r1(1) r2(1)] aux(5)
+      unfolding bij_betw_def inj_on_def by force
+    hence "r1 = \<zero> \<or> r2 = \<zero>"
+      using aux(2)[OF _ r1(1) r2(1)] by simp
+    thus "a = \<zero>\<^bsub>?h_img\<^esub> \<or> b = \<zero>\<^bsub>?h_img\<^esub>"
+      unfolding r1 r2 by auto
+  qed
+qed
+
+lemma (in field) ring_iso_imp_img_field:
+  assumes "h \<in> ring_iso R S"
+  shows "field (S \<lparr> one := h \<one>, zero := h \<zero> \<rparr>)" (is "field ?h_img")
+proof -
+  interpret h_img?: domain ?h_img
+    using ring_iso_imp_img_domain[OF assms] .
+  show ?thesis
+  proof (unfold_locales, auto simp add: Units_def)
+    interpret field R using field_axioms .
+    fix a assume a: "a \<in> carrier S" "a \<otimes>\<^bsub>S\<^esub> h \<zero> = h \<one>"
+    then obtain r where r: "r \<in> carrier R" "a = h r"
+      using assms image_iff[where ?f = h and ?A = "carrier R"]
+      unfolding ring_iso_def bij_betw_def by auto
+    have "a \<otimes>\<^bsub>S\<^esub> h \<zero> = h (r \<otimes> \<zero>)" unfolding r(2)
+      using ring_iso_memE(2)[OF assms r(1)] by simp
+    hence "h \<one> = h \<zero>"
+      using r(1) a(2) by simp
+    thus False
+      using ring_iso_memE(5)[OF assms]
+      unfolding bij_betw_def inj_on_def by force
+  next
+    interpret field R using field_axioms .
+    fix s assume s: "s \<in> carrier S" "s \<noteq> h \<zero>"
+    then obtain r where r: "r \<in> carrier R" "s = h r"
+      using assms image_iff[where ?f = h and ?A = "carrier R"]
+      unfolding ring_iso_def bij_betw_def by auto
+    hence "r \<noteq> \<zero>" using s(2) by auto 
+    hence inv_r: "inv r \<in> carrier R" "inv r \<noteq> \<zero>" "r \<otimes> inv r = \<one>" "inv r \<otimes> r = \<one>"
+      using field_Units r(1) by auto
+    have "h (inv r) \<otimes>\<^bsub>S\<^esub> h r = h \<one>" and "h r \<otimes>\<^bsub>S\<^esub> h (inv r) = h \<one>"
+      using ring_iso_memE(2)[OF assms inv_r(1) r(1)] inv_r(3-4)
+            ring_iso_memE(2)[OF assms r(1) inv_r(1)] by auto
+    thus "\<exists>s' \<in> carrier S. s' \<otimes>\<^bsub>S\<^esub> s = h \<one> \<and> s \<otimes>\<^bsub>S\<^esub> s' = h \<one>"
+      using ring_iso_memE(1)[OF assms inv_r(1)] r(2) by auto
+  qed
+qed
 
 lemma ring_iso_same_card: "R \<simeq> S \<Longrightarrow> card (carrier R) = card (carrier S)"
 proof -
