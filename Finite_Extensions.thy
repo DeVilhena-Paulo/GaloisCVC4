@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      Finite_Extensions.thy                                          *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Finite_Extensions
   imports More_Polynomials More_Finite_Product Generated_Groups Subrings
     
