@@ -301,10 +301,35 @@ next
     by (simp add: Pi_def smult_r_distr)
 qed
 
+lemma (in vector_space) h_in_finite_span :
+  assumes "A \<subseteq> carrier M" and "h \<in> Span R M A"
+  shows "\<exists>S \<subseteq> A. finite S \<and> h \<in> Span R M S" using assms(2)
+proof (induction rule : Span.induct)
+  case zero
+  then show ?case
+    using Span.zero by auto 
+next
+  case (incl h)
+  then show ?case using Span.incl[of h "{h}"]
+    by auto
+next
+  case (a_inv h)
+  then show ?case by (meson Span.a_inv)
+next
+  case (eng_add h1 h2)
+  from this obtain S1 S2 where S1_def : "S1 \<subseteq>A \<and> finite S1 \<and> h1 \<in> Span R M S1"
+                and S2_def : "S2 \<subseteq> A \<and> finite S2 \<and> h2 \<in> Span R M S2" by auto
+  then show ?case
+    using Span.eng_add[of _ R M "S1 \<union> S2"] mono_Span[of _ "S1 \<union> S2"]assms mono_Span[of _ "S1 \<union> S2"]
+    by (smt finite_UnI le_supI subsetCE subset_trans sup_ge1 sup_ge2)
+next
+  case (eng_smult h1 h2)
+  then show ?case using Span.eng_smult[of h1 R h2 M] by auto
+qed
 
-lemma (in vector_space) linear_combination :
-  assumes "finite A" and "A \<subseteq> carrier M" and "A \<noteq> {}"
-shows "h \<in> Span R M A \<Longrightarrow> h \<in> {x. \<exists> a. a \<in> (A \<rightarrow> carrier R) \<and> x = (\<Oplus>\<^bsub>M\<^esub>  v\<in>A. (a v \<odot>\<^bsub>M\<^esub> v))} "
+lemma (in vector_space) linear_combination_finite_incl :
+  assumes "finite A" and "A \<subseteq> carrier M" 
+  shows "h \<in> Span R M A \<Longrightarrow> h \<in> {x. \<exists> a. a \<in> (A \<rightarrow> carrier R) \<and> x = (\<Oplus>\<^bsub>M\<^esub>  v\<in>A. (a v \<odot>\<^bsub>M\<^esub> v))}"
 proof (induction rule : Span.induct)
   have "\<And>v. v \<in> A \<Longrightarrow> (\<lambda>v. \<zero>) v \<odot>\<^bsub>M\<^esub> v = \<zero>\<^bsub>M\<^esub>" using assms smult_zero by auto
   hence sum_zero : "(\<Oplus>\<^bsub>M\<^esub>i\<in>A. \<zero>\<^bsub>M\<^esub>) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. ((\<lambda>v. \<zero>) v) \<odot>\<^bsub>M\<^esub> v) "
@@ -346,22 +371,92 @@ next
   thus ?case by blast
   next
     case (a_inv h)
-  note hyp = this
-  from this obtain a where a_def : "a \<in> A \<rightarrow> carrier R \<and> h = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a v \<odot>\<^bsub>M\<^esub> v)" by auto
+    note hyp = this
+    from this obtain a where a_def : "a \<in> A \<rightarrow> carrier R" " h = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a v \<odot>\<^bsub>M\<^esub> v)" by auto
+  define f where f_def : "f =(\<lambda>v. \<ominus> \<one> \<otimes> a v)"
   have " (\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v)) = (\<ominus>\<one>) \<odot>\<^bsub>M\<^esub> h"
     using module.finsum_smult_ldistr[OF module_axioms assms(1), of "(\<ominus>\<one>)" "\<lambda>v. a v \<odot>\<^bsub>M\<^esub> v"] a_def
     by (smt Pi_def R.add.inv_closed assms(2) mem_Collect_eq one_closed smult_closed subsetCE)
   also have "... = \<ominus>\<^bsub>M\<^esub> h"
     using smult_l_opposite smult_one Span_in_carrier hyp assms by auto
-  moreover have "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v)) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<ominus> \<one> \<otimes> (a v) \<odot>\<^bsub>M\<^esub> v))"
-    using smult_assoc1[of "\<ominus> \<one>"]
-  then show ?case sorry
+  finally have "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v)) =  \<ominus>\<^bsub>M\<^esub> h" by auto
+  moreover have "\<And>v. v \<in> A \<Longrightarrow> (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v) =  (f v \<odot>\<^bsub>M\<^esub> v) "
+    using one_closed a_def assms(2) unfolding f_def
+    by (metis (no_types, lifting) PiE R.add.inv_closed smult_assoc1 subsetCE)
+  hence "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v)) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. (f v \<odot>\<^bsub>M\<^esub> v))"
+    using M.finsum_cong'[of A A "\<lambda>v. \<ominus> \<one> \<odot>\<^bsub>M\<^esub> (a v \<odot>\<^bsub>M\<^esub> v)" "\<lambda>v. (f v \<odot>\<^bsub>M\<^esub> v)"]
+           smult_closed a_def one_closed R.add.inv_closed unfolding f_def
+    by (smt PiE Pi_I assms(2) subsetCE)
+  ultimately have "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. f v \<odot>\<^bsub>M\<^esub> v) = \<ominus>\<^bsub>M\<^esub> h" by auto
+  moreover have "f \<in> A \<rightarrow> carrier R"
+    using f_def a_def(1) m_closed[of "\<ominus> \<one>"] R.add.inv_closed[OF one_closed]
+    by blast
+  ultimately show ?case by auto
 next
   case (eng_add h1 h2)
-  then show ?case sorry
+  note hyp = this
+  from hyp obtain a1 where a1_def : "a1 \<in> A \<rightarrow> carrier R" "h1 = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a1 v \<odot>\<^bsub>M\<^esub> v)" by auto
+  hence a1_M : "(\<lambda>v. a1 v \<odot>\<^bsub>M\<^esub> v) \<in> A \<rightarrow> carrier M"
+    using smult_closed assms by blast
+  from hyp obtain a2 where a2_def : "a2 \<in> A \<rightarrow> carrier R" "h2 = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a2 v \<odot>\<^bsub>M\<^esub> v)" by auto
+  hence a2_M : "(\<lambda>v. a2 v \<odot>\<^bsub>M\<^esub> v) \<in> A \<rightarrow> carrier M"
+    using smult_closed assms by blast
+  define f where f_def : "f =(\<lambda>v. (a1 v \<oplus> a2 v))"
+  from this have fprop : "f \<in> A \<rightarrow> carrier R" using a1_def a2_def R.a_closed by auto
+  hence f_M : "(\<lambda>v. f v \<odot>\<^bsub>M\<^esub> v) \<in> A \<rightarrow> carrier M"
+    using smult_closed assms(2) by blast
+  moreover have "\<And>i. i \<in> A \<Longrightarrow> (a1 i \<odot>\<^bsub>M\<^esub> i \<oplus>\<^bsub>M\<^esub> a2 i \<odot>\<^bsub>M\<^esub> i) = (f i \<odot>\<^bsub>M\<^esub> i) "
+    unfolding f_def using smult_l_distr a1_def a2_def assms(2)
+    by (smt Pi_iff restrict_ext subsetCE) 
+  hence "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. f v \<odot>\<^bsub>M\<^esub> v) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a1 v \<odot>\<^bsub>M\<^esub> v \<oplus>\<^bsub>M\<^esub> a2 v \<odot>\<^bsub>M\<^esub> v)"
+    by (metis (mono_tags, lifting) M.finsum_cong' f_M)
+  moreover have "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. a1 v \<odot>\<^bsub>M\<^esub> v \<oplus>\<^bsub>M\<^esub> a2 v \<odot>\<^bsub>M\<^esub> v) =
+                 (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a1 v \<odot>\<^bsub>M\<^esub> v) \<oplus>\<^bsub>M\<^esub> (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a2 v \<odot>\<^bsub>M\<^esub> v)"
+    using finsum_addf[OF a1_M a2_M ] restrict_Pi_cancel by auto
+  ultimately have "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. f v \<odot>\<^bsub>M\<^esub> v) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a1 v \<odot>\<^bsub>M\<^esub> v) \<oplus>\<^bsub>M\<^esub> (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a2 v \<odot>\<^bsub>M\<^esub> v)"
+    by auto
+  hence "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. f v \<odot>\<^bsub>M\<^esub> v) = h1 \<oplus>\<^bsub>M\<^esub> h2" using a1_def a2_def by auto
+  then show ?case
+    using fprop by auto
 next
   case (eng_smult h1 h2)
-  then show ?case sorry
+  note hyp = this
+  from this obtain a where a_def : " a \<in> A \<rightarrow> carrier R" "h2 = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. a v \<odot>\<^bsub>M\<^esub> v)" by auto
+  hence a_M : "(\<lambda>v. a v \<odot>\<^bsub>M\<^esub> v) \<in> A \<rightarrow> carrier M"
+    using smult_closed assms by blast
+  hence "h1 \<odot>\<^bsub>M\<^esub> h2 = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. h1 \<odot>\<^bsub>M\<^esub> (a v \<odot>\<^bsub>M\<^esub> v))"
+    using finsum_smult_ldistr[OF assms(1) hyp(1) a_M] a_def(2) by blast
+  moreover have "\<And>v. v \<in> A \<Longrightarrow> h1 \<odot>\<^bsub>M\<^esub> (a v \<odot>\<^bsub>M\<^esub> v) = ((h1 \<otimes> a v) \<odot>\<^bsub>M\<^esub> v)"
+    using smult_assoc1[OF hyp(1)] a_def(1) assms(2)
+    by (simp add: Pi_iff subset_eq) 
+  hence "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. h1 \<odot>\<^bsub>M\<^esub> (a v \<odot>\<^bsub>M\<^esub> v)) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. ((h1 \<otimes> a v) \<odot>\<^bsub>M\<^esub> v))"
+    using finsum_cong'[of A A] a_M
+    by (smt Pi_iff local.eng_smult(1) smult_closed)
+  ultimately have "h1 \<odot>\<^bsub>M\<^esub> h2 = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. h1 \<otimes> a v \<odot>\<^bsub>M\<^esub> v)" by auto
+  moreover have "(\<lambda>v. h1 \<otimes> a v) \<in> A \<rightarrow> carrier R"
+    using a_def(1) smult_closed m_closed hyp assms
+    by fastforce 
+  ultimately show ?case by auto
 qed
+
+lemma (in vector_space) linear_combination_incl :
+  assumes "A \<subseteq> carrier M"
+  shows "h \<in> Span R M A \<Longrightarrow> h \<in> {x. \<exists>S. finite S \<and> (\<exists>a. a \<in> S \<rightarrow> carrier R
+                                 \<and> x = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))}"
+proof
+  fix h assume h_def : "h \<in> Span R M A"
+  obtain S where S_def : "S \<subseteq> A" "finite S" "h \<in> Span R M S"
+    using h_in_finite_span[OF assms h_def] by auto
+  from this obtain a where a_def : " a \<in> S \<rightarrow> carrier R \<and> ( h = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))"
+    using linear_combination_finite_incl[OF S_def(2) _ S_def(3)] assms S_def by auto
+  thus " \<exists>S. finite S \<and> (\<exists>a. a \<in> S \<rightarrow> carrier R \<and> h = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))"
+    using S_def by auto
+qed
+
+
+lemma linear_combinatino_incl2 :
+  assumes "finite A" and "A \<subseteq> carrier M" and "A \<noteq> {}"
+  shows "h \<in> {x. \<exists> a. a \<in> (A \<rightarrow> carrier R) \<and> x = (\<Oplus>\<^bsub>M\<^esub>  v\<in>A. (a v \<odot>\<^bsub>M\<^esub> v))} \<Longrightarrow> h \<in> Span R M A"
+  sorry
 
 end

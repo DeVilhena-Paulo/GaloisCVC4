@@ -4,7 +4,7 @@
 (* ************************************************************************** *)
 
 theory Subrings
-  imports Ring RingHom QuotRing
+  imports Ring RingHom QuotRing Multiplicative_Group
 
 begin
 
@@ -258,6 +258,11 @@ proof (rule subfield.intro)
   qed
 qed
 
+lemma (in field) carrier_is_subfield :
+"subfield (carrier R) R"
+  apply (intro subfieldI) using carrier_is_subcring field_Units by auto
+
+
 lemma (in field) subfieldI':
   assumes "subring K R" and "\<And>k. k \<in> K - { \<zero> } \<Longrightarrow> inv k \<in> K"
   shows "subfield K R"
@@ -326,26 +331,36 @@ proof -
 qed
 
 lemma (in ring) subfield_iff:
-  assumes "K \<subseteq> carrier R"
-  shows "field (R \<lparr> carrier := K \<rparr>) \<longleftrightarrow> subfield K R"
-proof
-  assume A: "field (R \<lparr> carrier := K \<rparr>)"
+  shows "\<lbrakk>field (R \<lparr> carrier := K \<rparr>) ; K \<subseteq> carrier R\<rbrakk> \<Longrightarrow> subfield K R"
+  and "subfield K R \<Longrightarrow> field (R \<lparr> carrier := K \<rparr>)"
+proof-
+  assume A: "field (R \<lparr> carrier := K \<rparr>)" "K \<subseteq> carrier R"
   have "\<And>k1 k2. \<lbrakk> k1 \<in> K; k2 \<in> K \<rbrakk> \<Longrightarrow> k1 \<otimes> k2 = k2 \<otimes> k1"
-    using comm_monoid.m_comm[OF cring.axioms(2)[OF fieldE(1)[OF A]]] by simp
+    using comm_monoid.m_comm[OF cring.axioms(2)[OF fieldE(1)[OF A(1)]]]  by simp
   moreover have "subring K R"
-    using ring_incl_imp_subring[OF assms cring.axioms(1)[OF fieldE(1)[OF A]]] .
+    using ring_incl_imp_subring[OF A(2) cring.axioms(1)[OF fieldE(1)[OF A(1)]]] .
   ultimately have "subcring K R"
     using subcringI by simp
   thus "subfield K R"
-    using field.field_Units[OF A] subfieldI by auto
+    using field.field_Units[OF A(1)] subfieldI by auto
 next
   assume A: "subfield K R"
   have cring: "cring (R \<lparr> carrier := K \<rparr>)"
-    using subcring_iff[OF assms] subfieldE(2)[OF A] by simp
+    using subcring_iff[OF subringE(1)[OF subfieldE(1)[OF A]]] subfieldE(2)[OF A] by simp
   thus "field (R \<lparr> carrier := K \<rparr>)"
     using cring.cring_fieldI[OF cring] subfield.subfield_Units[OF A] by simp
 qed
 
+lemma (in field) subgroup_mult_of :
+  assumes "subfield K R"
+  shows "subgroup (K - {\<zero>}) (mult_of R)"
+proof (intro group.group_incl_imp_subgroup)
+  show "Group.group (mult_of R)" using field_mult_group assms by auto
+  show "K - {\<zero>} \<subseteq> carrier (mult_of R)" using  subringE(1) subfieldE(1) assms by auto
+  show "Group.group (mult_of R\<lparr>carrier := K - {\<zero>}\<rparr>)"
+    using field.field_mult_group[OF subfield_iff(2)[OF assms]] 
+    unfolding mult_of_def by simp
+qed
 
 subsection \<open>Subring Homomorphisms\<close>
 
@@ -383,7 +398,7 @@ proof -
     using subfieldE(1)[OF assms(1)] subringE(1) img_is_subring by auto
   have field: "field (R \<lparr> carrier := K \<rparr>)"
    and ring: "ring (R \<lparr> carrier := K \<rparr>)" "ring (S \<lparr> carrier := h ` K \<rparr>)"
-    using R.subfield_iff[OF K(1)] assms(1)
+    using R.subfield_iff assms(1)
           subring.subring_is_ring[OF K(2) R.ring_axioms]
           subring.subring_is_ring[OF K(3) S.ring_axioms] by auto
 

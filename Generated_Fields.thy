@@ -5,7 +5,7 @@
 
 theory Generated_Fields
 
-imports Generated_Rings Subrings
+imports Generated_Rings Subrings Multiplicative_Group
 
 begin
 
@@ -60,7 +60,7 @@ qed
 lemma (in field) generate_field_is_field :
   assumes "H \<subseteq> carrier R"
   shows "field (R \<lparr> carrier := generate_field R H \<rparr>)"
-  using subfield_iff[OF generate_field_incl] generate_field_is_subfield assms by simp
+  using subfield_iff generate_field_is_subfield assms by simp
 
 lemma (in field) generate_field_min_subfield1:
   assumes "H \<subseteq> carrier R"
@@ -121,7 +121,7 @@ proof-
     by blast
 qed
 
-(*
+
 lemma (in field) subfield_gen_incl :
   assumes "subfield H R"
     and  "subfield K R"
@@ -131,8 +131,8 @@ lemma (in field) subfield_gen_incl :
 proof
   {fix J assume J_def : "subfield J R" "I \<subseteq> J"
     have "generate_field (R \<lparr> carrier := J \<rparr>) I \<subseteq> J"
-      using field.mono_generate_field[of "(R\<lparr>carrier := J\<rparr>)" I J ] subfield.subfield_is_field[OF J_def(1)]
-          field.generate_field_in_carrier[of "R\<lparr>carrier := J\<rparr>"]  field_axioms J_def(2)
+      using field.mono_generate_field[of "(R\<lparr>carrier := J\<rparr>)" I J] subfield_iff(2)[OF J_def(1)]
+          field.generate_field_in_carrier[of "R\<lparr>carrier := J\<rparr>"]  field_axioms J_def
       by auto}
   note incl_HK = this
   {fix x have "x \<in> generate_field (R\<lparr>carrier := K\<rparr>) I \<Longrightarrow> x \<in> generate_field (R\<lparr>carrier := H\<rparr>) I" 
@@ -148,27 +148,31 @@ proof
       note hyp = this
       have "a_inv (R\<lparr>carrier := K\<rparr>) h = a_inv R h" 
         using assms group.m_inv_consistent[of "add_monoid R" K] a_comm_group incl_HK[of K] hyp
-        unfolding subfield_def comm_group_def a_inv_def subring_def by auto
+               subring.axioms(1)[OF subfieldE(1)[OF assms(2)]]
+        unfolding comm_group_def a_inv_def by auto
       moreover have "a_inv (R\<lparr>carrier := H\<rparr>) h = a_inv R h"
         using assms group.m_inv_consistent[of "add_monoid R" H] a_comm_group incl_HK[of H] hyp
-        unfolding subfield_def subring_def comm_group_def a_inv_def by auto
+               subring.axioms(1)[OF subfieldE(1)[OF assms(1)]]
+        unfolding  comm_group_def a_inv_def by auto
       ultimately show ?case using generate_field.a_inv a_inv.IH by fastforce
     next
       case (m_inv h) 
       note hyp = this
       have h_K : "h \<in> (K - {\<zero>})" using incl_HK[OF assms(2) assms(4)] hyp by auto
       hence "m_inv (R\<lparr>carrier := K\<rparr>) h = m_inv R h" 
-        using  field.m_inv_mult_of[OF subfield.subfield_is_field[OF assms(2) field_axioms]]
-               group.m_inv_consistent[of "mult_of R" "K - {\<zero>}"] field_mult_group 
-        subfield.axioms(2)[OF assms(2)] unfolding mult_of_def apply simp
-        by (metis h_K field_Units m_inv_mult_of mult_of_is_Units subgroup.mem_carrier units_of_def)
+        using  field.m_inv_mult_of[OF subfield_iff(2)[OF assms(2)]]
+               group.m_inv_consistent[of "mult_of R" "K - {\<zero>}"] field_mult_group units_of_inv
+               subgroup_mult_of subfieldE[OF assms(2)] unfolding mult_of_def apply simp
+        by (metis h_K mult_of_def mult_of_is_Units subgroup.mem_carrier units_of_carrier assms(2))
+        
+
       moreover have h_H : "h \<in> (H - {\<zero>})" using incl_HK[OF assms(1) assms(3)] hyp by auto
       hence "m_inv (R\<lparr>carrier := H\<rparr>) h = m_inv R h"
-        using  field.m_inv_mult_of[OF subfield.subfield_is_field[OF assms(1) field_axioms]]
+        using  field.m_inv_mult_of[OF subfield_iff(2)[OF assms(1)]]
                group.m_inv_consistent[of "mult_of R" "H - {\<zero>}"] field_mult_group 
-        subfield.axioms(2)[OF assms(1)] unfolding mult_of_def apply simp
+               subgroup_mult_of[OF assms(1)]  unfolding mult_of_def apply simp
         by (metis h_H field_Units m_inv_mult_of mult_of_is_Units subgroup.mem_carrier units_of_def)
-      ultimately show ?case using generate_field.m_inv m_inv.IH by fastforce
+      ultimately show ?case using generate_field.m_inv m_inv.IH h_H by fastforce
     next
       case (eng_add h1 h2)
       thus ?case using incl_HK assms generate_field.eng_add by force
@@ -183,11 +187,11 @@ qed
 lemma (in field) subfield_gen_equality:
   assumes "subfield H R" "K \<subseteq> H"
   shows "generate_field R K = generate_field (R \<lparr> carrier := H \<rparr>) K"
-  using subfield_gen_incl[OF assms(1)carrier_is_subfield assms(2)] assms subfieldE(1)
-        subfield_gen_incl[OF carrier_is_subfield assms(1) _ assms(2)]
+  using subfield_gen_incl[OF assms(1) carrier_is_subfield assms(2)] assms subringE(1)
+        subfield_gen_incl[OF carrier_is_subfield assms(1) _ assms(2)] subfieldE(1)[OF assms(1)]
   by force
 
-*)
+
 
 end
 
