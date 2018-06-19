@@ -117,10 +117,10 @@ next
       using Suc.IH[OF Suc(2) _ _ x(2), of "ya \<cdot> w"] Suc(3-4,6) x(1) by auto
 
     moreover
-    have "insert xa (A - { xa, ya }) = (A - { ya })"
-      using Ineq x(1) by blast
+    have "((A - { ya }) - { xa }, w) \<in> foldSetD D f e"
+      using w by (metis Diff_insert)
     hence "(A - { ya }, xa \<cdot> w) \<in> foldSetD D f e"
-      using w foldSetD.insertI[of xa "A - { xa, ya }" f w D e] Suc.prems(2) by fastforce
+      using Diff1_foldSetD[of "A - { ya }" xa w e] Ineq y(1) x(1) Suc(3) by auto
     hence "xa \<cdot> w = z2"
       using Suc.IH[OF Suc(2) _ _ y(2), of "xa \<cdot> w"] Suc(3-4,6) y(1) by auto
 
