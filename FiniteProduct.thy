@@ -76,7 +76,7 @@ locale LCD =
   and f_closed [simp, intro!]: "\<And>x y. \<lbrakk> x \<in> B; y \<in> D \<rbrakk> \<Longrightarrow> f x y \<in> D"
 
 lemma (in LCD) Diff1_foldSetD:
-  "\<lbrakk> (A - {x}, y) \<in> foldSetD D f e; x \<in> A; A \<subseteq> B \<rbrakk> \<Longrightarrow> (A, f x y) \<in> foldSetD D f e"
+  "\<lbrakk> (A - { x }, y) \<in> foldSetD D f e; x \<in> A; A \<subseteq> B \<rbrakk> \<Longrightarrow> (A, f x y) \<in> foldSetD D f e"
   by (meson Diff1_foldSetD f_closed foldSetD_closed subsetCE)
 
 lemma (in LCD) finite_imp_foldSetD:
@@ -92,35 +92,40 @@ proof (induction n arbitrary: A x y)
 next
   case (Suc n)
   hence "A \<noteq> {}" by auto
-  then obtain xa ya z1 z2 where x: "xa \<in> A" "(A - {xa}, z1) \<in> foldSetD D f e" "x = xa \<cdot> z1"
-                            and y: "ya \<in> A" "(A - {ya}, z2) \<in> foldSetD D f e" "y = ya \<cdot> z2"
+  then obtain xa ya z1 z2
+    where x: "xa \<in> A" "(A - { xa }, z1) \<in> foldSetD D f e" "x = xa \<cdot> z1"
+      and y: "ya \<in> A" "(A - { ya }, z2) \<in> foldSetD D f e" "y = ya \<cdot> z2"
       by (meson foldSetD_backwards Suc)
   thus ?case
   proof (cases)
     assume Eq: "xa = ya" hence "z1 = z2"
-      by (smt Suc.IH Suc.prems assms(1) card.remove foldSetD_imp_finite
-          insert_Diff insert_subset nat.inject x y)
-    thus ?thesis using x(3) y(3) Eq by simp
+      using Suc.IH[OF Suc(2) _ _ x(2), of z2] Suc(3-4,6) x(1) y(2) by auto
+    thus ?thesis
+      using x(3) y(3) Eq by simp
   next
-    assume In: "xa \<noteq> ya"
-    hence "finite (A - {xa, ya})" using Suc.prems(4) by auto
-    then obtain w where "w \<in> D" "(A - {xa, ya}, w) \<in> foldSetD D f e"
+    assume Ineq: "xa \<noteq> ya"
+    hence "finite (A - { xa, ya })"
+      using Suc.prems(4) by auto
+    then obtain w where w: "w \<in> D" "(A - { xa, ya }, w) \<in> foldSetD D f e"
       using finite_imp_foldSetD Suc.prems by (meson Diff_subset foldSetD_closed order_trans)
-    note w = this
-    from w have "(A - {xa}, ya \<cdot> w) \<in> foldSetD D f e"
-      by (smt Diff_eq_empty_iff Diff_iff Diff_insert2 In insert_Diff insert_Diff_single
-              insert_iff Suc.prems(2) local.Diff1_foldSetD x(1) y(1))
+
+    hence "((A - { xa }) - { ya }, w) \<in> foldSetD D f e"
+      by (metis Diff_insert2)
+    hence "(A - { xa }, ya \<cdot> w) \<in> foldSetD D f e"
+      using Diff1_foldSetD[of "A - { xa }" ya w e] Ineq y(1) x(1) Suc(3) by auto
     hence "ya \<cdot> w = z1"
-      by (smt Suc.IH Suc.prems assms(1) card_Suc_Diff1 foldSetD_imp_finite
-          insert_Diff insert_subset nat.inject x(1) x(2))
-    moreover have "insert xa (A - {xa, ya}) = (A - {ya})"
-      using In x(1) by blast
-    hence "(A - {ya}, xa \<cdot> w) \<in> foldSetD D f e"
-      using w foldSetD.insertI[of xa "A - {xa, ya}" f w D e] Suc.prems(2) by fastforce
+      using Suc.IH[OF Suc(2) _ _ x(2), of "ya \<cdot> w"] Suc(3-4,6) x(1) by auto
+
+    moreover
+    have "insert xa (A - { xa, ya }) = (A - { ya })"
+      using Ineq x(1) by blast
+    hence "(A - { ya }, xa \<cdot> w) \<in> foldSetD D f e"
+      using w foldSetD.insertI[of xa "A - { xa, ya }" f w D e] Suc.prems(2) by fastforce
     hence "xa \<cdot> w = z2"
-      by (smt Diff_subset Suc.IH Suc.prems Suc_inject assms(1) card.remove
-          foldSetD_imp_finite infinite_remove subset_trans y(1) y(2))
-    ultimately show ?thesis using Suc.prems(2) w(1) x y left_commute by blast
+      using Suc.IH[OF Suc(2) _ _ y(2), of "xa \<cdot> w"] Suc(3-4,6) y(1) by auto
+
+    ultimately show ?thesis
+      using Suc.prems(2) w(1) x y left_commute by blast
   qed
 qed
 
