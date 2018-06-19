@@ -38,16 +38,6 @@ lemma (in field) zero_in_generate: "\<zero>\<^bsub>R\<^esub> \<in> generate_fiel
   using one a_inv generate_field.eng_add one_closed r_neg
   by metis
 
-lemma (in field) generate_field_is_add_subgroup:
-  assumes "H \<subseteq> carrier R"
-  shows "subgroup (generate_field R H) (add_monoid R)"
-  apply (unfold_locales)
-  using generate_field_in_carrier[OF assms] a_inv
-  unfolding a_inv_def
-  apply (auto simp add: eng_add a_inv eng_mult zero_in_generate one incl)
-  apply fastforce
-  done
-
 lemma (in field) generate_field_is_subfield:
   assumes "H \<subseteq> carrier R"
   shows "subfield (generate_field R H) R"
@@ -56,6 +46,11 @@ proof (intro subfieldI', simp_all add: m_inv)
     by (auto intro: subringI[of "generate_field R H"]
              simp add: eng_add a_inv eng_mult one generate_field_in_carrier[OF assms])
 qed
+
+lemma (in field) generate_field_is_add_subgroup:
+  assumes "H \<subseteq> carrier R"
+  shows "subgroup (generate_field R H) (add_monoid R)"
+  using subring.axioms(1)[OF subfieldE(1)[OF generate_field_is_subfield[OF assms]]] .
 
 lemma (in field) generate_field_is_field :
   assumes "H \<subseteq> carrier R"
