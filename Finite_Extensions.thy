@@ -276,7 +276,7 @@ proof
       hence comp_f: "?comp f \<in> S \<rightarrow> carrier R" and "f s_n \<otimes> s_n \<in> carrier R"
         using S s_n by blast+
       hence a: "a = (?sum S f) \<oplus> ((f s_n) \<otimes> s_n)" unfolding insert(5)
-        using insert(2) add.finprod_Un_disjoint[OF insert(1), of "{ s_n }" "\<lambda>s. (f s) \<otimes> s"] by auto
+        using insert(2) finsum_Un_disjoint[OF insert(1), of "{ s_n }" "\<lambda>s. (f s) \<otimes> s"] by auto
 
       moreover have "?sum S f \<in> Span K S"
         using insert(3)[OF S] insert(6) by auto

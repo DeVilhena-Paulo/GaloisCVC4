@@ -198,15 +198,51 @@ next
   thus "Span R M H \<subseteq> \<Inter>{K. submodule K R M \<and> H \<subseteq> K}" by blast
 qed
 
-lemma (in module) mono_Span:
-  assumes "I \<subseteq> J" and "J \<subseteq> carrier M"
+lemma (in module) Span_idem :
+  assumes "I \<subseteq> carrier M"
+  shows "Span R M (Span R M I) = Span R M I"
+proof
+  show "Span R M I \<subseteq> Span R M (Span R M I)" using Span.incl by auto
+  show "Span R M (Span R M I) \<subseteq> Span R M I"
+    using Span_min_submodule1[of "Span R M I" "Span R M I"] assms
+            Span_in_carrier Span_is_submodule[OF assms] by blast
+qed
+
+lemma (in module) Span_mono:
+  assumes "I \<subseteq> J" "J \<subseteq> carrier M"
   shows "Span R M I \<subseteq> Span R M J"
 proof-
-  have "I \<subseteq> Span R M J "
+  have "I \<subseteq> Span R M J"
     using assms SpanE(2) by blast
   thus "Span R M I \<subseteq> Span R M J"
     using Span_min_submodule1[of I "Span R M J"] assms Span_is_submodule[OF assms(2)]
     by blast
+qed
+
+lemma (in module) Span_union :
+  assumes "Span R M I = Span R M J"
+    and "I \<subseteq> carrier M"
+    and "J \<subseteq> carrier M"
+    and "K \<subseteq> carrier M"
+  shows "Span R M (I \<union> K) = Span R M (J \<union> K)"
+proof-
+  {fix H L assume HL : "H \<subseteq> carrier M" "L \<subseteq> carrier M" "Span R M H = Span R M L"
+    have "Span R M (H \<union> K) \<subseteq> Span R M (L \<union> K)"
+    proof-
+      have "H \<subseteq> Span R M L" using HL Span.incl[of _ H R M] by auto
+      also have "Span R M L \<subseteq> Span R M (L \<union> K)" using Span_mono HL assms(4) by auto
+      finally have H : "H \<subseteq> Span R M (L \<union> K)" by simp
+      have "K \<subseteq> Span R M K" using Span.incl by auto
+      also have "Span R M K \<subseteq> Span R M (L \<union> K)" using Span_mono HL(2) assms(4) by auto
+      finally have "K \<subseteq> Span R M (L \<union> K)" by simp
+      hence "(H \<union> K) \<subseteq> Span R M (L \<union> K)"
+        using Span.incl[of _ H R M] H by auto
+      hence "Span R M (H \<union> K) \<subseteq> Span R M (Span R M (L \<union> K))"
+        using Span_mono[of "H \<union> K" "Span R M (L \<union> K)"] Span_in_carrier HL(2) assms(4) by blast
+      thus "Span R M (H \<union> K) \<subseteq> Span R M (L \<union> K)"
+        using Span_idem[of "L \<union> K"] HL assms(4) by auto
+    qed}
+  thus "Span R M (I \<union> K) = Span R M (J \<union> K)" using assms by auto
 qed
 
 lemma (in module) submodule_gen_incl :
@@ -218,7 +254,7 @@ lemma (in module) submodule_gen_incl :
 proof
   {fix J assume J_def : "submodule J R M" "I \<subseteq> J"
     have "Span R (M \<lparr>carrier := J\<rparr>) I \<subseteq> J"
-      using module.mono_Span[of R "(M\<lparr>carrier := J\<rparr>)" I J ] submodule.submodule_is_module[OF J_def(1)]
+      using module.Span_mono[of R "(M\<lparr>carrier := J\<rparr>)" I J ] submodule.submodule_is_module[OF J_def(1)]
           module.Span_in_carrier[of R "M\<lparr>carrier := J\<rparr>"]  module_axioms J_def(2)
       by auto}
   note incl_HK = this
@@ -261,33 +297,38 @@ lemma (in module) submodule_gen_equality:
 locale vector_space = module + field R
 
 
-abbreviation generator :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_scheme \<Rightarrow> 'c set => bool"
-  where "generator R M A \<equiv> A \<subseteq> (carrier M) \<and> Span R M A = carrier M"
+abbreviation
+generator :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_scheme \<Rightarrow> 'c set \<Rightarrow> 'c set \<Rightarrow> bool"
+  where "generator R M K A \<equiv> A \<subseteq> K \<and> Span R M A = K"
 
 abbreviation finite_dim :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_scheme \<Rightarrow> bool"
-  where "finite_dim R M \<equiv> \<exists> A. finite A \<and> generator R M A"
+  where "finite_dim R M \<equiv> \<exists> A. finite A \<and> generator R M (carrier M) A"
 
 abbreviation lin_dep :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_scheme \<Rightarrow> 'c set \<Rightarrow> bool"
-  where "lin_dep R M A \<equiv> \<exists> S. (S \<subset> A) \<and> Span R M S = Span R M A" 
+  where "lin_dep R M A \<equiv> A \<subseteq> carrier M \<and> (\<exists> S. (S \<subset> A) \<and> Span R M S = Span R M A)" 
 
 abbreviation lin_indep :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_scheme \<Rightarrow> 'c set \<Rightarrow> bool"
-  where "lin_indep R M A \<equiv> \<forall> S. (S \<subset> A) \<longrightarrow> Span R M S \<subset> Span R M A"
+  where "lin_indep R M A \<equiv> A \<subseteq> carrier M \<and> (\<forall> S. (S \<subset> A) \<longrightarrow> Span R M S \<subset> Span R M A)"
 
 abbreviation base :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_scheme \<Rightarrow> 'c set \<Rightarrow> bool"
-  where "base R M A \<equiv> lin_indep R M A \<and> generator R M A"
+  where "base R M A \<equiv> lin_indep R M A \<and> generator R M (carrier M) A"
+
+definition (in vector_space) dim :: "'c set \<Rightarrow> nat"
+  where "dim K \<equiv> LEAST n. (\<exists> A. card A = n  \<and>  generator R M K A)"
 
 lemma (in vector_space) lin_indep_not_dep:
   assumes "A \<subseteq> carrier M"
   shows "lin_dep R M A \<longleftrightarrow> \<not>lin_indep R M A" 
 proof
   assume "lin_dep R M A"
-  thus "\<not> lin_indep R M A "
+  hence "\<not> (\<forall> S. (S \<subset> A) \<longrightarrow> Span R M S \<subset> Span R M A)" using assms
     by blast
+  thus "\<not>lin_indep R M A" by auto
 next
   assume "\<not> lin_indep R M A"
-  from this obtain S where S_def : "(S \<subset> A)" "\<not> (Span R M S \<subset> Span R M A) " by auto
-  moreover have "Span R M S \<subseteq> Span R M A" using S_def(1) mono_Span[of S A] assms by auto
-  ultimately show  " lin_dep R M A" by blast
+  from this obtain S where S_def : "(S \<subset> A)" "\<not> (Span R M S \<subset> Span R M A)" using assms by blast
+  moreover have "Span R M S \<subseteq> Span R M A" using S_def(1) Span_mono[of S A] assms by auto
+  ultimately show "lin_dep R M A" using assms  by blast
 qed
 
 lemma (in module) finsum_smult_ldistr:
@@ -300,6 +341,7 @@ next
   case (insert x F) then show ?case 
     by (simp add: Pi_def smult_r_distr)
 qed
+
 
 lemma (in vector_space) h_in_finite_span :
   assumes "A \<subseteq> carrier M" and "h \<in> Span R M A"
@@ -320,16 +362,16 @@ next
   from this obtain S1 S2 where S1_def : "S1 \<subseteq>A \<and> finite S1 \<and> h1 \<in> Span R M S1"
                 and S2_def : "S2 \<subseteq> A \<and> finite S2 \<and> h2 \<in> Span R M S2" by auto
   then show ?case
-    using Span.eng_add[of _ R M "S1 \<union> S2"] mono_Span[of _ "S1 \<union> S2"]assms mono_Span[of _ "S1 \<union> S2"]
+    using Span.eng_add[of _ R M "S1 \<union> S2"] Span_mono[of _ "S1 \<union> S2"]assms Span_mono[of _ "S1 \<union> S2"]
     by (smt finite_UnI le_supI subsetCE subset_trans sup_ge1 sup_ge2)
 next
   case (eng_smult h1 h2)
   then show ?case using Span.eng_smult[of h1 R h2 M] by auto
 qed
 
-lemma (in vector_space) linear_combination_finite_incl :
+lemma (in vector_space) linear_combinations_finite_incl :
   assumes "finite A" and "A \<subseteq> carrier M" 
-  shows "h \<in> Span R M A \<Longrightarrow> h \<in> {x. \<exists> a. a \<in> (A \<rightarrow> carrier R) \<and> x = (\<Oplus>\<^bsub>M\<^esub>  v\<in>A. (a v \<odot>\<^bsub>M\<^esub> v))}"
+  shows "h \<in> Span R M A \<Longrightarrow> h \<in> { \<Oplus>\<^bsub>M\<^esub>s \<in> A. (f s) \<odot>\<^bsub>M\<^esub>  s | f. f: A \<rightarrow> carrier R }"
 proof (induction rule : Span.induct)
   have "\<And>v. v \<in> A \<Longrightarrow> (\<lambda>v. \<zero>) v \<odot>\<^bsub>M\<^esub> v = \<zero>\<^bsub>M\<^esub>" using assms smult_zero by auto
   hence sum_zero : "(\<Oplus>\<^bsub>M\<^esub>i\<in>A. \<zero>\<^bsub>M\<^esub>) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. ((\<lambda>v. \<zero>) v) \<odot>\<^bsub>M\<^esub> v) "
@@ -368,7 +410,7 @@ next
   moreover have "(\<lambda>v. if v = h then \<one> else \<zero>) \<in> A \<rightarrow> carrier R" by auto
   ultimately have  "(\<lambda>v. if v = h then \<one> else \<zero>) \<in> A \<rightarrow> carrier R \<and>
                     h = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<lambda>v. if v = h then \<one> else \<zero>) v \<odot>\<^bsub>M\<^esub> v)"  using hyp by auto
-  thus ?case by blast
+  thus ?case by fastforce
   next
     case (a_inv h)
     note hyp = this
@@ -391,7 +433,8 @@ next
   moreover have "f \<in> A \<rightarrow> carrier R"
     using f_def a_def(1) m_closed[of "\<ominus> \<one>"] R.add.inv_closed[OF one_closed]
     by blast
-  ultimately show ?case by auto
+  ultimately show ?case
+    using Pi_iff by fastforce
 next
   case (eng_add h1 h2)
   note hyp = this
@@ -417,7 +460,7 @@ next
     by auto
   hence "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. f v \<odot>\<^bsub>M\<^esub> v) = h1 \<oplus>\<^bsub>M\<^esub> h2" using a1_def a2_def by auto
   then show ?case
-    using fprop by auto
+    using fprop Pi_iff by fastforce
 next
   case (eng_smult h1 h2)
   note hyp = this
@@ -439,24 +482,161 @@ next
   ultimately show ?case by auto
 qed
 
-lemma (in vector_space) linear_combination_incl :
+lemma (in vector_space) linear_combinations_incl :
   assumes "A \<subseteq> carrier M"
-  shows "h \<in> Span R M A \<Longrightarrow> h \<in> {x. \<exists>S. finite S \<and> (\<exists>a. a \<in> S \<rightarrow> carrier R
-                                 \<and> x = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))}"
+  shows "Span R M A  \<subseteq> { \<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s | a S. a \<in> S \<rightarrow> carrier R \<and> finite S \<and> S \<subseteq> A}"
 proof
   fix h assume h_def : "h \<in> Span R M A"
   obtain S where S_def : "S \<subseteq> A" "finite S" "h \<in> Span R M S"
     using h_in_finite_span[OF assms h_def] by auto
   from this obtain a where a_def : " a \<in> S \<rightarrow> carrier R \<and> ( h = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))"
-    using linear_combination_finite_incl[OF S_def(2) _ S_def(3)] assms S_def by auto
-  thus " \<exists>S. finite S \<and> (\<exists>a. a \<in> S \<rightarrow> carrier R \<and> h = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))"
+    using linear_combinations_finite_incl[OF S_def(2) _ S_def(3)] assms S_def by auto
+  thus " h \<in> {\<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s | a S. a \<in> S \<rightarrow> carrier R \<and> finite S \<and> S \<subseteq> A}"
     using S_def by auto
 qed
 
 
-lemma linear_combinatino_incl2 :
-  assumes "finite A" and "A \<subseteq> carrier M" and "A \<noteq> {}"
-  shows "h \<in> {x. \<exists> a. a \<in> (A \<rightarrow> carrier R) \<and> x = (\<Oplus>\<^bsub>M\<^esub>  v\<in>A. (a v \<odot>\<^bsub>M\<^esub> v))} \<Longrightarrow> h \<in> Span R M A"
-  sorry
+lemma (in vector_space) linear_combinations_finite_incl2 :
+  assumes "finite A" and "A \<subseteq> carrier M" 
+  shows "{ \<Oplus>\<^bsub>M\<^esub>s \<in> A. (a s) \<odot>\<^bsub>M\<^esub>  s | a. a: A \<rightarrow> carrier R } \<subseteq>  Span R M A"
+        (is " { ?sum M A a  |a. a \<in> ?A_to_R } \<subseteq> Span R M A ")
+proof
+  fix x assume x_def : "x \<in> {\<Oplus>\<^bsub>M\<^esub>s\<in>A. a s \<odot>\<^bsub>M\<^esub> s |a. a \<in> A \<rightarrow> carrier R}"
+  from this obtain a where a_def : "a \<in> ?A_to_R" "x = ?sum M A a" by auto
+  show "x \<in> Span R M A" using assms a_def
+  proof (induction A arbitrary : x a)
+    case empty
+    then show ?case using finsum_empty Span.zero[of M R "{}"]
+      by simp 
+  next
+    case (insert xa F)
+    define y z where y_def : "y = ?sum M F a" and z_def : "z = a xa \<odot>\<^bsub>M\<^esub> xa"
+    from insert(5) have "a \<in> F \<rightarrow> carrier R " by auto
+    hence "y \<in> Span R M F" using y_def insert by auto
+    hence "y \<in> Span R M (insert xa F)" using Span_mono insert by blast 
+    moreover have "z \<in> Span R M (insert xa F)"
+      using Span.eng_smult Span.incl[of xa "insert xa F" R M] insert(5) z_def  by auto
+    moreover have "x = y \<oplus>\<^bsub>M\<^esub> z"
+      unfolding y_def z_def using insert finsum_insert[OF insert(1)insert(2)]
+      by (simp add: M.add.m_comm Pi_iff subset_eq)
+    ultimately show ?case using Span.eng_add[of y R M "insert xa F" z] by auto
+  qed
+qed
+
+lemma (in vector_space) linear_combinations_incl2 :
+  assumes "A \<subseteq> carrier M" 
+  shows "{ \<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s | a S. a \<in> S \<rightarrow> carrier R \<and> finite S \<and> S \<subseteq> A } \<subseteq>  Span R M A"
+        (is " ?X \<subseteq> Span R M A ")
+proof
+  fix h assume h_def : "h \<in> ?X"
+  obtain S a where S_a : "S \<subseteq> A" "finite S" "h = (\<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s)" "a \<in> S \<rightarrow> carrier R"
+    using h_def by blast
+  have "h \<in> { \<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s | a. a \<in> S \<rightarrow> carrier R}"
+    using S_a by auto
+  hence "h \<in> Span R M S" using linear_combinations_finite_incl2 assms S_a by blast
+  thus "h \<in> Span R M A" using Span_mono S_a assms by blast
+qed
+
+proposition (in vector_space) Span_as_linear_combinations :
+  assumes "A \<subseteq> carrier M"
+  shows "{ \<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s | a S. a \<in> S \<rightarrow> carrier R \<and> finite S \<and> S \<subseteq> A } = Span R M A"
+  using linear_combinations_incl2 linear_combinations_incl assms
+  by blast
+
+lemma (in vector_space) lin_indep_trunc :
+  assumes "lin_indep R M A"
+  shows "lin_indep R M (A - K)"
+proof-
+  {
+  fix K assume K_def : "K \<subseteq> A"
+  have "lin_indep R M (A - K)"
+  proof (rule ccontr)
+    assume "\<not> lin_indep R M (A - K)"
+    from this have dep : "lin_dep R M (A - K)"
+      using lin_indep_not_dep[of "A - K"] assms by auto
+    from this obtain S where S_def : "(S \<subset> (A - K))"  "Span R M S = Span R M (A - K)"
+      by auto
+    hence "(S \<union> K) \<subset> A" using K_def by auto
+    moreover have "Span R M (S \<union> K) = Span R M ((A - K) \<union> K)"
+      using Span_union[OF S_def(2)] S_def assms K_def dep by auto
+    hence "Span R M (S \<union> K) = Span R M A"
+      by (simp add: K_def Un_absorb2) 
+    ultimately show False using assms
+      by (metis psubsetE)
+  qed}
+  note aux_lemma = this
+  show ?thesis
+  proof (cases "K \<subseteq> A")
+    case True
+    thus ?thesis using aux_lemma by auto
+  next
+    case False
+   have "A - K = A - (A \<inter> K)" using False by auto
+   thus ?thesis using aux_lemma[of "A \<inter> K"] by auto
+ qed
+qed
+
+lemma (in vector_space) add_vector_lin_dep :
+  assumes "lin_indep R M A"
+    and "x \<in> carrier M"
+    and "S \<subset> (insert x A)"
+    and "S \<inter> A \<subset> A"
+    and "Span R M S = Span R M (insert x A)"
+  shows "x \<in> S"
+proof (rule ccontr)
+  assume "x \<notin> S"
+  hence S_incl : "S \<subset> A "using assms by auto
+  hence "Span R M S \<subseteq> Span R M A" using Span_mono[of S A] assms by auto
+  hence "Span R M (insert x A) \<subseteq> Span R M A" using assms by auto
+  moreover have "Span R M A \<subseteq> Span R M (insert x A)"
+    using Span_mono[of A "insert x A"] assms by auto
+  ultimately have "Span R M A = Span R M (insert x A)" by auto
+  thus False using S_incl assms(5) assms(1) by blast
+qed
+
+lemma (in vector_space) not_in_every_Span :
+  assumes "lin_indep R M A"
+    and "x \<in> Span R M A"
+    and "x \<noteq> \<zero>\<^bsub>M\<^esub>"
+  shows "\<exists> S. S \<subseteq> A \<and> x \<notin> Span R M S"
+proof
+  have "{} \<subseteq> A" by auto
+  moreover have "Span R M {} \<subseteq> {\<zero>\<^bsub>M\<^esub>}"
+  proof
+    fix x assume "x \<in> Span R M {}"
+    from this show "x \<in> {\<zero>\<^bsub>M\<^esub>}" apply (induction x rule : Span.induct) apply simp_all
+      by (metis M.zero_closed R.zero_closed r_null smult_assoc1 smult_zero)
+  qed
+  hence "x \<notin> Span R M {}" using assms by auto
+  ultimately show "{} \<subseteq> A \<and> x \<notin> Span R M {}" by auto
+
+proposition (in vector_space) exchange_theorem :
+  assumes "lin_indep R M A"
+    and "lin_indep R M (insert x B)"
+  shows "\<exists>y. lin_indep R M (insert x (A - {y}))"
+proof (cases "lin_indep R M (insert x A)")
+  case True
+  then show ?thesis using lin_indep_trunc
+    by (metis insert_Diff_single)
+  next
+    case False
+    have x_M : "x \<in> carrier M" using assms(2) by auto
+    from False have "lin_dep R M (insert x A)"
+      using lin_indep_not_dep[of "insert x A"] assms by simp
+    from this obtain S where S_def : "(S \<subset> insert x A)" "Span R M S = Span R M (insert x A)"
+      by auto
+    then show ?thesis
+    proof (cases "x \<in> S")
+      case True
+      then show ?thesis sorry
+    next
+      case False
+      have "\<not> S \<inter> A \<subset> A" apply (rule ccontr) apply simp
+        using add_vector_lin_dep[OF assms(1) x_M S_def(1)] False S_def by blast
+      hence "S = A" using S_def by auto
+      then show ?thesis sorry
+qed
+qed
+
 
 end
