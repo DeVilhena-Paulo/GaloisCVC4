@@ -300,11 +300,12 @@ lemma (in field) carrier_is_subfield: "subfield (carrier R) R"
 lemma subfieldE:
   assumes "subfield K R"
   shows "subring K R" and "subcring K R"
+    and "K \<subseteq> carrier R"
     and "\<And>k1 k2. \<lbrakk> k1 \<in> K; k2 \<in> K \<rbrakk> \<Longrightarrow> k1 \<otimes>\<^bsub>R\<^esub> k2 = k2 \<otimes>\<^bsub>R\<^esub> k1"
     and "\<And>k1 k2. \<lbrakk> k1 \<in> K; k2 \<in> K \<rbrakk> \<Longrightarrow> k1 \<otimes>\<^bsub>R\<^esub> k2 = \<zero>\<^bsub>R\<^esub> \<Longrightarrow> k1 = \<zero>\<^bsub>R\<^esub> \<or> k2 = \<zero>\<^bsub>R\<^esub>"
     and "\<one>\<^bsub>R\<^esub> \<noteq> \<zero>\<^bsub>R\<^esub>"
   using subdomain.axioms(1)[OF subfield.axioms(1)[OF assms]] subcring_def
-        subdomainE(8, 9, 10)[OF subfield.axioms(1)[OF assms]] by auto
+        subdomainE(1, 8, 9, 10)[OF subfield.axioms(1)[OF assms]] by auto
 
 lemma (in ring) subfield_m_inv:
   assumes "subfield K R" and "k \<in> K - { \<zero> }"

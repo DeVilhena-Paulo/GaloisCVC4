@@ -4,7 +4,7 @@
 (* ************************************************************************** *)
 
 theory Frobenius
-imports Ideal Ring "HOL.Binomial" Int_Ring
+imports Ideal Ring "HOL.Binomial" Int_Ring More_Finite_Product
 
 begin
 
@@ -159,11 +159,11 @@ proof -
     hence "int (char R) dvd int ((char R) choose k)"
       using n prime_choose_k[OF assms(1)] int_dvd_int_iff
             atLeastLessThanSuc_atLeastAtMost by presburger 
-    hence "\<lbrakk> (char R) choose k \<rbrakk> = \<zero>"
-      using add_pow_eq_zero_iff[of "(char R) choose k"] by simp
-    moreover have "[ int ((char R) choose k)] \<cdot> ?f k = \<lbrakk> (char R) choose k \<rbrakk> \<otimes> ?f k"
+    hence "\<lbrakk> int ((char R) choose k) \<rbrakk> = \<zero>"
+      using add_pow_eq_zero_iff[of "int ((char R) choose k)"] by simp
+    moreover have "[ int ((char R) choose k)] \<cdot> ?f k = \<lbrakk> int ((char R) choose k) \<rbrakk> \<otimes> ?f k"
       using elt_of_int_def'[of "a [^] k \<otimes> b [^] ((char R) - k)"] assms(2-3) by simp
-    hence "[((char R) choose k)] \<cdot> ?f k = \<lbrakk> (char R) choose k \<rbrakk> \<otimes> ?f k"
+    hence "[((char R) choose k)] \<cdot> ?f k = \<lbrakk> int ((char R) choose k) \<rbrakk> \<otimes> ?f k"
       using add.int_pow_def2 by simp
     ultimately show "[((char R) choose k)] \<cdot> ?f k = \<zero>"
       using assms(2-3) by simp
