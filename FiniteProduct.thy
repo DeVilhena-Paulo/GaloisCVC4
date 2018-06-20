@@ -57,13 +57,8 @@ qed
 
 lemma foldSetD_backwards:
   assumes "A \<noteq> {}" "(A, z) \<in> foldSetD D f e"
-  shows "\<exists>x y. x \<in> A \<and> (A - {x}, y) \<in> foldSetD D f e \<and> z = f x y" using assms(2)
-proof (cases)
-  case emptyI thus ?thesis using assms(1) by simp
-next
-  case (insertI x A y) thus ?thesis
-    by (metis Diff_insert_absorb insertI1) 
-qed
+  shows "\<exists>x y. x \<in> A \<and> (A - { x }, y) \<in> foldSetD D f e \<and> z = f x y"
+  using assms(2) by (cases) (simp add: assms(1), metis Diff_insert_absorb insertI1)
 
 
 text \<open>Left-Commutative Operations\<close>
@@ -93,15 +88,15 @@ next
   case (Suc n)
   hence "A \<noteq> {}" by auto
   then obtain xa ya z1 z2
-    where x: "xa \<in> A" "(A - { xa }, z1) \<in> foldSetD D f e" "x = xa \<cdot> z1"
-      and y: "ya \<in> A" "(A - { ya }, z2) \<in> foldSetD D f e" "y = ya \<cdot> z2"
+    where x: "xa \<in> A" "(A - { xa }, z1) \<in> foldSetD D f e" and z1: "x = xa \<cdot> z1"
+      and y: "ya \<in> A" "(A - { ya }, z2) \<in> foldSetD D f e" and z2: "y = ya \<cdot> z2"
       by (meson foldSetD_backwards Suc)
   thus ?case
   proof (cases)
     assume Eq: "xa = ya" hence "z1 = z2"
       using Suc.IH[OF Suc(2) _ _ x(2), of z2] Suc(3-4,6) x(1) y(2) by auto
     thus ?thesis
-      using x(3) y(3) Eq by simp
+      using z1 z2 Eq by simp
   next
     assume Ineq: "xa \<noteq> ya"
     hence "finite (A - { xa, ya })"
@@ -125,7 +120,7 @@ next
       using Suc.IH[OF Suc(2) _ _ y(2), of "xa \<cdot> w"] Suc(3-4,6) y(1) by auto
 
     ultimately show ?thesis
-      using Suc.prems(2) w(1) x y left_commute by blast
+      using Suc.prems(2) w(1) x y z1 z2 left_commute by blast
   qed
 qed
 

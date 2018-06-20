@@ -375,10 +375,7 @@ fun S_builder :: "_ \<Rightarrow> 'a set \<Rightarrow> nat \<Rightarrow> 'a set"
         (if diff \<noteq> {} then insert (SOME x. x \<in> diff) (S_builder R J n) else (S_builder R J n)))"
 
 lemma S_builder_incl: "S_builder R J n \<subseteq> J"
-  apply (induction n)
-  apply simp_all
-  apply (metis (no_types, lifting) some_eq_ex subsetI)
-  done
+  by (induction n) (simp_all, (metis (no_types, lifting) some_eq_ex subsetI))
 
 lemma (in ring) S_builder_const1:
   assumes "ideal J R" "S_builder R J (Suc n) = S_builder R J n"
