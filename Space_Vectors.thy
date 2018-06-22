@@ -35,7 +35,38 @@ proof (induction rule: Span.induct)
   case (eng_smult h1 h2)
   then show ?case using module_axioms unfolding module_def module_axioms_def by auto
 qed
- 
+
+lemma (in module) Span_singleton :
+  assumes "x \<in> carrier M"
+  shows "Span R M {x} = {k \<odot>\<^bsub>M\<^esub> x | k. k \<in> carrier R}"
+proof
+  show "{k \<odot>\<^bsub>M\<^esub> x |k. k \<in> carrier R} \<subseteq> Span R M {x}"
+    using Span.eng_smult[of _ R x M "{x}"] Span.incl[of x "{x}" R M] by blast
+  show "Span R M {x} \<subseteq> {k \<odot>\<^bsub>M\<^esub> x |k. k \<in> carrier R}"
+  proof
+    fix xa assume xa_def : "xa \<in> Span R M {x}"
+    show "xa \<in> {k \<odot>\<^bsub>M\<^esub> x |k. k \<in> carrier R}" using xa_def
+    proof (induction rule : Span.induct)
+      case zero
+      then show ?case using smult_l_null assms by force
+    next
+      case (incl h)
+      then show ?case using smult_one assms by force
+    next
+      case (a_inv h)
+      then show ?case
+        by (smt assms cring_simprules(3) mem_Collect_eq module_axioms module_def smult_l_minus)
+    next
+      case (eng_add h1 h2)
+      then show ?case using smult_l_distr[OF _ _ assms]
+        by (smt R.add.m_closed mem_Collect_eq)
+    next
+      case (eng_smult h1 h2)
+      then show ?case using m_closed[of h1]
+        by (smt assms mem_Collect_eq smult_assoc1) 
+    qed
+  qed
+qed
 
 
 lemma (in module) Span_is_add_subgroup :
@@ -44,83 +75,6 @@ lemma (in module) Span_is_add_subgroup :
  using zero[of M R H] Span_in_carrier assms eng_add[of _ R M H] a_inv[of _ R M H] a_inv_def[of M]
   by (auto intro! : subgroup.intro) 
 
-subsection \<open>Submodules\<close>
-
-locale submodule = subgroup H "add_monoid M" for H and R :: "('a, 'b) ring_scheme" and M (structure)
-+ assumes smult_closed [simp, intro]:
-      "\<lbrakk>a \<in> carrier R; x \<in> H\<rbrakk> \<Longrightarrow> a \<odot>\<^bsub>M\<^esub> x \<in> H"
-
-
-lemma (in module) submoduleI :
-  assumes subset: "H \<subseteq> carrier M"
-    and zero: "\<zero>\<^bsub>M\<^esub> \<in> H"
-    and a_inv: "!!a. a \<in> H \<Longrightarrow> \<ominus>\<^bsub>M\<^esub> a \<in> H"
-    and add : "\<And> a b. \<lbrakk>a \<in> H ; b \<in> H\<rbrakk> \<Longrightarrow> a \<oplus>\<^bsub>M\<^esub> b \<in> H"
-    and smult_closed : "\<And> a x. \<lbrakk>a \<in> carrier R; x \<in> H\<rbrakk> \<Longrightarrow> a \<odot>\<^bsub>M\<^esub> x \<in> H"
-  shows "submodule H R M"
-  apply (intro submodule.intro subgroup.intro)
-  using assms unfolding submodule_axioms_def 
-  by (simp_all add : a_inv_def)
-
-
-lemma (in module) submoduleE :
-  assumes "submodule H R M"
-  shows "H \<subseteq> carrier M"
-    and "H \<noteq> {}"
-    and "\<And>a. a \<in> H \<Longrightarrow> \<ominus>\<^bsub>M\<^esub> a \<in> H"
-    and "\<And>a b. \<lbrakk>a \<in> carrier R; b \<in> H\<rbrakk> \<Longrightarrow> a \<odot>\<^bsub>M\<^esub> b \<in> H"
-    and "\<And> a b. \<lbrakk>a \<in> H ; b \<in> H\<rbrakk> \<Longrightarrow> a \<oplus>\<^bsub>M\<^esub> b \<in> H"
-    and "\<And> x. x \<in> H \<Longrightarrow> (a_inv M x) \<in> H"
-  using group.subgroupE[of "add_monoid M" H, OF _ submodule.axioms(1)[OF assms]] a_comm_group
-        submodule.smult_closed[OF assms]
-  unfolding comm_group_def a_inv_def
-  by auto
-
-
-lemma (in module) carrier_is_submodule :
-"submodule (carrier M) R M"
-  apply (intro  submoduleI)
-  using a_comm_group group.inv_closed unfolding comm_group_def a_inv_def group_def monoid_def
-  by auto
-
-lemma (in submodule) submodule_is_module :
-  assumes "module R M"
-  shows "module R (M\<lparr>carrier := H\<rparr>)"
-proof (auto intro! : moduleI abelian_group.intro)
-  show "cring (R)" using assms unfolding module_def by auto
-  show "abelian_monoid (M\<lparr>carrier := H\<rparr>)"
-    using comm_monoid.submonoid_is_comm_monoid[OF _ subgroup_is_submonoid] assms
-    unfolding abelian_monoid_def module_def abelian_group_def
-    by auto
-  thus "abelian_group_axioms (M\<lparr>carrier := H\<rparr>)"
-    using subgroup_is_group assms 
-    unfolding abelian_group_axioms_def comm_group_def abelian_monoid_def module_def abelian_group_def
-    by auto
-  show "\<And>z. z \<in> H \<Longrightarrow> \<one>\<^bsub>R\<^esub> \<odot> z = z"
-    using subgroup_imp_subset[OF subgroup_axioms] module.smult_one[OF assms]
-    by auto
-  fix a b x y assume a : "a \<in> carrier R" and b : "b \<in> carrier R" and x : "x \<in> H" and y : "y \<in> H"
-  show "(a \<oplus>\<^bsub>R\<^esub> b) \<odot> x = a \<odot> x \<oplus> b \<odot> x"
-    using a b x module.smult_l_distr[OF assms] subgroup_imp_subset[OF subgroup_axioms]
-    by auto
-  show "a \<odot> (x \<oplus> y) = a \<odot> x \<oplus> a \<odot> y"
-    using a x y module.smult_r_distr[OF assms] subgroup_imp_subset[OF subgroup_axioms]
-    by auto
-  show "a \<otimes>\<^bsub>R\<^esub> b \<odot> x = a \<odot> (b \<odot> x)"
-    using a b x module.smult_assoc1[OF assms] subgroup_imp_subset[OF subgroup_axioms]
-    by auto
-qed
-
-      
-lemma (in module) module_incl_imp_submodule :
-  assumes "H \<subseteq> carrier M"
-    and "module R (M\<lparr>carrier := H\<rparr>)"
-  shows "submodule H R M"
-  apply (intro submodule.intro)
-  using add.group_incl_imp_subgroup[OF assms(1)] assms module.axioms(2)[OF assms(2)]
-        module.smult_closed[OF assms(2)]
-  unfolding abelian_group_def abelian_group_axioms_def comm_group_def submodule_axioms_def
-  by simp_all
 
 lemma (in module) Span_is_submodule :
   assumes "H \<subseteq> (carrier M)"
@@ -219,6 +173,22 @@ proof-
     by blast
 qed
 
+lemma (in module) elt_in_Span_imp_Span_idem :
+  assumes "A \<subseteq> carrier M"
+    and "x \<in> Span R M A"
+  shows "Span R M (insert x A) = Span R M A"
+proof
+  have x_M : "x \<in> carrier M" using Span_in_carrier assms by auto
+  thus "Span R M A \<subseteq> Span R M (insert x A)" using Span_mono[of A "insert x A"] assms by auto
+  have "insert x A \<subseteq> Span R M A" using assms Span.incl by auto
+  hence "Span R M (insert x A) \<subseteq> Span R M (Span R M A)"
+    using Span_mono[of "insert x A" "Span R M A"] assms Span.incl[of _ "insert x A" R M]
+          Span_in_carrier[OF assms(1)] by auto
+  thus "Span R M (insert x A) \<subseteq> Span R M A "
+    using Span_idem[OF assms(1)] by auto
+qed
+
+
 lemma (in module) Span_union :
   assumes "Span R M I = Span R M J"
     and "I \<subseteq> carrier M"
@@ -314,7 +284,7 @@ abbreviation base :: "('a, 'b) ring_scheme \<Rightarrow> ('a, 'c, 'd) module_sch
   where "base R M A \<equiv> lin_indep R M A \<and> generator R M (carrier M) A"
 
 definition (in vector_space) dim :: "'c set \<Rightarrow> nat"
-  where "dim K \<equiv> LEAST n. (\<exists> A. card A = n  \<and>  generator R M K A)"
+  where "dim K \<equiv> LEAST n. (\<exists> A. finite A \<and> card A = n  \<and>  generator R M K A)"
 
 lemma (in vector_space) lin_indep_not_dep:
   assumes "A \<subseteq> carrier M"
@@ -331,19 +301,22 @@ next
   ultimately show "lin_dep R M A" using assms  by blast
 qed
 
-lemma (in module) finsum_smult_ldistr:
-  "\<lbrakk> finite A; a \<in> carrier R; f: A \<rightarrow> carrier M \<rbrakk> \<Longrightarrow>
-     a \<odot>\<^bsub>M\<^esub> (\<Oplus>\<^bsub>M\<^esub> i \<in> A. (f i)) = (\<Oplus>\<^bsub>M\<^esub> i \<in> A. ( a \<odot>\<^bsub>M\<^esub> (f i)))"
-proof (induct set: finite)
-  case empty then show ?case
-    by (metis M.finsum_empty M.zero_closed R.zero_closed r_null smult_assoc1 smult_zero)
-next
-  case (insert x F) then show ?case 
-    by (simp add: Pi_def smult_r_distr)
+
+lemma (in vector_space) zero_imp_dep :
+  assumes "\<zero>\<^bsub>M\<^esub> \<in> A"
+    and "A \<subseteq> carrier M"
+  shows "lin_dep R M A" using assms(2)
+proof
+  have "A - {\<zero>\<^bsub>M\<^esub>} \<subset> A" using assms by auto
+  moreover have "\<zero>\<^bsub>M\<^esub> \<in> Span R M (A - {\<zero>\<^bsub>M\<^esub>})" using Span.zero by auto
+  hence "Span R M (A - {\<zero>\<^bsub>M\<^esub>}) = Span R M A"
+    using elt_in_Span_imp_Span_idem[of "A - {\<zero>\<^bsub>M\<^esub>}" "\<zero>\<^bsub>M\<^esub>"] assms
+    by (metis insert_Diff insert_subset)
+  ultimately show "\<exists>S\<subset>A. Span R M S = Span R M A " by auto
 qed
 
 
-lemma (in vector_space) h_in_finite_span :
+lemma (in vector_space) h_in_finite_Span :
   assumes "A \<subseteq> carrier M" and "h \<in> Span R M A"
   shows "\<exists>S \<subseteq> A. finite S \<and> h \<in> Span R M S" using assms(2)
 proof (induction rule : Span.induct)
@@ -373,7 +346,7 @@ lemma (in vector_space) linear_combinations_finite_incl :
   assumes "finite A" and "A \<subseteq> carrier M" 
   shows "h \<in> Span R M A \<Longrightarrow> h \<in> { \<Oplus>\<^bsub>M\<^esub>s \<in> A. (f s) \<odot>\<^bsub>M\<^esub>  s | f. f: A \<rightarrow> carrier R }"
 proof (induction rule : Span.induct)
-  have "\<And>v. v \<in> A \<Longrightarrow> (\<lambda>v. \<zero>) v \<odot>\<^bsub>M\<^esub> v = \<zero>\<^bsub>M\<^esub>" using assms smult_zero by auto
+  have "\<And>v. v \<in> A \<Longrightarrow> (\<lambda>v. \<zero>) v \<odot>\<^bsub>M\<^esub> v = \<zero>\<^bsub>M\<^esub>" using assms smult_l_null by auto
   hence sum_zero : "(\<Oplus>\<^bsub>M\<^esub>i\<in>A. \<zero>\<^bsub>M\<^esub>) = (\<Oplus>\<^bsub>M\<^esub>v\<in>A. ((\<lambda>v. \<zero>) v) \<odot>\<^bsub>M\<^esub> v) "
   proof (induct A rule: infinite_finite_induct)
     case (infinite A)
@@ -398,7 +371,7 @@ next
     using assms smult_closed one_closed hyp by auto
   moreover have null : "\<And>x. x\<in> (A - {h}) \<Longrightarrow> (\<lambda>v. if v = h then \<one> else \<zero>) x = (\<lambda>v. \<zero>) x" by auto
   hence "\<And>x. x\<in> (A - {h}) \<Longrightarrow> (\<lambda>y. ((\<lambda>v. if v = h then \<one> else \<zero>) y) \<odot>\<^bsub>M\<^esub> y) x = (\<lambda>v. \<zero>\<^bsub>M\<^esub>) x"
-    using smult_zero assms by auto
+    using smult_l_null assms by auto
   hence "(\<Oplus>\<^bsub>M\<^esub>v\<in>(A - {h}). ((\<lambda>v. if v = h then \<one> else \<zero>) v) \<odot>\<^bsub>M\<^esub> v) = \<zero>\<^bsub>M\<^esub>"
     using  M.finsum_cong'[of "A - {h}" "A - {h}" "\<lambda>x. ((\<lambda>v. if v = h then \<one> else \<zero>) x) \<odot>\<^bsub>M\<^esub> x"
            "\<lambda>v. \<zero>\<^bsub>M\<^esub>"] finsum_zero[of "A - {h}"]
@@ -420,7 +393,7 @@ next
     using module.finsum_smult_ldistr[OF module_axioms assms(1), of "(\<ominus>\<one>)" "\<lambda>v. a v \<odot>\<^bsub>M\<^esub> v"] a_def
     by (smt Pi_def R.add.inv_closed assms(2) mem_Collect_eq one_closed smult_closed subsetCE)
   also have "... = \<ominus>\<^bsub>M\<^esub> h"
-    using smult_l_opposite smult_one Span_in_carrier hyp assms by auto
+    using smult_l_minus smult_one Span_in_carrier hyp assms by auto
   finally have "(\<Oplus>\<^bsub>M\<^esub>v\<in>A. (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v)) =  \<ominus>\<^bsub>M\<^esub> h" by auto
   moreover have "\<And>v. v \<in> A \<Longrightarrow> (\<ominus> \<one>) \<odot>\<^bsub>M\<^esub> ((a v) \<odot>\<^bsub>M\<^esub> v) =  (f v \<odot>\<^bsub>M\<^esub> v) "
     using one_closed a_def assms(2) unfolding f_def
@@ -488,7 +461,7 @@ lemma (in vector_space) linear_combinations_incl :
 proof
   fix h assume h_def : "h \<in> Span R M A"
   obtain S where S_def : "S \<subseteq> A" "finite S" "h \<in> Span R M S"
-    using h_in_finite_span[OF assms h_def] by auto
+    using h_in_finite_Span[OF assms h_def] by auto
   from this obtain a where a_def : " a \<in> S \<rightarrow> carrier R \<and> ( h = (\<Oplus>\<^bsub>M\<^esub>v\<in>S. a v \<odot>\<^bsub>M\<^esub> v))"
     using linear_combinations_finite_incl[OF S_def(2) _ S_def(3)] assms S_def by auto
   thus " h \<in> {\<Oplus>\<^bsub>M\<^esub>s \<in> S. (a s) \<odot>\<^bsub>M\<^esub>  s | a S. a \<in> S \<rightarrow> carrier R \<and> finite S \<and> S \<subseteq> A}"
@@ -576,6 +549,19 @@ proof-
  qed
 qed
 
+lemma (in vector_space) vector_in_Span_imp_dep :
+  assumes "A \<subseteq> carrier M"
+    and "x \<in> Span R M A"
+    and "x \<notin> A"
+  shows "lin_dep R M (insert x A)"
+proof
+  show "insert x A \<subseteq> carrier M"
+    using assms(1) Span_in_carrier[OF assms(1-2)] by simp
+  have "Span R M A = Span R M (insert x A)"
+    using elt_in_Span_imp_Span_idem[OF assms(1-2)] by auto
+  thus "\<exists>S\<subset>insert x A. Span R M S = Span R M (insert x A)" using assms by auto
+qed
+
 lemma (in vector_space) add_vector_lin_dep :
   assumes "lin_indep R M A"
     and "x \<in> carrier M"
@@ -604,39 +590,421 @@ proof
   moreover have "Span R M {} \<subseteq> {\<zero>\<^bsub>M\<^esub>}"
   proof
     fix x assume "x \<in> Span R M {}"
-    from this show "x \<in> {\<zero>\<^bsub>M\<^esub>}" apply (induction x rule : Span.induct) apply simp_all
-      by (metis M.zero_closed R.zero_closed r_null smult_assoc1 smult_zero)
+    from this show "x \<in> {\<zero>\<^bsub>M\<^esub>}" apply (induction x rule : Span.induct) by simp_all
   qed
   hence "x \<notin> Span R M {}" using assms by auto
   ultimately show "{} \<subseteq> A \<and> x \<notin> Span R M {}" by auto
+qed
 
-proposition (in vector_space) exchange_theorem :
+lemma (in vector_space) not_in_span_imp_no_Span_inter :
+  assumes "A \<subseteq> carrier M"
+    and "x \<in> carrier M"
+    and "x \<notin> Span R M A"
+  shows "(Span R M A) \<inter> (Span R M {x}) = {\<zero>\<^bsub>M\<^esub>} "
+proof
+  have "{\<zero>\<^bsub>M\<^esub>} \<subseteq> Span R M A" using Span.zero by auto
+  moreover have "{\<zero>\<^bsub>M\<^esub>} \<subseteq> Span R M {x}" using Span.zero by auto
+  ultimately show "{\<zero>\<^bsub>M\<^esub>} \<subseteq> Span R M A \<inter> Span R M {x}" by auto
+  show "Span R M A \<inter> Span R M {x} \<subseteq> {\<zero>\<^bsub>M\<^esub>}"
+  proof (rule ccontr)
+    assume "\<not> Span R M A \<inter> Span R M {x} \<subseteq> {\<zero>\<^bsub>M\<^esub>}"
+    hence "\<exists> y. y \<in> Span R M A \<inter> Span R M {x} \<and> y \<notin> {\<zero>\<^bsub>M\<^esub>}" by auto
+    from this obtain y where y_def : "y \<in> Span R M A \<inter> Span R M {x} \<and> y \<notin> {\<zero>\<^bsub>M\<^esub>}" by auto
+    hence not_zero : "y \<noteq> \<zero>\<^bsub>M\<^esub>" by auto
+    have "y \<in> {k \<odot>\<^bsub>M\<^esub> x | k. k \<in> carrier R}"
+      using Span_singleton assms y_def by auto
+    from this obtain k where k_def : "k \<in> carrier R" "k \<odot>\<^bsub>M\<^esub> x = y" by blast
+    have "k \<odot>\<^bsub>M\<^esub> x \<in> Span R M A" using y_def k_def by auto
+    moreover have "k \<noteq> \<zero>" using k_def(2) not_zero smult_l_null y_def assms(2) by auto
+    hence inv_R : "inv k \<in> carrier R"
+      by (simp add: k_def(1) local.field_Units)
+    ultimately have "inv k \<odot>\<^bsub>M\<^esub> (k \<odot>\<^bsub>M\<^esub> x) \<in> Span R M A"
+      using Span.eng_smult[of "inv k" R "k \<odot>\<^bsub>M\<^esub> x" M A] by auto
+    hence "(inv k \<otimes> k) \<odot>\<^bsub>M\<^esub> x \<in> Span R M A"
+      using smult_assoc1[of "inv k" k x] using k_def
+      by (simp add: inv_R assms(2))
+    hence "x \<in> Span R M A"
+      by (simp add: \<open>k \<noteq> \<zero>\<close> assms(2) k_def(1) local.field_Units)
+    thus False using assms by auto
+  qed
+qed
+      
+lemma (in vector_space) vector_indep :
+  assumes "x \<in> carrier M"
+    and "x \<noteq> \<zero>\<^bsub>M\<^esub>"
+  shows "lin_indep R M {x}"
+proof
+  show "{x} \<subseteq> carrier M" using assms by auto
+  show "\<forall>S\<subset>{x}. Span R M S \<subset> Span R M {x}"
+  proof-
+    {fix S assume S_def : "S \<subset> {x}" have "Span R M S \<subset> Span R M {x}"
+      proof-
+        from S_def have S_empty : "S = {}" by auto
+        hence "S \<subseteq> {\<zero>\<^bsub>M\<^esub>}" by auto
+        moreover have "Span R M {\<zero>\<^bsub>M\<^esub>} = {k \<odot>\<^bsub>M\<^esub> \<zero>\<^bsub>M\<^esub> |k. k \<in> carrier R}"
+          using Span_singleton[OF M.zero_closed] by auto
+        moreover have "{k \<odot>\<^bsub>M\<^esub> \<zero>\<^bsub>M\<^esub> |k. k \<in> carrier R} \<subseteq> {\<zero>\<^bsub>M\<^esub>}" using smult_r_null
+          by blast
+        ultimately have "Span R M S \<subseteq> {\<zero>\<^bsub>M\<^esub>}"
+          using Span_mono[of S "{\<zero>\<^bsub>M\<^esub>}"] M.zero_closed by blast
+        moreover have "x \<in> Span R M {x}" using Span.incl[of x] by auto
+        ultimately show "Span R M S \<subset> Span R M {x}" using assms
+          using Span_mono S_empty by blast
+      qed}
+    thus "\<forall>S\<subset>{x}. Span R M S \<subset> Span R M {x}" by blast
+  qed
+qed
+
+
+lemma (in vector_space) vector_decomposition :
+  assumes "A \<subseteq> carrier M"
+    and "B \<subseteq> carrier M"
+    and "x \<in> Span R M (A \<union> B)"
+  shows "\<exists> x1 x2. x1 \<in> Span R M A \<and> x2 \<in> Span R M B \<and> x1 \<oplus>\<^bsub>M\<^esub> x2 = x" using assms(3)
+proof (induction rule : Span.induct)
+  case zero
+  then show ?case using Span.zero M.r_zero by blast
+next
+  case (incl h)
+  then show ?case 
+  proof
+    assume "h \<in> A"
+    thus ?case using M.r_zero[of h] Span.incl[of h A R M] Span.zero[of M R B] assms by blast
+  next
+    assume "h \<in> B"
+    thus ?case using M.l_zero[of h] Span.incl[of h B R M] Span.zero[of M R A] assms by blast
+  qed
+next
+  case (a_inv h)
+  from this obtain x1 x2 where x1x2 : "x1 \<in> Span R M A" "x2 \<in> Span R M B" "x1 \<oplus>\<^bsub>M\<^esub> x2 = h" by auto
+  hence "\<ominus>\<^bsub>M\<^esub> x1 \<in> Span R M A"
+    using smult_l_minus[of "\<one>" x1] assms(1) smult_one[of x1] by (simp add: Span.a_inv)
+  moreover have "\<ominus>\<^bsub>M\<^esub> x2 \<in> Span R M B"
+    using Span.a_inv x1x2 by auto
+  moreover have "\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> \<ominus>\<^bsub>M\<^esub> x2 = \<ominus>\<^bsub>M\<^esub> h"
+    using x1x2 a_inv(1) smult_l_minus[of "\<one>" "x1 \<oplus>\<^bsub>M\<^esub> x2" ] smult_r_distr[of "\<one>" x1 x2]
+         Span_in_carrier[OF assms(1) x1x2(1)] Span_in_carrier[OF assms(2) x1x2(2)]
+    using M.minus_add by auto
+  ultimately show ?case  by auto
+next
+  case (eng_add h1 h2)
+  from this obtain x1 x2 where x1x2 : "x1 \<in> Span R M A" "x2 \<in> Span R M B" "x1 \<oplus>\<^bsub>M\<^esub> x2 = h1"
+    by auto
+  from eng_add obtain y1 y2 where y1y2 : "y1 \<in> Span R M A" "y2 \<in> Span R M B" "y1 \<oplus>\<^bsub>M\<^esub> y2 = h2"
+    by auto
+  have "h1 \<oplus>\<^bsub>M\<^esub> h2 = x1 \<oplus>\<^bsub>M\<^esub> x2 \<oplus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> y2"
+    using x1x2 y1y2 assms Span_in_carrier M.add.m_assoc by auto 
+  also have "... = x1 \<oplus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> x2 \<oplus>\<^bsub>M\<^esub> y2"
+    using x1x2 y1y2 assms Span_in_carrier M.add.m_comm M.add.m_lcomm by auto
+  finally have "h1 \<oplus>\<^bsub>M\<^esub> h2 =  (x1 \<oplus>\<^bsub>M\<^esub> y1) \<oplus>\<^bsub>M\<^esub> (x2 \<oplus>\<^bsub>M\<^esub> y2)"
+    using x1x2 y1y2 assms Span_in_carrier M.add.m_assoc by auto
+  moreover have "(x1 \<oplus>\<^bsub>M\<^esub> y1) \<in> Span R M A" using x1x2 y1y2 Span.eng_add by auto
+  moreover have "(x2 \<oplus>\<^bsub>M\<^esub> y2) \<in> Span R M B" using x1x2 y1y2 Span.eng_add by auto
+  ultimately show ?case by auto
+next
+  case (eng_smult h1 h2)
+  then show ?case using smult_r_distr[of h1] Span_in_carrier assms
+    by (metis Span.intros(5))
+qed
+
+lemma (in vector_space) two_vectors_exchange_Span :
+  assumes "A \<subseteq> carrier M"
+    and "x \<in> carrier M"
+    and "y \<in> Span R M (insert x A)"
+    and "y \<notin> Span R M A"
+  shows "x \<in> Span R M (insert y A)"
+proof-
+  have "\<exists> x1 x2. x1 \<in> Span R M A \<and> x2 \<in> Span R M {x} \<and> x1 \<oplus>\<^bsub>M\<^esub> x2 = y"
+    using vector_decomposition[of A "{x}" y] assms by auto
+  from this obtain x1 x2 where x1x2 : "x1 \<in> Span R M A \<and> x2 \<in> Span R M {x} \<and> x1 \<oplus>\<^bsub>M\<^esub> x2 = y"
+    by auto
+  have not_null : "x2 \<noteq> \<zero>\<^bsub>M\<^esub>"
+  proof
+    assume x_zero : "x2 = \<zero>\<^bsub>M\<^esub>"
+    hence "y = x1" using x1x2 M.r_zero assms Span_in_carrier by auto
+    thus False using assms x1x2 by auto
+  qed
+  moreover have "x2 \<in> {k \<odot>\<^bsub>M\<^esub> x | k. k \<in> carrier R}"
+    using Span_singleton x1x2 assms by auto
+  from this obtain k where k_def : "k \<in> carrier R" "x2 = k \<odot>\<^bsub>M\<^esub> x" by auto
+  hence k_prop : "k \<noteq> \<zero>"
+    using not_null smult_l_null[of x2] x1x2 Span_in_carrier assms by auto 
+  ultimately have "inv k \<odot>\<^bsub>M\<^esub>(\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> y) = inv k \<odot>\<^bsub>M\<^esub>\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> inv k \<odot>\<^bsub>M\<^esub> y"
+    using smult_r_distr[of "inv k" x1 y] using assms Span_in_carrier x1x2 k_def field_Units
+    by (metis Diff_iff M.add.inv_closed M.add.m_closed Units_inv_closed module.smult_closed
+        module.smult_r_distr module_axioms singletonD)
+  also have "... = inv k \<odot>\<^bsub>M\<^esub>\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> inv k \<odot>\<^bsub>M\<^esub> (x1 \<oplus>\<^bsub>M\<^esub> x2)"
+    using x1x2 Span_in_carrier assms by auto
+  also have "... = inv k \<odot>\<^bsub>M\<^esub>\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> inv k \<odot>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> inv k \<odot>\<^bsub>M\<^esub> x2"
+    using x1x2 Span_in_carrier assms smult_r_distr[of "inv k" x1 x2] M.a_assoc
+          k_prop k_def field_Units by auto 
+  also have "... = inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> x1) \<oplus>\<^bsub>M\<^esub> inv k \<odot>\<^bsub>M\<^esub> x2"
+    using smult_r_distr x1x2 k_def Span_in_carrier assms k_prop field_Units by auto
+  also have "... = inv k \<odot>\<^bsub>M\<^esub> (\<zero>\<^bsub>M\<^esub>) \<oplus>\<^bsub>M\<^esub> inv k \<odot>\<^bsub>M\<^esub> x2"
+    using x1x2 k_def Span_in_carrier assms M.l_neg by auto 
+  also have "... = inv k \<odot>\<^bsub>M\<^esub> x2"
+    using smult_r_null[of "inv k"] x1x2 k_def Span_in_carrier assms M.l_zero M.r_neg1 calculation
+    by auto
+  also have "... = inv k \<odot>\<^bsub>M\<^esub> (k \<odot>\<^bsub>M\<^esub> x)" using k_def by auto
+  finally have "inv k \<odot>\<^bsub>M\<^esub>(\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> y) = x"
+    using smult_assoc1[of "inv k" k x] assms k_def
+    by (simp add: k_prop local.field_Units)
+  moreover have "x1 \<in> Span R M (insert y A)"
+    using x1x2 Span_mono[of A "insert y A"] assms Span_in_carrier by blast
+  hence  "inv k \<odot>\<^bsub>M\<^esub>(\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> y) \<in> Span R M (insert y A)"
+    using Span.eng_add[of "\<ominus>\<^bsub>M\<^esub> x1" R M "insert y A" y] Span.a_inv[of x1 R M "insert y A"]
+          Span.eng_smult[of "inv k" R "\<ominus>\<^bsub>M\<^esub> x1 \<oplus>\<^bsub>M\<^esub> y" M "insert y A"] k_def k_prop x1x2
+    by (simp add: Span.incl field_Units)
+  ultimately show "x \<in> Span R M (insert y A)" by auto
+qed
+
+
+lemma (in vector_space) two_vectors_exchange :
+  assumes "lin_indep R M A"
+    and "y \<in> carrier M"
+    and "y \<notin> Span R M A"
+  shows "lin_indep R M (insert y A)"
+proof
+  show A1 : "insert y A \<subseteq> carrier M" using assms by auto
+  show "\<forall>S\<subset>insert y A. Span R M S \<subset> Span R M (insert y A)"
+  proof (cases "A = {}")
+    case True
+    thus ?thesis using vector_indep[OF assms(2)] assms Span.zero[of M R A]
+      by auto
+  next
+    case False
+    {fix S assume S_def : "S \<subset> insert y A" have "Span R M S \<subset> Span R M (insert y A)" 
+    proof-
+      from S_def have S_carrier : "S \<subseteq> carrier M" using A1 by auto
+      show "Span R M S \<subset> Span R M (insert y A)" 
+      proof(cases "y \<in> S")
+        case True
+        have S1 : "S - {y} \<subset> A" using S_def True by auto
+        hence "A - S \<noteq> {}" using S_def by auto
+        hence  x1 : "\<exists> x \<in> (A - S). x \<noteq> \<zero>\<^bsub>M\<^esub>"
+          using assms zero_imp_dep[of "(A - S)"] False lin_indep_not_dep[of "(A - S)"]
+              lin_indep_trunc[OF assms(1), of "S"]
+          by (metis all_not_in_conv)
+        from x1 obtain x where x_def : "x \<in> (A - S)""x \<noteq> \<zero>\<^bsub>M\<^esub>" by auto
+        have x_prop :  "x \<notin> Span R M (S - {y})"
+        proof
+          assume hyp : "x \<in> Span R M (S - {y})"
+          have "S - {y} \<subset> insert x (S - {y})"
+            using x_def by auto
+          moreover have "A - (A - (insert x (S - {y}))) = insert x (S - {y})" using S1 x_def
+            by blast
+          hence "lin_indep R M (insert x (S - {y}))"
+            using lin_indep_trunc[OF assms(1), of "(A - (insert x (S - {y})))"] x_def
+            by simp
+          ultimately show False using  S1 assms(1) x_def (1)
+           elt_in_Span_imp_Span_idem[of "S - {y}" x, OF _ hyp]
+            by (metis insert_subset psubset_eq)
+        qed
+        have "x \<notin> Span R M S" apply auto
+        proof-
+          assume hyp : "x \<in> Span R M S"
+          hence "\<exists> z1 z2. z1 \<in> Span R M (S - {y}) \<and> z2 \<in> Span R M {y} \<and> z1 \<oplus>\<^bsub>M\<^esub> z2 = x"
+            using vector_decomposition[of "S - {y}" "{y}" x] S1 assms True insert_subset Un_commute
+            by (smt empty_subsetI insert_Diff insert_is_Un psubset_imp_subset psubset_subset_trans)
+          from this obtain z1 z2 
+            where z1z2 : " z1 \<in> Span R M (S - {y})" "z2 \<in> Span R M {y}" "z1 \<oplus>\<^bsub>M\<^esub> z2 = x"
+            by auto
+          hence z1Span : "z1 \<in> Span R M A" using Span_mono[of "S - {y}" A] S1 assms by auto
+          hence "\<ominus>\<^bsub>M\<^esub> z1 \<in> Span R M A" using Span.a_inv[of z1 R] by auto
+          hence "\<ominus>\<^bsub>M\<^esub> z1 \<oplus>\<^bsub>M\<^esub> x \<in> Span R M A"
+            using Span.eng_add[of "\<ominus>\<^bsub>M\<^esub> z1" R M A x] x_def(1) Span.incl[of x A] by auto
+          hence z2Span : "z2 \<in> Span R M A"
+            using z1z2 M.l_neg[of z1] Span_in_carrier assms S1 M.a_assoc
+            by (metis M.r_neg1 z1Span empty_subsetI insert_subset)
+          have "z2 \<in> {k \<odot>\<^bsub>M\<^esub> y |k. k \<in> carrier R}"
+            using Span_singleton[OF assms(2)] z1z2 by auto
+          moreover have "z2 \<noteq> \<zero>\<^bsub>M\<^esub>"
+          proof
+            assume hyp2 : "z2 = \<zero>\<^bsub>M\<^esub>"
+            hence "x = z1"
+              using M.r_zero[of z1] z1z2(1,3) Span_in_carrier S1 assms(1) 
+              by (metis (no_types, lifting) S_carrier True insert_Diff insert_subset)
+            thus False using z1z2 x_prop by auto
+          qed
+          ultimately have "\<exists> k. k \<in> carrier R \<and> z2 = k \<odot>\<^bsub>M\<^esub> y \<and> k \<noteq> \<zero>"
+            using smult_l_null[of y] assms(2) by blast 
+          from this obtain k where k_def : "k \<in> carrier R" "z2 = k \<odot>\<^bsub>M\<^esub> y" "k \<noteq> \<zero>" by auto
+          hence invk : "inv k \<in> carrier R"
+            using field_Units by auto
+          hence "inv k \<odot>\<^bsub>M\<^esub> z2 \<in> Span R M A"
+            using hyp Span.eng_smult[of "inv k" R] z2Span by auto
+          moreover have "inv k \<odot>\<^bsub>M\<^esub> z2 = y"
+            using k_def field_Units smult_assoc1[of "inv k" k y] assms invk
+            by simp
+          ultimately show False using assms by auto
+        qed
+        thus "Span R M S \<subset> Span R M (insert y A)"
+          using x_def Span.incl[of x "insert y A" R M] A1 S_def
+          by (metis DiffD1 insertI2 module.Span_mono module_axioms psubsetI psubset_imp_subset)
+      next
+        case False
+        hence "Span R M S \<subseteq> Span R M (A)"
+          using S_def Span_mono[of S A] assms by blast
+        hence "y \<notin> Span R M S" using assms by auto
+        moreover have "y \<in> Span R M (insert y A)" using Span.incl[of y "insert y A"] by auto
+        moreover have "Span R M S \<subseteq> Span R M (insert y A)" using Span_mono S_def assms by auto
+        ultimately show ?thesis by auto
+      qed
+      qed}
+    thus "\<forall>S\<subset>insert y A. Span R M S \<subset> Span R M (insert y A)" by auto
+  qed
+qed
+
+lemma (in vector_space) aux_lemma_for_replacement :
+  assumes "lin_indep R M A"
+    and "finite A"
+    and "y \<in> Span R M A"
+    and "y \<noteq> \<zero>\<^bsub>M\<^esub>"
+  shows "\<exists> z \<in> carrier M. y \<notin> Span R M (A - {z})" using assms(2) assms(1,3)
+proof (induction A)
+  case empty
+  then show ?case using assms
+    using empty_Diff not_in_every_Span not_psubset_empty by force
+next
+  case (insert x F)
+  have indep : "lin_indep R M F" using insert lin_indep_trunc[of "insert x F" "{x}"]  by simp
+  show ?case
+  proof (cases "y \<in> Span R M F")
+    case True
+    from this obtain z where z_def : "z \<in> carrier M""y \<notin> Span R M (F - {z})"
+      using insert indep by auto
+    have "y \<notin> Span R M (insert x F - {z})"
+    proof
+      assume hyp : "y \<in> Span R M (insert x F - {z})"
+      from this obtain y1 y2 
+        where y1y2 : "y1 \<in> Span R M (F - {z})" "y2 \<in> Span R M {x}" "y1 \<oplus>\<^bsub>M\<^esub> y2 = y"
+        using vector_decomposition[of "F - {z}" "{x}" y] insert(4) insert_is_Un insert_absorb z_def
+        by (smt Diff_insert_absorb Diff_subset True Un_insert_right empty_subsetI insert_Diff_single 
+                insert_subset sup_bot.right_neutral)
+      have "y2 \<noteq> \<zero>\<^bsub>M\<^esub>"
+      proof
+        assume "y2 = \<zero>\<^bsub>M\<^esub>"
+        then have "y = y1" using y1y2 Span_in_carrier insert(4) z_def
+          by (metis Span.eng_add Span.zero)
+        thus False using y1y2(1) z_def by auto
+      qed
+      from True obtain z1 z2
+        where z1z2 : "z1 \<in> Span R M (F - {z})" "z2 \<in> Span R M {z}" "z1 \<oplus>\<^bsub>M\<^esub> z2 = y"
+        using vector_decomposition[of "F - {z}" "{z}" y] insert(4) insert_is_Un[of z "F-{z}"]z_def
+        by (metis (no_types, lifting) Diff_empty Diff_insert0 Un_commute empty_subsetI insert_Diff
+           insert_subset)
+      have z1_insert : "z1 \<in> Span R M (insert x (F - {z}))"
+        using z1z2 Span_mono[of "F - {z}" "insert x (F - {z})"] insert insert_subset
+        by (metis (no_types, lifting) Diff_empty Diff_insert0 insert_Diff subset_insertI)
+      have z20 : "z2 \<noteq> \<zero>\<^bsub>M\<^esub>"
+      proof
+        assume "z2 = \<zero>\<^bsub>M\<^esub>"
+        then have "y = z1" using z1z2 Span_in_carrier insert(4) z_def
+          by (meson Span.eng_add Span.zero)
+        thus False using z1z2(1) z_def by auto
+      qed
+      have "z2 \<in> {k \<odot>\<^bsub>M\<^esub> z |k. k \<in> carrier R}"
+        using Span_singleton[OF z_def(1)] z1z2(2) by auto
+      from this obtain k where k_def : "k \<in> carrier R" "z2 = k \<odot>\<^bsub>M\<^esub> z" by auto
+      hence k0 : "k \<noteq> \<zero>"
+        using z20 smult_l_null[OF z_def(1)] by auto
+      hence inv : "inv k \<in> carrier R" using field_Units k_def by blast
+      hence "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> z1 \<oplus>\<^bsub>M\<^esub> y) \<in> Span R M (insert x (F - {z}))"
+        using hyp z1z2(1) Span.a_inv[OF z1_insert] Span.eng_add[OF _ hyp, of "\<ominus>\<^bsub>M\<^esub> z1"]
+              Span.eng_smult[OF inv, of "(\<ominus>\<^bsub>M\<^esub> z1 \<oplus>\<^bsub>M\<^esub> y)"]
+        by (smt insert_Diff_if z_def(2)) 
+      moreover have "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> z1 \<oplus>\<^bsub>M\<^esub> y) = inv k \<odot>\<^bsub>M\<^esub> (\<zero>\<^bsub>M\<^esub> \<oplus>\<^bsub>M\<^esub> z2)"
+        using z1z2 M.l_neg M.l_zero M.r_neg1 Span_in_carrier smult_closed z_def(1) insert_subset
+        by (metis (no_types, lifting) Diff_empty Diff_insert0 insert.prems(1) insert_Diff k_def) 
+      hence "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> z1 \<oplus>\<^bsub>M\<^esub> y) = inv k \<odot>\<^bsub>M\<^esub> (k \<odot>\<^bsub>M\<^esub> z)"
+        using M.l_zero k_def Span_in_carrier z_def(1) smult_closed[OF k_def(1) z_def(1)] by auto
+      hence "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> z1 \<oplus>\<^bsub>M\<^esub> y) = z"
+        using smult_assoc1[OF inv k_def(1)] by (simp add: k0 k_def(1)field_Units z_def(1)) 
+      ultimately have "z \<in> Span R M (insert x (F - {z}))" by auto
+      moreover have "insert x (F - {z}) \<subseteq> carrier M"
+        using insert(4) by blast
+      ultimately have "lin_dep R M (insert z (insert x (F - {z})))"
+        using vector_in_Span_imp_dep[of "(insert x (F - {z}))" z]True insert(2) z_def by fastforce
+      hence "lin_dep R M (insert x F)" using True z_def
+        by (metis (no_types, lifting) Diff_empty Diff_insert0 insert_Diff insert_commute)
+      thus False using insert(4) by auto
+    qed
+    then show ?thesis using z_def by auto
+  next
+    case False
+    then have "y \<notin> Span R M (insert x F - {x})"
+      by (simp add: insert.hyps(2))
+    then show ?thesis using insert(4) by blast
+  qed
+qed
+
+
+proposition (in vector_space) replacement_theorem :
   assumes "lin_indep R M A"
     and "lin_indep R M (insert x B)"
   shows "\<exists>y. lin_indep R M (insert x (A - {y}))"
-proof (cases "lin_indep R M (insert x A)")
+proof (cases "x \<in> Span R M A")
   case True
-  then show ?thesis using lin_indep_trunc
-    by (metis insert_Diff_single)
-  next
-    case False
-    have x_M : "x \<in> carrier M" using assms(2) by auto
-    from False have "lin_dep R M (insert x A)"
-      using lin_indep_not_dep[of "insert x A"] assms by simp
-    from this obtain S where S_def : "(S \<subset> insert x A)" "Span R M S = Span R M (insert x A)"
-      by auto
+  have not0 : "x \<noteq> \<zero>\<^bsub>M\<^esub>" using assms(2) zero_imp_dep[of "insert x B"]
+    by (meson insert_iff lin_indep_not_dep)
+  obtain S where S_def : "S \<subseteq> A""finite S" "x \<in> Span R M S"
+    using h_in_finite_Span[of A, OF _ True] assms by auto
+  hence "\<exists>z\<in>carrier M. x \<notin> Span R M (S - {z})"
+    using aux_lemma_for_replacement[OF _ S_def(2,3) not0] lin_indep_trunc[OF assms(1), of "A - S"]
+    by (simp add: double_diff) 
+  then obtain y where y_def : "y \<in> carrier M" "x \<notin> Span R M (S - {y})" by auto
+  have "x \<notin> Span R M (A - {y})"
+  proof
+    assume hyp : "x \<in> Span R M (A - {y})"
+    obtain y1 y2
+      where y1y2 : "y1 \<in> Span R M (S - {y})" "y2 \<in> Span R M {y}" "y1 \<oplus>\<^bsub>M\<^esub> y2 = x"
+      using vector_decomposition[of "S - {y}" "{y}" x] insert_is_Un insert_absorb S_def y_def assms
+      by (smt Diff_empty Diff_insert0 Un_Diff_cancel Un_commute empty_subsetI insert_subset
+              subset_trans)
+    have y20 : "y2 \<noteq> \<zero>\<^bsub>M\<^esub>"
+    proof
+      assume "y2 = \<zero>\<^bsub>M\<^esub>"
+      then have "x = y1" using y1y2 Span_in_carrier y_def
+        by (meson Span.eng_add Span.zero)
+      thus False using y1y2(1) y_def by auto
+    qed
+    have "y2 \<in> {k \<odot>\<^bsub>M\<^esub> y |k. k \<in> carrier R}"
+      using Span_singleton[OF y_def(1)] y1y2(2) by auto
+    from this obtain k where k_def : "k \<in> carrier R" "y2 = k \<odot>\<^bsub>M\<^esub> y" by auto
+    hence k0 : "k \<noteq> \<zero>"
+      using y20 smult_l_null[OF y_def(1)] by auto
+    hence inv : "inv k \<in> carrier R" using field_Units k_def by blast
+    have "A - {y} - (S - {y})= (A - S)"
+      using S_def Diff_insert0 y_def(2) by auto
+    from hyp this obtain z1 z2
+      where z1z2 : "z1 \<in> Span R M (S - {y})" "z2 \<in> Span R M (A - S)" "z1 \<oplus>\<^bsub>M\<^esub> z2 = x"
+      using vector_decomposition[of "S - {y}" "A-{y} - (S - {y})"] insert_is_Un insert_absorb assms
+      by (smt Diff_empty Diff_insert0 Diff_partition Un_subset_iff insert_Diff subset_insert_iff S_def)
+    have "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> x) \<in> Span R M ((A - {y}))"
+      using hyp z1z2(1) Span.a_inv[OF y1y2(1)] Span.eng_add[OF _ hyp, of "\<ominus>\<^bsub>M\<^esub> y1"] assms(1)S_def(1)
+            Span.eng_smult[OF inv, of "(\<ominus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> x)" M "A-{y}"] Span_mono[of "S-{y}" "A-{y}"]
+      by (metis (no_types, hide_lams) Diff_empty Diff_mono Diff_subset lin_indep_trunc subsetCE)
+    moreover have "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> x) = inv k \<odot>\<^bsub>M\<^esub> (\<zero>\<^bsub>M\<^esub> \<oplus>\<^bsub>M\<^esub> y2)"
+      using y1y2 M.l_neg M.l_zero M.r_neg1 Span_in_carrier smult_closed y_def(1) insert_subset
+            S_def(1) assms(1) k_def
+      by (metis (no_types, lifting) Diff_empty Diff_insert0 insert_Diff subset_trans)
+      hence "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> x) = inv k \<odot>\<^bsub>M\<^esub> (k \<odot>\<^bsub>M\<^esub> y)"
+        using M.l_zero[OF smult_closed[OF k_def(1) y_def(1)]] k_def y_def(1) by auto
+      hence "inv k \<odot>\<^bsub>M\<^esub> (\<ominus>\<^bsub>M\<^esub> y1 \<oplus>\<^bsub>M\<^esub> x) = y"
+        using smult_assoc1[OF inv k_def(1)] by (simp add: k0 k_def(1)field_Units y_def(1)) 
+      ultimately have "y \<in> Span R M (A - {y})" by auto
+      thus False using vector_in_Span_imp_dep[of "A-{y}" y] assms lin_indep_not_dep y_def singletonI
+        by (metis (no_types, lifting) DiffE Diff_empty Diff_insert0 S_def insert_Diff insert_subset)
+    qed
     then show ?thesis
-    proof (cases "x \<in> S")
-      case True
-      then show ?thesis sorry
-    next
-      case False
-      have "\<not> S \<inter> A \<subset> A" apply (rule ccontr) apply simp
-        using add_vector_lin_dep[OF assms(1) x_M S_def(1)] False S_def by blast
-      hence "S = A" using S_def by auto
-      then show ?thesis sorry
+      using two_vectors_exchange[of "A - {y}" x] assms lin_indep_trunc by auto
+next
+  case False
+  then show ?thesis
+    using two_vectors_exchange[OF assms(1) _ False] assms lin_indep_trunc[of "insert x A"]
+    by (metis Diff_idemp Diff_insert_absorb insert_subset lin_indep_not_dep zero_imp_dep)
 qed
-qed
+
 
 
 end
