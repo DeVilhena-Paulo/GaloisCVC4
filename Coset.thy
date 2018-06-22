@@ -1130,7 +1130,7 @@ proof-
     unfolding set_mult_def apply auto apply blast+.
   moreover have "(\<forall>x\<in>carrier (G Mod H). \<forall>y\<in>carrier (K Mod N). \<forall>xa\<in>carrier (G Mod H).
                  \<forall>ya\<in>carrier (K Mod N).  x \<times> y = xa \<times> ya \<longrightarrow> x = xa \<and> y = ya)"
-    unfolding  FactGroup_def using times_eq_iff subgroup.rcosets_not_empty
+    unfolding  FactGroup_def using times_eq_iff subgroup.rcosets_non_empty
     by (metis assms(2) assms(3) normal_def partial_object.select_convs(1))
   moreover have "(\<lambda>(X, Y). X \<times> Y) ` (carrier (G Mod H) \<times> carrier (K Mod N)) = 
                                      carrier (G \<times>\<times> K Mod H \<times> N)"
