@@ -1,3 +1,8 @@
+(* ************************************************************************** *)
+(* Title:      More_Polynomials.thy                                           *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
+
 theory Embedded_Algebras
   imports More_Polynomials More_Finite_Product Generated_Groups Subrings
     
@@ -17,32 +22,20 @@ text \<open>The definitions of linear Span and dimension have two subtleties. Fi
       be seen in its turn as a ring R and a distinguished subset formed by the image of
       this homomorphism. \<close>
 
-text \<open>We define the set of generators (as well as the set of bases) and not a predicate
-      "generator" only for syntactic reasons. \<close>
-
 definition span :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> 'a set" ("Span\<index>")
    where "span R K S = generate (add_monoid R) (K <#>\<^bsub>R\<^esub> S)"
 
-definition generators :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> ('a set) set" ("generators\<index>")
-  where "generators\<^bsub>R\<^esub> K A = { B. B \<subseteq> A \<and> A = Span\<^bsub>R\<^esub> K B }"
-
 definition dim :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> nat" ("dim\<index>")
-  where "dim\<^bsub>R\<^esub> K A = (LEAST k. \<exists>B. finite B \<and> card B = k \<and> B \<in> generators\<^bsub>R\<^esub> K A)"
+  where "dim\<^bsub>R\<^esub> K A = (LEAST k. \<exists>B. B \<subseteq> carrier R \<and> finite B \<and> card B = k \<and> A = Span\<^bsub>R\<^esub> K B)"
 
 definition finite_dim :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> bool" ("finite'_dim\<index>")
-  where "finite_dim\<^bsub>R\<^esub> K A \<longleftrightarrow> (\<exists>B. finite B \<and> B \<in> generators\<^bsub>R\<^esub> K A)"
+  where "finite_dim\<^bsub>R\<^esub> K A \<longleftrightarrow> (\<exists>B. B \<subseteq> carrier R \<and> finite B \<and> A = Span\<^bsub>R\<^esub> K B)"
 
 definition linear_ind :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> bool" ("linear'_ind\<index>")
   where "linear_ind\<^bsub>R\<^esub> K B \<longleftrightarrow> dim\<^bsub>R\<^esub> K (Span\<^bsub>R\<^esub> K B) = card B"
 
 abbreviation linear_dep :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> bool" ("linear'_dep\<index>")
   where "linear_dep\<^bsub>R\<^esub> K B \<equiv> \<not> linear_ind\<^bsub>R\<^esub> K B"
-
-definition bases :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a set  \<Rightarrow> ('a set) set" ("bases\<index>")
-  where "bases\<^bsub>R\<^esub> K A = { B. linear_ind\<^bsub>R\<^esub> K B \<and> B \<in> generators\<^bsub>R\<^esub> K A }"
-
-definition scalar_prop :: "_ \<Rightarrow> 'a set \<Rightarrow> bool"
-  where "scalar_prop R K \<longleftrightarrow> (\<forall>k \<in> K. \<forall>a \<in> carrier R. k \<otimes>\<^bsub>R\<^esub> a = a \<otimes>\<^bsub>R\<^esub> k)"
 
 definition over :: "('a set \<Rightarrow> 'b) \<Rightarrow> 'a set \<Rightarrow> 'b" (infixl "over" 65)
   where "f over K \<equiv> f K"
@@ -110,9 +103,7 @@ lemma (in ring) span_equality:
   assumes "subgroup H (add_monoid R)" "K <#> S \<subseteq> H"
   shows "Span\<^bsub>(R \<lparr> carrier := H \<rparr>)\<^esub> K S = Span K S"
   unfolding span_def
-  using add.subgroup_gen_equality[OF assms]
-        set_mult_consistent[of R K S H]
-  by auto
+  using add.subgroup_gen_equality[OF assms] by auto
 
 corollary (in ring) span_equality_betw_subgroups:
   assumes "subgroup I (add_monoid R)" and "subgroup J (add_monoid R)"
@@ -161,6 +152,19 @@ proof
     qed
   qed
 qed
+
+lemma (in ring) span_zero: "K \<subseteq> carrier R \<Longrightarrow> Span K { \<zero> } = { \<zero> }"
+proof -
+  assume "K \<subseteq> carrier R"
+  hence subset: "K <#> { \<zero> } \<subseteq> { \<zero> }"
+    by (force simp add: set_mult_def)
+  hence "Span K { \<zero> } \<subseteq> { \<zero> }"
+    by (metis empty_subsetI local.span_empty span_is_subgroup' span_min')
+  moreover have "\<zero> \<in> Span K { \<zero> }"
+    using subgroup.one_closed[of _ "add_monoid R"] span_is_subgroup[of K "{ \<zero> }"] subset by auto
+  ultimately show ?thesis by auto
+qed
+
 
 lemma (in ring) span_one:
   assumes "subgroup K (add_monoid R)"
@@ -299,39 +303,6 @@ proof
       ultimately show ?case
         unfolding span_def using generate.eng[of _ "add_monoid R"] by auto
     qed
-  qed
-qed
-
-corollary (in ring) semi_linear_decomp:
-  assumes "subgroup K (add_monoid R)"
-    and "u' \<in> carrier R" and "U \<subseteq> carrier R" and "finite U"
-  shows "a \<in> Span K (insert u' U) \<Longrightarrow> \<exists>k v. k \<in> K \<and> v \<in> Span K U \<and> a = k \<otimes> u' \<oplus> v"
-    (is "a \<in> Span K (insert u' U) \<Longrightarrow> \<exists>k v. ?semi_linear_decomp k v")
-proof -
-  assume "a \<in> Span K (insert u' U)"
-  then obtain f where f: "f: (insert u' U) \<rightarrow> K" and a: "a = (\<Oplus>u \<in> (insert u' U). (f u) \<otimes> u)"
-    using span_as_linear_combinations[OF assms(1), of "insert u' U"]
-          assms(2-4) insert_subset by blast
-  hence in_Span: "(\<Oplus>u \<in> U. (f u) \<otimes> u) \<in> Span K U"
-    using span_as_linear_combinations[OF assms(1,4,3)] f by auto
-  show ?thesis
-  proof (cases "u' \<in> U")
-    assume "u' \<in> U"
-    hence "a = (\<Oplus>u \<in> U. (f u) \<otimes> u)" unfolding a
-      by (simp add: insert_absorb)
-    hence "?semi_linear_decomp \<zero> a"
-      using subgroup.one_closed[OF assms(1)] assms(2) in_Span
-            span_in_carrier[OF _ assms(3), of K] subgroup.subset[OF assms(1)] by auto
-    thus ?thesis by blast
-  next
-    assume u': "u' \<notin> U"
-    have "\<And>u. u \<in> (insert u' U) \<Longrightarrow> (f u) \<otimes> u \<in> carrier R"
-      using subgroup.subset[OF assms(1)] assms(2-3) f by auto
-    hence "a = ((f u') \<otimes> u') \<oplus> (\<Oplus>u \<in> U. (f u) \<otimes> u)" unfolding a
-      using assms(4) u' by auto
-    hence "?semi_linear_decomp (f u') (\<Oplus>u \<in> U. (f u) \<otimes> u)"
-      using in_Span f by auto
-    thus ?thesis by blast
   qed
 qed
 
@@ -524,6 +495,27 @@ proof -
     using span_iff_finite_linear_combination[OF subring.axioms(1)] assms S' by blast
 qed
 
+lemma (in ring) mono_span':
+  assumes "subring K R" and "K \<subseteq> carrier R" "S \<subseteq> carrier R" and "B \<subseteq> Span K S"
+  shows "Span K B \<subseteq> Span K S"
+proof (rule span_min'[OF span_is_subgroup'[OF assms(2-3)]])
+  show "K <#> B \<subseteq> Span K S"
+    using span_smult_closed[OF assms(1,3)] assms(4) unfolding set_mult_def by auto
+qed
+
+lemma (in ring) span_m_inv_simprule [simp]:
+  assumes "subfield K R" and "S \<subseteq> carrier R"
+  shows "\<lbrakk> k \<in> K - { \<zero> }; a \<in> carrier R \<rbrakk> \<Longrightarrow> k \<otimes> a \<in> Span K S \<Longrightarrow> a \<in> Span K S"
+proof -
+  assume k: "k \<in> K - { \<zero> }" and a: "a \<in> carrier R" and ka: "k \<otimes> a \<in> Span K S"
+  have inv_k: "inv k \<in> K" "inv k \<otimes> k = \<one>"
+    using subfield_m_inv[OF assms(1) k] by simp+
+  hence "inv k \<otimes> (k \<otimes> a) \<in> Span K S"
+    using span_smult_closed[OF subfieldE(1)[OF assms(1)] assms(2) _ ka] by simp
+  thus ?thesis
+    using inv_k subfieldE(3)[OF assms(1)] a k by (smt DiffD1 l_one m_assoc set_rev_mp)
+qed
+
 corollary (in ring) span_smult_incl:
   assumes "subring K R" and "S \<subseteq> carrier R"
   shows "A \<subseteq> Span K S \<Longrightarrow> K <#> A \<subseteq> Span K S"
@@ -563,6 +555,19 @@ proof
   thus "Span K (insert a S) \<subseteq> Span K S"
     using span_is_subgroup[OF set_mult_closed[OF subringE(1)[OF assms(1)] assms(2)]]
     by (simp add: span_min')
+qed
+
+corollary (in ring) insert_linear_dep_iff:
+  assumes "subring K R" and "S \<subseteq> carrier R"
+  shows "a \<in> Span K S \<Longrightarrow> Span K S = Span K (insert a S)"
+    and "\<lbrakk> Span K S = Span K (insert a S); a \<in> carrier R \<rbrakk> \<Longrightarrow> a \<in> Span K S"
+proof -
+  assume "a \<in> Span K S" thus "Span K S = Span K (insert a S)"
+    unfolding span_iff_finite_linear_combination[OF subring.axioms(1)[OF assms(1)] assms(2), of a]
+    using insert_linear_dep[OF assms, where ?a = a] by auto
+next
+  assume "Span K S = Span K (insert a S)" "a \<in> carrier R" thus "a \<in> Span K S"
+    using span_base_incl[OF subringE(3)[OF assms(1)], of "insert a S"] assms(2) by auto
 qed
 
 corollary (in ring) remove_linear_dep:
@@ -613,6 +618,30 @@ next
     using insert_linear_dep[OF subfieldE(1)[OF assms(1)] in_carrier(2) S'(2), of _ a] by auto
   thus ?thesis
     using S' by auto
+qed
+
+lemma (in ring) span_base_union:
+  assumes "K \<subseteq> carrier R" "U' \<subseteq> carrier R" "U \<subseteq> carrier R" "V \<subseteq> carrier R"
+    and "Span K U' = Span K U"
+  shows "Span K (U' \<union> V) = Span K (U \<union> V)"
+proof
+  { fix U' U assume A: "U' \<subseteq> carrier R" "U \<subseteq> carrier R" "Span K U' = Span K U"
+    have "Span K (U' \<union> V) \<subseteq> Span K (U \<union> V)"
+    proof (rule span_min')
+      show "subgroup (Span K (U \<union> V)) (add_monoid R)"
+        using span_is_subgroup'[OF assms(1)] A(2) assms(4) by auto
+      have "K <#> U' \<union> V = (K <#> U') \<union> (K <#> V)"
+        unfolding set_mult_def by auto
+      moreover have "K <#> U' \<subseteq> Span K (U \<union> V)"
+        using mono_span[OF _ assms(1), of K U "U \<union> V"] span_incl[of K U'] assms(4) A(2-3) by auto
+      moreover have "K <#> V \<subseteq> Span K (U \<union> V)"
+        using mono_span[OF _ assms(1), of K V "U \<union> V"] span_incl[of K V] assms(4) A(2) by auto 
+      ultimately show "K <#> U' \<union> V \<subseteq> Span K (U \<union> V)" by simp
+    qed } note aux_lemma = this
+  show "Span K (U' \<union> V) \<subseteq> Span K (U \<union> V)"
+    using aux_lemma assms by auto
+  show "Span K (U \<union> V) \<subseteq> Span K (U' \<union> V)"
+    using aux_lemma assms by auto
 qed
 
 lemma (in ring) insert_linear_combination:
@@ -734,8 +763,47 @@ proof (rule ccontr)
     using assms(4) by simp
 qed
 
+lemma (in ring) semi_linear_decomp:
+  assumes "subgroup K (add_monoid R)"
+    and "u \<in> carrier R" and "U \<subseteq> carrier R"
+  shows "a \<in> Span K (insert u U) \<Longrightarrow> \<exists>k v. k \<in> K \<and> v \<in> Span K U \<and> a = k \<otimes> u \<oplus> v"
+    (is "a \<in> Span K (insert u U) \<Longrightarrow> \<exists>k v. ?semi_linear_decomp k v")
+proof -
+  note subgroup_props = add.subgroupE[OF assms(1)]
+
+  assume "a \<in> Span K (insert u U)"
+  then obtain U' f
+    where U': "finite U'" "U' \<subseteq> insert u U"
+      and f: "f: U' \<rightarrow> K" and a: "a = (\<Oplus>u \<in> U'. (f u) \<otimes> u)"
+    using span_iff_finite_linear_combination[OF assms(1), of "insert u U"]
+          assms(2-3) insert_subset[of u U "carrier R"] by auto
+  have in_carrier: "\<And>u. u \<in> U' \<Longrightarrow> (f u) \<otimes> u \<in> carrier R"
+    using subgroup_props(1) assms(2,3) f U'(2) by force
+  show ?thesis
+  proof (cases "u \<in> U'")
+    assume "u \<notin> U'"
+    hence "a \<in> Span K U"
+      using span_iff_finite_linear_combination[OF assms(1,3)] U' f a by blast
+    hence "?semi_linear_decomp \<zero> a"
+      using subgroup.one_closed[OF assms(1)] assms(2) subgroup_props(1)
+            span_in_carrier[OF _ assms(3), of K] by auto 
+    thus ?thesis by blast
+  next
+    assume "u \<in> U'"
+    then obtain U'' where U'': "u \<notin> U''" "U' = insert u U''"
+      by (meson Set.set_insert)
+    have "a = ((f u) \<otimes> u) \<oplus> (\<Oplus>u \<in> U''. (f u) \<otimes> u)"
+      using in_carrier U'(1) U''(1) unfolding a U'' by auto
+    moreover have "(\<Oplus>u \<in> U''. (f u) \<otimes> u) \<in> Span K U"
+      using span_iff_finite_linear_combination[OF assms(1,3)] U''(1) U' f unfolding U'' by auto
+    ultimately have "?semi_linear_decomp (f u) (\<Oplus>u \<in> U''. (f u) \<otimes> u)"
+      using f unfolding U'' by auto
+    thus ?thesis by blast
+  qed
+qed
+
 lemma (in ring) span_strict_incl_insert:
-  assumes "subfield K R" and "u \<in> carrier R" "U \<subseteq> carrier R" "finite U"
+  assumes "subfield K R" and "u \<in> carrier R" "U \<subseteq> carrier R"
     and "Span K U \<subset> Span K (insert u U)"
   shows "a \<in> Span K (insert u U) \<Longrightarrow> \<exists>!k. \<exists>!v. k \<in> K \<and> v \<in> Span K U \<and> a = k \<otimes> u \<oplus> v"
     and "\<lbrakk> k \<in> K; v \<in> Span K U; k \<otimes> u \<oplus> v \<in> Span K U \<rbrakk> \<Longrightarrow> k = \<zero>"
@@ -751,7 +819,7 @@ proof -
       using span_incl[of K U] subring_props(3) assms(3)
       unfolding set_mult_def by force
     hence "u \<notin> Span K U"
-      using span_strict_incl[OF subfieldE(1)[OF assms(1)] assms(3) _ assms(5)] assms(2-3) by blast
+      using span_strict_incl[OF subfieldE(1)[OF assms(1)] assms(3) _ assms(4)] assms(2-3) by blast
     show "k = \<zero>"
     proof (rule ccontr)
       assume "k \<noteq> \<zero>"
@@ -771,7 +839,7 @@ proof -
 
   assume "a \<in> Span K (insert u U)"
   then obtain k v where k: "k \<in> K" and v: "v \<in> Span K U" and a: "a = k \<otimes> u \<oplus> v"
-    using semi_linear_decomp[OF subring.axioms(1)[OF subfieldE(1)[OF assms(1)]] assms(2-4)] by blast
+    using semi_linear_decomp[OF subring.axioms(1)[OF subfieldE(1)[OF assms(1)]] assms(2-3)] by blast
 
   moreover
   have "\<And>k' v'. \<lbrakk> k' \<in> K; v' \<in> Span K U \<rbrakk> \<Longrightarrow> a = k' \<otimes> u \<oplus> v' \<Longrightarrow> k = k' \<and> v = v'"
@@ -801,16 +869,17 @@ qed
 
 theorem (in ring) baillon_replacement_theorem:
   assumes "subfield K R"
-    and "u \<in> carrier R" "U \<subseteq> carrier R" "V \<subseteq> carrier R" and "finite U" and "V \<noteq> {}"
+    and "u \<in> carrier R" "U \<subseteq> carrier R" "V \<subseteq> carrier R" and "V \<noteq> {}"
     and "Span K (insert u U) = Span K V"
   shows "\<exists>v \<in> V. Span K (insert v U) = Span K V"
 proof -
   note subring_props = subringE[OF subfieldE(1)[OF assms(1)]]
+  note is_subgroup = subring.axioms(1)[OF subfieldE(1)[OF assms(1)]]
 
   show ?thesis
   proof (cases "Span K U = Span K V")
     obtain v where v: "v \<in> V"
-      using assms(6) by auto
+      using assms(5) by auto
     hence "\<one> \<otimes> v \<in> K <#> V"
       using subring_props(3) assms(4) unfolding set_mult_def by blast
     hence in_Span: "v \<in> Span K V"
@@ -820,28 +889,27 @@ proof -
     hence "v \<in> Span K U"
       using in_Span by simp
     hence "Span K U = Span K (insert v U)"
-      using insert_linear_dep[OF subfieldE(1)[OF assms(1)] assms(3,5), of _ v]
-            span_as_linear_combinations[OF subring.axioms(1)[OF subfieldE(1)[OF assms(1)]] assms(5,3)]
-      by blast
+      unfolding  span_iff_finite_linear_combination[OF is_subgroup assms(3), of v]
+      using insert_linear_dep[OF subfieldE(1)[OF assms(1)] assms(3), where ?a = v] by auto
     thus ?thesis
       using v case1 by blast
   next
     assume case2: "Span K U \<noteq> Span K V"
     hence subset: "Span K U \<subset> Span K (insert u U)"
-      using mono_span[OF _ subring_props(1), of K U "insert u U"] assms(2-3,7) by auto
+      using mono_span[OF _ subring_props(1), of K U "insert u U"] assms(2-3,6) by auto
     then obtain v where v: "v \<in> V" "v \<notin> Span K U"
-      using span_strict_incl[OF subfieldE(1)[OF assms(1)] assms(3-4)] case2 assms(7)
+      using span_strict_incl[OF subfieldE(1)[OF assms(1)] assms(3-4)] case2 assms(6)
       by auto
     then obtain k v' where k: "k \<in> K" and v': "v' \<in> Span K U" "v = k \<otimes> u \<oplus> v'"
-      using span_strict_incl_insert(1)[OF assms(1-3,5) subset]
-            span_base_incl[OF subring_props(3) assms(4)] v(1) assms(7)
+      using span_strict_incl_insert(1)[OF assms(1-3) subset]
+            span_base_incl[OF subring_props(3) assms(4)] v(1) assms(6)
       by blast
     have "v = v'" if "k = \<zero>"
       using that v' assms(2) span_in_carrier[OF subring_props(1) assms(3)] by auto
     hence "k \<noteq> \<zero>"
       using v(2) v'(1) by auto
     thus ?thesis
-      using insert_linear_combination[OF assms(1,3,2) _ v'(1), of k] k v'(2) v(1) assms(7) by auto
+      using insert_linear_combination[OF assms(1,3,2) _ v'(1), of k] k v'(2) v(1) assms(6) by auto
   qed
 qed
 
@@ -858,17 +926,24 @@ proof -
     using n(1) by auto
 qed
 
-theorem (in ring) replacement_theorem:
+theorem (in ring) generator_replacement_theorem:
   assumes "subfield K R"
-    and "U \<subseteq> carrier R" "V \<subseteq> carrier R" and "finite U" and "V \<noteq> {}"
+    and "U \<subseteq> carrier R" "V \<subseteq> carrier R" and "finite U"
     and "Span K U = Span K V"
   shows "\<exists>V' \<subseteq> V. card V' \<le> card U \<and> Span K V' = Span K V"
-proof -
+proof (cases "V = {}")
+  assume empty: "V = {}"
+  hence "Span K U = { \<zero> }"
+    using span_empty assms(5) by auto
+  thus ?thesis
+    using empty by auto
+next
+  assume non_empty: "V \<noteq> {}"
   define B where
     "B = { (U', V'). U' \<subseteq> U \<and> V' \<subseteq> V \<and> finite V' \<and>
            card U' + card V' \<le> card U \<and> Span K (U' \<union> V') = Span K V }"
   hence "(U, {}) \<in> B"
-    using assms(6) by auto
+    using assms(5) by auto
   hence "card ` (fst ` B) \<noteq> {}"
     by auto
   then obtain n where n: "n \<in> card ` (fst ` B)" "\<And>k. k \<in> card ` (fst ` B) \<Longrightarrow> n \<le> k"
@@ -892,7 +967,7 @@ proof -
     moreover have "finite (U'' \<union> V')"
       using V'(1,4) assms(4) u(2) finite_Un finite_subset by auto 
     ultimately obtain v where v:"v \<in> V" "Span K (insert v (U'' \<union> V')) = Span K V"
-      using baillon_replacement_theorem[OF assms(1) _ _ assms(3) _ assms(5), of u "U'' \<union> V'"]
+      using baillon_replacement_theorem[OF assms(1) _ _ assms(3) non_empty, of u "U'' \<union> V'"]
             assms(2-3) V'(1-2) u(2) by force
     hence "Span K (U'' \<union> (insert v V')) = Span K V"
       by simp
@@ -915,96 +990,533 @@ proof -
 qed
 
 
+subsection \<open>Basic Properties - Second Part\<close>
+
+lemma (in ring) span_finite [simp]: "\<lbrakk> S \<subseteq> carrier R; finite S \<rbrakk> \<Longrightarrow> (finite_dim over K) (Span K S)"
+  unfolding finite_dim_def over_def by auto
+
+lemma (in ring) linear_ind_dim [simp]: "linear_ind K B \<Longrightarrow> (dim over K) (Span K B) = card B"
+  unfolding linear_ind_def over_def .
+
+lemma (in ring) dim_le: "\<lbrakk> S \<subseteq> carrier R; finite S \<rbrakk> \<Longrightarrow> (dim over K) (Span K S) \<le> card S"
+  unfolding dim_def over_def by (metis (mono_tags, lifting) Least_le) 
+
+lemma (in ring) exists_generator:
+  assumes "(finite_dim over K) A"
+  shows "\<exists>S. S \<subseteq> carrier R \<and> finite S \<and> card S = (dim over K) A \<and> Span K S = A"
+  using assms unfolding over_def finite_dim_def dim_def
+  by (smt LeastI mem_Collect_eq)
+
+lemma (in ring) dim_zero:
+  shows "(dim over K) { \<zero> } = 0" and "\<lbrakk> (finite_dim over K) A; (dim over K) A = 0 \<rbrakk> \<Longrightarrow> A = { \<zero> }"
+proof -
+  show "(dim over K) { \<zero> } = 0"
+    using span_empty dim_le[of "{}"] by simp
+next
+  assume "(finite_dim over K) A" "(dim over K) A = 0"
+  hence "A = Span K {}"
+    unfolding over_def dim_def finite_dim_def
+    by (smt LeastI card_eq_0_iff finite.emptyI)
+  thus "A = { \<zero> }"
+    using span_empty[of K] by simp
+qed
+
+lemma (in ring) dim_one:
+  assumes "subgroup K (add_monoid R)"
+    and "a \<in> carrier R" and "K #> a \<noteq> { \<zero> }"
+  shows "(dim over K) (K #> a) = 1"
+proof -
+  have "K #> a = Span K { a }"
+    using span_line[OF assms(1-2)] by simp
+  hence "(dim over K) (K #> a) \<le> 1" and "(finite_dim over K) (K #> a)"
+    using dim_le[of "{ a }" K] span_finite[of "{ a }"] assms(2) by auto
+  thus "(dim over K) (K #> a) = 1"
+    using dim_zero(2)[of K "K #> a"] assms(3) by auto
+qed
+
+lemma (in ring) dim_over_self:
+  assumes "subfield K R" shows "(dim over K) K = 1"
+proof -
+  have "\<And>k. k \<in> K \<Longrightarrow> k \<otimes> \<one> = k"
+    using subringE(1)[OF subfieldE(1)[OF assms]] by auto
+  hence "K #> \<one> = K"
+    unfolding r_coset_def by auto
+  thus ?thesis
+    using dim_one[OF subring.axioms(1)[OF subfieldE(1)[OF assms]], of \<one>]
+          subringE(3)[OF subfieldE(1)[OF assms]] subfieldE(6)[OF assms] by auto
+qed
+
+lemma (in ring) linear_ind_empty [simp, intro]: "linear_ind K {}"
+  unfolding linear_ind_def using span_empty dim_zero(1) by auto
+
+lemma (in ring) zero_linear_dep: "K \<subseteq> carrier R \<Longrightarrow> linear_dep K { \<zero> }"
+  using span_zero[of K] dim_zero(1) unfolding linear_ind_def over_def by auto
+
 theorem (in ring) linear_ind_iff:
   assumes "subfield K R"
     and "S \<subseteq> carrier R" and "finite S"
   shows "linear_ind K S \<Longrightarrow> (\<And>f. \<lbrakk> f: S \<rightarrow> K; (\<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s)) \<rbrakk> \<Longrightarrow> (\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>))"
     and "(\<And>f. \<lbrakk> f: S \<rightarrow> K; (\<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s)) \<rbrakk> \<Longrightarrow> (\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>)) \<Longrightarrow> linear_ind K S"
-  sorry
-(*
 proof -
-  assume "linear_ind K S"
+  assume li: "linear_ind K S"
   show "\<And>f. \<lbrakk> f: S \<rightarrow> K; (\<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s)) \<rbrakk> \<Longrightarrow> (\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>)"
   proof -
     fix f assume f: "f: S \<rightarrow> K" "(\<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s))"
     show "\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>"
     proof -
-      fix s assume "s \<in> S"
-      show "f s = \<zero>"
+      fix s assume s: "s \<in> S" show "f s = \<zero>"
       proof (rule ccontr)
-    proof (cases "S = {}")
-      assume "S = {}" thus "\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>"
-        using f(1) by auto
-    next
-      assume "S \<noteq> {}" show "\<forall>s. s \<in> S \<Longrightarrow> f s = \<zero>"
-    proof (rule ccontr)
-      assume "f ` S \<noteq> { \<zero> }"
-      then obtain a where "a \<in> S" "f a \<noteq> \<zero>"
-*)
-
-subsection \<open>Basic Properties - Second Part\<close>
-
-lemma (in ring) generatorsI: "\<lbrakk> B \<subseteq> A; A = Span K B \<rbrakk> \<Longrightarrow> B \<in> generators K A"
-  unfolding generators_def by simp
-
-lemma (in ring) generatorsI':
-  assumes "subgroup A (add_monoid R)"
-  shows "\<lbrakk> B \<subseteq> A; K <#> B \<subseteq> A; A \<subseteq> Span K B \<rbrakk> \<Longrightarrow> B \<in> generators K A"
-proof -
-  assume "K <#> B \<subseteq> A" hence "Span K B \<subseteq> A"
-    using span_min'[OF assms, of K B] by simp
-  moreover assume "B \<subseteq> A" "A \<subseteq> Span K B"
-  ultimately show "B \<in> generators K A"
-    unfolding generators_def by auto
-qed
-
-lemma (in ring) trivial_generator_iff: "{} \<in> generators K A \<longleftrightarrow> A = { \<zero> }"
-  using span_empty[of K] unfolding generators_def by auto
-
-lemma (in ring) exists_generator_imp_subgroup:
-  assumes "K \<subseteq> carrier R" and "A \<subseteq> carrier R"
-  shows "generators K A \<noteq> {} \<Longrightarrow> subgroup A (add_monoid R)"
-  unfolding generators_def using span_is_subgroup'[OF assms(1)] assms(2) by blast
-
-lemma (in ring) generatorsE:
-  assumes "B \<in> generators K A"
-    shows "B \<subseteq> A" and "A = Span K B"
-  using assms unfolding generators_def by auto
-
-lemma (in ring) dim_le: "\<lbrakk> finite S; S \<in> generators K A \<rbrakk> \<Longrightarrow> (dim over K) A \<le> card S"
-  unfolding dim_def over_def by (metis (mono_tags, lifting) Least_le) 
-
-lemma (in ring) dim_gt_zero:
-  assumes "(finite_dim over K) A" "{} \<notin> generators K A"
-  shows "(dim over K) A > 0"
-  using assms unfolding over_def dim_def finite_dim_def by (smt LeastI card_gt_0_iff)
-
-lemma (in ring) dim_zero:
-  "(dim over K) { \<zero> } = 0" and "\<lbrakk> (finite_dim over K) A; (dim over K) A = 0 \<rbrakk> \<Longrightarrow> A = { \<zero> }"
-proof -
-  have "{} \<in> generators K { \<zero> }"
-    using span_empty[of K] unfolding generators_def by blast
-  thus "(dim over K) { \<zero> } = 0"
-    using dim_le[of "{}"] by simp
+        assume "f s \<noteq> \<zero>"
+        hence "Span K (S - { s }) = Span K S"
+          using remove_linear_dep[OF assms(1-3) f] by simp
+        hence "dim K (Span K S) \<le> card S - 1"
+          using dim_le[of "S - { s }" K] assms(2,3) s by auto
+        moreover have "card S > 0"
+          using assms(3) s card_gt_0_iff by blast 
+        ultimately show False
+          using li s assms(3) unfolding linear_ind_def by simp
+      qed
+    qed
+  qed
 next
-  assume "(finite_dim over K) A" "(dim over K) A = 0"
-  hence "{} \<in> generators K A"
-    using dim_gt_zero[of K A] by auto
-  thus "A = { \<zero> }"
-    using span_empty[of K] unfolding generators_def by simp
+  assume non_trivial_linear_combination:
+    "\<And>f. \<lbrakk> f: S \<rightarrow> K; (\<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s)) \<rbrakk> \<Longrightarrow> (\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>)"
+  show "linear_ind K S"
+  proof (rule ccontr)
+    note subring_props = subringE[OF subfieldE(1)[OF assms(1)]]
+    
+    assume "linear_dep K S"
+    hence "(dim over K) (Span K S) < card S"
+      using dim_le[OF assms(2,3), of K] unfolding linear_ind_def by simp
+    then obtain B where B: "B \<subseteq> carrier R" "finite B" "Span K B = Span K S" "card B < card S"
+      using exists_generator[OF span_finite[OF assms(2,3)]] by metis
+    then obtain S' where S': "S' \<subseteq> S" "card S' < card S" "Span K S' = Span K S"
+      using generator_replacement_theorem[OF assms(1) B(1) assms(2) B(2)] by auto
+    then obtain s' where s': "s' \<in> S" "s' \<notin> S'"
+      by (metis less_irrefl subsetI subset_antisym)
+    have "s' \<in> Span K S'"
+      using span_base_incl[OF subring_props(3) assms(2)] s'(1) S'(3) by auto
+    moreover have S'_in_carrier: "S' \<subseteq> carrier R" and fin_S': "finite S'"
+      using S'(1) assms(2,3) infinite_super by blast+ 
+    ultimately obtain f' where f': "f': S' \<rightarrow> K" "s' = (\<Oplus>s \<in> S'. (f' s) \<otimes> s)"
+      using span_as_linear_combinations[OF subring.axioms(1)[OF subfieldE(1)[OF assms(1)]]] by blast
+    define f where "f = (\<lambda>s. if s \<in> S' then f' s else if s = s' then (\<ominus> \<one>) else \<zero>)"
+    hence in_carrier: "\<And>s. s \<in> S \<Longrightarrow> (f s) \<otimes> s \<in> carrier R"
+      using f'(1) subring_props(1) assms(2) by auto
+    have in_carrier': "\<And>s. s \<in> S' \<Longrightarrow> (f' s) \<otimes> s \<in> carrier R"
+      using f'(1) subring_props(1) S'_in_carrier by auto
+    have "\<And>s. s \<in> S' \<Longrightarrow> (f s) \<otimes> s = (f' s) \<otimes> s"
+      unfolding f_def by auto
+    hence "(\<Oplus>s \<in> S'. (f' s) \<otimes> s) = (\<Oplus>s \<in> S'. (f s) \<otimes> s)"
+      using fin_S' in_carrier' add.finprod_cong'[of S' S' "\<lambda>s. (f' s) \<otimes> s" "\<lambda>s. (f s) \<otimes> s"] by auto
+    hence s'_linear_comb: "s' = (\<Oplus>s \<in> S'. (f s) \<otimes> s)"
+      using f'(2) by simp
+    have "\<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s)"
+    proof -
+      have "(\<Oplus>s \<in> S. (f s) \<otimes> s) = (\<Oplus>s \<in> (insert s' (S - { s'})). (f s) \<otimes> s)"
+        using s'(1) by (simp add: insert_absorb)
+      also have " ... = ((f s') \<otimes> s') \<oplus> (\<Oplus>s \<in> (S - { s'}). (f s) \<otimes> s)"
+        using s' in_carrier assms(3)
+        by (metis (no_types, lifting) DiffE Pi_I' add.finprod_insert finite_Diff singletonI)
+      finally
+      have eq1: "(\<Oplus>s \<in> S. (f s) \<otimes> s) = ((f s') \<otimes> s') \<oplus> (\<Oplus>s \<in> ((S - { s'}) - S') \<union> S' . (f s) \<otimes> s)"
+        using S'(1) s'
+        by (smt Diff_eq_empty_iff Diff_insert_absorb Un_Diff Un_Diff_cancel2 Un_absorb2 insert_Diff_if)
+
+      have "(\<lambda>s. (f s) \<otimes> s): ((S - { s'}) - S') \<rightarrow> carrier R" and "(\<lambda>s. (f s) \<otimes> s): S' \<rightarrow> carrier R" 
+        using in_carrier S' by auto
+      hence "(\<Oplus>s \<in> ((S - { s'}) - S') \<union> S' . (f s) \<otimes> s) =
+             (\<Oplus>s \<in> ((S - { s'}) - S'). (f s) \<otimes> s) \<oplus> s'"
+        using add.finprod_Un_disjoint[OF _ fin_S', of "(S - { s'}) - S'" "\<lambda>s. (f s) \<otimes> s"]
+              assms(3) S'(1) s'_linear_comb by auto
+
+      moreover have "\<And>s. s \<in> (S - { s'}) - S' \<Longrightarrow> (f s) \<otimes> s = \<zero>"
+        unfolding f_def using S'(1) assms(2) by auto
+      hence "(\<Oplus>s \<in> ((S - { s'}) - S'). (f s) \<otimes> s) = \<zero>"
+        by (meson add.finprod_one assms(3) finite_Diff)
+
+      ultimately have "(\<Oplus>s \<in> S. (f s) \<otimes> s) = ((f s') \<otimes> s') \<oplus> s'"
+        by (simp add: eq1 \<open>(\<lambda>s. f s \<otimes> s) \<in> S' \<rightarrow> carrier R\<close> s'_linear_comb)
+      also have " ... = ((\<ominus> \<one>) \<otimes> s') \<oplus> s'"
+        unfolding f_def by (simp add: s'(2))
+      also have " ... = \<zero>"
+        using s'(1) assms(2) by (simp add: l_minus l_neg subset_iff)
+      finally have "(\<Oplus>s \<in> S. (f s) \<otimes> s) = \<zero>" .
+      thus ?thesis by simp
+    qed
+    moreover have "f: S \<rightarrow> K"
+      using subring_props(2-3,5) f'(1) unfolding f_def by auto
+    ultimately have "\<And>s. s \<in> S \<Longrightarrow> f s = \<zero>"
+      using non_trivial_linear_combination by simp
+    thus False
+      unfolding f_def using s'(1) subfieldE(6)[OF assms(1)] minus_minus s'(2) by fastforce
+  qed
 qed
 
-(*
-lemma (in ring) linear_ind_imp_unique_combination:
-  assumes "finite B" "linear_ind K B"
-  shows "\<And>f. \<lbrakk> f: B \<rightarrow> K; \<zero> = (\<Oplus>s \<in> S. (f s) \<otimes> s) \<rbrakk> \<Longrightarrow> f ` B = { \<zero> }"
+corollary (in ring) linear_ind_insert_stable:
+  assumes "subfield K R" and "U \<subseteq> carrier R" "u \<in> carrier R" "finite U"
+    and "u \<notin> Span K U" and "linear_ind K U"
+  shows "linear_ind K (insert u U)"
+proof (rule ccontr)
+  assume ld: "linear_dep K (insert u U)"
+  then obtain f u'
+    where u': "u' \<in> (insert u U)"
+      and f: "f: (insert u U) \<rightarrow> K" "\<zero> = (\<Oplus>s \<in> (insert u U). (f s) \<otimes> s)" "f u' \<noteq> \<zero>"
+    using linear_ind_iff(2)[OF assms(1), of "insert u U"] assms(2-4) by auto
+  hence in_carrier:
+    "\<And>s. s \<in> (insert u U) \<Longrightarrow> (f s) \<otimes> s \<in> carrier R" "\<And>s. s \<in> (insert u U) \<Longrightarrow> f s \<in> carrier R"
+    using subfieldE(3)[OF assms(1)] assms(2-3) by auto
+  have not_in_U: "u \<notin> U"
+    using span_base_incl[OF subringE(3)[OF subfieldE(1)[OF assms(1)]] assms(2)] assms(5) by auto
+  hence "\<zero> = (f u) \<otimes> u \<oplus> (\<Oplus>s \<in> U. (f s) \<otimes> s)"
+    using assms(4) in_carrier f(2) by simp
+  hence linear_comb: "\<ominus> ((f u) \<otimes> u) = (\<Oplus>s \<in> U. (f s) \<otimes> s)"
+    using in_carrier(1)[of u] in_carrier(1) assms(4)
+    by (metis (no_types, lifting) Pi_iff finsum_closed insert_iff minus_equality r_neg)
+  have "u \<in> Span K U"
+  proof (cases "f u = \<zero>")
+    assume u: "f u = \<zero>"
+    hence "\<zero> = (\<Oplus>s \<in> U. (f s) \<otimes> s)"
+      using linear_comb assms(3) by auto
+    moreover have "u' \<in> U"
+      using f(3) u u' by blast
+    ultimately have "linear_dep K U"
+      using linear_ind_iff(1)[OF assms(1-2,4), of f u'] f(1,3) by blast
+    from \<open>linear_dep K U\<close> and \<open>linear_ind K U\<close> show ?thesis by simp
+  next
+    assume "f u \<noteq> \<zero>"
+    hence "f u \<in> K - { \<zero> }"
+      using f(1) by blast
+    hence u: "(\<ominus> (f u)) \<in> K - { \<zero> }"
+      using subfieldE(6)[OF assms(1)] subringE(5)[OF subfieldE(1)[OF assms(1)], of "f u"]
+            in_carrier(2) local.ring_axioms ring.ring_simprules(20) by force
+    have "(\<Oplus>s \<in> U. (f s) \<otimes> s) \<in> Span K U"
+      using span_as_linear_combinations[OF subring.axioms(1)[OF subfieldE(1)[OF assms(1)]] assms(4,2)] f(1) by auto
+    hence "(\<ominus> (f u)) \<otimes> u \<in> Span K U"
+      using linear_comb in_carrier(2)[of u] assms(3) by (simp add: l_minus)
+    thus "u \<in> Span K U"
+      using assms(1-3) u f(1) subfieldE(6)[OF assms(1)] by auto
+  qed
+  from \<open>u \<in> Span K U\<close> and \<open>u \<notin> Span K U\<close> show False by simp 
+qed
 
-lemma (in ring) linear_ind_imp_finite: "linear_ind K B \<Longrightarrow> finite B"
-  unfolding linear_ind_def dim_def
+lemma (in ring) span_strict_incl':
+  assumes "subring K R"
+    and "finite U" "U \<subseteq> Span K V" "V \<subseteq> carrier R" and "linear_ind K V"
+  shows "card U < card V \<Longrightarrow> Span K U \<subset> Span K V"
+proof -
+  assume card: "card U < card V" show "Span K U \<subset> Span K V"
+  proof (rule ccontr)
+    assume "\<not> Span K U \<subset> Span K V" hence "Span K V \<subseteq> Span K U"
+      by (simp add: assms psubset_eq span_is_subgroup' span_min' span_smult_incl subringE(1))
+    moreover have "K <#> U \<subseteq> Span K V"
+      using span_smult_closed[OF assms(1,4)] assms(3) unfolding set_mult_def by blast 
+    hence "Span K U \<subseteq> Span K V"
+      by (simp add: assms(1,4) span_is_subgroup' span_min' subringE(1))
+    ultimately have "Span K U = Span K V"
+      by simp
+    hence "card V \<le> card U"
+      using assms(5) dim_le[OF _ assms(2)] unfolding over_def linear_ind_def
+      by (metis assms(1,3-4) span_in_carrier subringE(1) subset_trans)
+    thus False
+      using card by simp
+  qed
+qed
 
-lemma (in ring)
-  assumes "linear_ind K B" "Span K B \<subseteq> S"
-  shows "(dim over K) A \<ge> card B"
-*)
+lemma (in ring) linear_ind_subset:
+  assumes "subfield K R" "U \<subseteq> V" "V \<subseteq> carrier R" "finite V"
+  shows "linear_ind K V \<Longrightarrow> linear_ind K U"
+proof -
+  assume li: "linear_ind K V" show "linear_ind K U"
+  proof (rule ccontr)
+    assume "linear_dep K U"
+    then obtain U' where U': "finite U'" "U' \<subseteq> carrier R" "card U' < card U" "Span K U' = Span K U"
+      using exists_generator span_finite dim_le unfolding linear_ind_def over_def
+      by (smt assms(2-4) finite_subset le_neq_implies_less subset_trans)
+    hence "Span K (U' \<union> (V - U)) = Span K V"
+      using span_base_union[OF subfieldE(3)[OF assms(1)], of U' U "V - U"] assms(2-3)
+            Diff_partition by force
+    hence "(dim over K) (Span K V) \<le> card (U' \<union> (V - U))"
+      using dim_le[of "U' \<union> (V - U)", of K] assms(2-4) U'(1-2) by force
+    also have " ... \<le> card U' + (card V - card U)"
+      using U'(1) assms(2,4) by (metis card_Diff_subset card_Un_le finite_subset)
+    also have " ... < card V"
+      using U'(3) assms(2,4) by (metis card_mono diff_diff_cancel less_diff_conv)
+    finally have "(dim over K) (Span K V) < card V" .
+    thus False
+      using li unfolding linear_ind_def by simp
+  qed
+qed
+
+lemma (in ring) exists_splitted_base:
+  assumes "subfield K R"
+    and "V \<subseteq> carrier R" "finite V"
+    and "U \<subseteq> carrier R" "finite U" "linear_ind K U"
+  shows "\<exists>V' \<subseteq> V. linear_ind K (U \<union> V') \<and> Span K (U \<union> V') = Span K (U \<union> V)"
+  using assms(3,2)
+proof (induction)
+  case empty thus ?case
+    using assms(6) by auto
+next
+  note subring_props = subringE[OF subfieldE(1)[OF assms(1)]]
+  note is_subring = subfieldE(1)[OF assms(1)]
+
+  case (insert v V)
+  then obtain V' where V': "V' \<subseteq> V" "linear_ind K (U \<union> V')" "Span K (U \<union> V') = Span K (U \<union> V)"
+    by blast
+  hence in_carrier: "v \<in> carrier R" "V' \<subseteq> carrier R" "V \<subseteq> carrier R"
+    using insert by auto
+  hence Span_eq: "Span K (insert v (U \<union> V')) = Span K (insert v (U \<union> V))"
+    using span_base_union[OF subring_props(1), of "U \<union> V'" "U \<union> V" "{ v }"] assms(4) V'(3) by auto
+  show ?case
+  proof (cases "v \<in> Span K (U \<union> V')")
+    assume v: "v \<in> Span K (U \<union> V')" show ?thesis
+      using insert_linear_dep_iff(1)[OF is_subring _ v] V' Span_eq assms(4) in_carrier by auto
+  next
+    assume v: "v \<notin> Span K (U \<union> V')"
+    have "finite (U \<union> V')"
+      using V'(1) insert(1) assms(5) finite_subset by auto  
+    hence "linear_ind K (insert v (U \<union> V'))"
+      using linear_ind_insert_stable[OF assms(1) _ in_carrier(1) _ v] V'(2-3) assms(4) in_carrier(2-3) by simp
+    hence "linear_ind K (U \<union> (insert v V'))"
+      by simp
+    thus ?thesis
+      using V' Span_eq by (metis Un_insert_right insert_mono)  
+  qed
+qed
+
+corollary (in ring) exists_base:
+  assumes "subfield K R"
+    and "V \<subseteq> carrier R" "finite V"
+  shows "\<exists>V' \<subseteq> V. linear_ind K V' \<and> Span K V' = Span K V"
+  using exists_splitted_base[OF assms, of "{}"] by auto
+
+corollary (in ring) finite_dim_exists_base:
+  assumes "subfield K R"
+    and "E \<subseteq> carrier R" "(finite_dim over K) E"
+  shows "\<exists>V \<subseteq> E. finite V \<and> linear_ind K V \<and> Span K V = E"
+proof -
+  obtain V where V: "V \<subseteq> carrier R" "finite V" "Span K V = E"
+    using exists_generator[OF assms(3)] by blast
+  hence "V \<subseteq> E"
+    using span_base_incl[OF subringE(3)[OF subfieldE(1)[OF assms(1)]] V(1)] by auto
+  thus ?thesis
+    using exists_base[OF assms(1) V(1-2)] V(2) unfolding V(3)
+    by (metis finite_subset subset_trans)
+qed
+
+lemma (in ring) base_incl_imp_dim_le:
+  assumes "subfield K R"
+    and "V' \<subseteq> V" "V \<subseteq> carrier R" "finite V"
+  shows "(dim over K) (Span K V') \<le> (dim over K) (Span K V)"
+proof -
+  obtain U' where U': "finite U'" "U' \<subseteq> V'" "linear_ind K U'" "Span K U' = Span K V'"
+    using exists_base[OF assms(1), of V'] assms finite_subset by (metis subset_trans) 
+  then obtain U
+    where U: "U \<subseteq> (V - U')" "linear_ind K (U' \<union> U)"
+      and "Span K (U' \<union> (V - U')) = Span K (U' \<union> U)"
+    using exists_splitted_base[OF assms(1), of "V - U'" U'] assms by force
+  hence "Span K V = Span K (U' \<union> U)"
+    using U'(2) by (metis Diff_partition assms(2) subset_trans)
+  hence "(dim over K) (Span K V) = card (U' \<union> U)"
+    using U(2) linear_ind_dim by simp
+  moreover have "(dim over K) (Span K V') = card U'"
+    using U'(3-4) linear_ind_dim[of K U'] by simp
+  moreover have "finite U"
+    using U(1) assms(4) infinite_super by blast
+  ultimately show ?thesis
+    using U'(1) by (simp add: card_mono)
+qed
+
+theorem (in ring) base_replacement_theorem:
+  assumes "subfield K R"
+    and "V \<subseteq> carrier R"
+    and "finite U" "linear_ind K U" "U \<subseteq> Span K V"
+  shows "\<exists>V' \<subseteq> V. linear_ind K V' \<and> card V' = card U"
+proof (cases "V = {}")
+  assume "V = {}" thus ?thesis
+    using assms(4-5) zero_linear_dep[OF subfieldE(3)[OF assms(1)]]
+          subset_singletonD span_empty[of K] by fastforce
+next
+  note subring_props = subringE[OF subfieldE(1)[OF assms(1)]] subfieldE(1)[OF assms(1)]
+
+  assume non_empty: "V \<noteq> {}"
+  define B
+    where "B = { (U', V'). U' \<subseteq> U \<and> V' \<subseteq> V \<and> U' \<inter> V' = {} \<and>
+                 finite V' \<and> linear_ind K (U' \<union> V') \<and> card U' + card V' = card U }"
+  have "(U, {}) \<in> B"
+    unfolding B_def using assms(4) by auto
+  hence "card ` fst ` B \<noteq> {}"
+    by blast
+  then obtain n where n: "n \<in> card ` fst ` B" "\<And>k. k \<in> (card ` fst ` B) \<Longrightarrow> n \<le> k"
+    using well_ordering_principle by meson
+  then obtain U' V'
+    where U': "U' \<subseteq> U" and V': "V' \<subseteq> V" "finite V'" "U' \<inter> V' = {}"
+      and li: "linear_ind K (U' \<union> V')" and card: "card U' + card V' = card U" "card U' = n"
+    unfolding B_def by auto
+  show ?thesis
+  proof (cases "n = 0")
+    assume "n = 0" hence "U' = {}"
+      using assms(3) U' card(2) finite_subset by fastforce 
+    thus ?thesis
+      using V' li card(1) by auto
+  next
+    assume "n \<noteq> 0" hence "n > 0" by simp
+    then obtain u U'' where u: "u \<notin> U''" "U' = insert u U''"
+      using card(2) by (metis Set.set_insert \<open>n \<noteq> 0\<close> all_not_in_conv card_eq_0_iff)
+    hence "linear_ind K (insert u (U'' \<union> V'))"
+      using li by auto
+    moreover have in_carrier: "u \<in> carrier R" "U'' \<subseteq> carrier R" "V' \<subseteq> carrier R"
+      using span_in_carrier[OF subring_props(1) assms(2)] assms(2,5) u(2) U' V'(1) by auto
+    moreover have finite: "finite U''" "finite (U'' \<union> V')"
+      using assms(3) u(2) U' V'(2) infinite_super by auto
+    moreover have "U'' \<union> V' \<subseteq> Span K (insert u (U'' \<union> V'))"
+      using span_base_incl[OF subring_props(3), of "insert u (U'' \<union> V')"] in_carrier by auto
+    ultimately have "Span K (U'' \<union> V') \<subset> Span K (insert u (U'' \<union> V'))"
+      using span_strict_incl'[OF subfieldE(1)[OF assms(1)] finite(2), of "insert u (U'' \<union> V')"]
+            V'(3) u assms(3) by (simp add: insert_subset)
+    moreover have "Span K (U' \<union> V') \<subseteq> Span K V"
+      using mono_span'[OF subring_props(8,1) assms(2), of "U' \<union> V'"] assms(5) U' V'(1)
+            span_base_incl[OF subring_props(3) assms(2)] by auto
+    ultimately have "Span K (U'' \<union> V') \<subset> Span K V"
+      using u(2) by auto 
+    then obtain v where v: "v \<in> V" "v \<notin> Span K (U'' \<union> V')"
+      using span_strict_incl[OF subring_props(8) _ assms(2), of "U'' \<union> V'"] in_carrier by blast
+    have "linear_ind K (U'' \<union> V')"
+      using linear_ind_subset[OF assms(1) _ _ _ li, of "U'' \<union> V'"] finite(2) in_carrier
+      unfolding u(2) by auto
+    hence "linear_ind K (U'' \<union> (insert v V'))"
+      using linear_ind_insert_stable[OF assms(1) _ _ finite(2) v(2)] assms(2) in_carrier v by auto
+    moreover have "v \<notin> U'' \<union> V'"
+      using v(2) span_base_incl[OF subring_props(3), of "U'' \<union> V'"] in_carrier by auto
+    hence empty_inter: "U'' \<inter> (insert v V') = {}"
+      using V'(3) unfolding u(2) by simp
+    hence"card U'' + card (insert v V') = card U"
+      using u card(1) \<open>v \<notin> U'' \<union> V'\<close> finite(2) by auto 
+    ultimately have "(U'', (insert v V')) \<in> B"
+      using U' V'(1-2) v(1) empty_inter unfolding B_def u(2) by blast
+    hence "card U'' \<in> (card ` fst ` B)"
+      using image_iff by fastforce
+    hence "card U' \<le> card U''"
+      using n(2)[of "card U''"] card(2) by simp
+    moreover have "card U' > card U''"
+      using u(1) finite(1) unfolding u(2) by simp
+    ultimately have False by simp
+    thus ?thesis by simp
+  qed
+qed
+
+corollary (in ring) linear_ind_card:
+  assumes "subfield K R"
+    and "finite V" "V \<subseteq> carrier R"
+    and "finite U" "linear_ind K U" "U \<subseteq> Span K V"
+  shows "card U \<le> (dim over K) (Span K V)"
+    and "card U = (dim over K) (Span K V) \<Longrightarrow> Span K U = Span K V"
+proof -
+  { fix U assume A: "finite U" "linear_ind K U" "U \<subseteq> Span K V"
+    then obtain V' where V': "V' \<subseteq> V" "linear_ind K V'" "card V' = card U"
+      using base_replacement_theorem[OF assms(1,3) A(1-3)] by auto
+    hence  "card U \<le> (dim over K) (Span K V)"
+      using base_incl_imp_dim_le[OF assms(1) V'(1) assms(3,2)] linear_ind_dim[OF V'(2)] by simp }
+  note card_le = this
+
+  show "card U \<le> (dim over K) (Span K V)"
+    using card_le[OF assms(4-6)] .
+
+  assume card_eq: "card U = (dim over K) (Span K V)"
+  show "Span K U = Span K V"
+  proof (rule ccontr)
+    assume "Span K U \<noteq> Span K V"
+    hence "Span K U \<subset> Span K V"
+      using mono_span'[OF subfieldE(1,3)[OF assms(1)] assms(3,6)] by simp
+    moreover have in_carrier: "U \<subseteq> carrier R"
+      using span_in_carrier[OF subfieldE(3)[OF assms(1)] assms(3)] assms(6) by auto
+    ultimately obtain v where v: "v \<in> V" "v \<notin> Span K U"
+      using span_strict_incl[OF subfieldE(1)[OF assms(1)] _ assms(3), of U] by auto
+    hence "linear_ind K (insert v U)"
+      using linear_ind_insert_stable[OF assms(1) in_carrier _ assms(4) v(2) assms(5)] assms(3) by auto
+    moreover have "insert v U \<subseteq> Span K V"
+      using assms(6) v(1) span_base_incl[OF subringE(3)[OF subfieldE(1)[OF assms(1)]] assms(3)] by auto
+    ultimately have "card (insert v U) \<le> (dim over K) (Span K V)"
+      using card_le assms(4) by simp
+    moreover have "v \<notin> U"
+      using span_base_incl[OF subringE(3)[OF subfieldE(1)[OF assms(1)]] in_carrier] v by auto
+    hence "card (insert v U) = Suc ((dim over K) (Span K V))"
+      using assms(4) card_eq by auto
+    ultimately show False by simp
+  qed
+qed
+
+corollary (in ring) finite_dim_linear_ind_card:
+  assumes "subfield K R"
+    and "(finite_dim over K) E" "E \<subseteq> carrier R"
+    and "finite U" "linear_ind K U" "U \<subseteq> E"
+  shows "card U \<le> (dim over K) E"
+    and "card U = (dim over K) E \<Longrightarrow> Span K U = E"
+proof -
+  obtain V where V: "finite V" "V \<subseteq> carrier R" "Span K V = E"
+    using exists_generator[OF assms(2)] by blast
+  thus "card U \<le> (dim over K) E" and "card U = (dim over K) E \<Longrightarrow> Span K U = E"
+    using linear_ind_card[OF assms(1) V(1-2) assms(4-5)] assms(6) by auto
+qed
+
+corollary (in ring)
+  assumes "subfield K R"
+    and "finite V" "V \<subseteq> carrier R" and "U \<subseteq> Span K V"
+  shows "(finite_dim over K) (Span K U)"
+    and "(dim over K) (Span K U) \<le> (dim over K) (Span K V)"
+proof -
+  note subring_props = subringE[OF subfieldE(1)[OF assms(1)]]
+  have in_carrier: "U \<subseteq> carrier R"
+    using span_in_carrier[OF subfieldE(3)[OF assms(1)] assms(3)] assms(4) by auto
+
+  show "(finite_dim over K) (Span K U)"
+  proof (rule ccontr)
+    assume "\<not> (finite_dim over K) (Span K U)"
+    hence infite_dim: "\<And>S. \<lbrakk> S \<subseteq> carrier R; finite S \<rbrakk> \<Longrightarrow> Span K S \<noteq> Span K U"
+      unfolding finite_dim_def over_def by auto
+    define B where "B = { S. S \<subseteq> carrier R \<and> finite S \<and> linear_ind K S \<and> Span K S \<subseteq> Span K U }"
+    hence "{} \<in> B"
+      using subgroup.one_closed[OF span_is_subgroup'[OF subfieldE(3)[OF assms(1)] in_carrier]]
+            span_empty[of K] by auto
+    hence "(card ` B) \<noteq> {}" by blast
+    moreover have "\<And>S. S \<in> B \<Longrightarrow> S \<subseteq> Span K V"
+      using mono_span'[OF subfieldE(1,3)[OF assms(1)] assms(3-4)]
+            span_base_incl[OF subring_props(3)] unfolding B_def by blast
+    hence"\<And>S. S \<in> B \<Longrightarrow> card S \<le> (dim over K) (Span K V)" unfolding B_def
+      using linear_ind_card(1)[OF assms(1-3)] unfolding B_def by auto
+    hence "(card ` B) \<subseteq> {..(dim over K) (Span K V)}" by blast
+    ultimately obtain n where n: "n \<in> (card ` B)" "\<And>k. k \<in> (card ` B) \<Longrightarrow> k \<le> n"
+      by (meson Max_ge Max_in finite_atMost rev_finite_subset)
+    then obtain S where S: "S \<subseteq> carrier R" "finite S" "linear_ind K S" "Span K S \<subseteq> Span K U" "card S = n"
+      unfolding B_def by blast
+    then obtain u where u: "u \<in> U" "u \<notin> Span K S"
+      using span_strict_incl[OF subfieldE(1)[OF assms(1)] S(1) in_carrier] infite_dim[OF S(1-2)] by auto
+    hence "linear_ind K (insert u S)"
+      using linear_ind_insert_stable[OF assms(1) S(1) _ S(2) u(2) S(3)] in_carrier by auto
+    moreover have "insert u S \<subseteq> Span K U"
+      using span_base_incl[OF subring_props(3) in_carrier]
+            span_base_incl[OF subring_props(3) S(1)] S(4) u(1) by auto
+    hence "Span K (insert u S) \<subseteq> Span K U"
+      using mono_span'[OF subfieldE(1,3)[OF assms(1)] in_carrier] by auto
+    ultimately have "card (insert u S) \<in> card ` B"
+      using S(1-2) u(1) in_carrier unfolding B_def by blast
+    moreover have "card (insert u S) = Suc n"
+      using u(2) span_base_incl[OF subring_props(3) S(1)] S(2,5)
+      by (meson card_insert_if contra_subsetD)
+    ultimately show False
+      using n(2)[of "card (insert u S)"] by simp
+  qed
+
+  then obtain U' where U': "U' \<subseteq> carrier R" "finite U'" "linear_ind K U'" "Span K U' = Span K U"
+    using finite_dim_exists_base[OF assms(1)] span_in_carrier[OF subfieldE(3)[OF assms(1)] in_carrier]
+    by (meson subset_trans)
+  show "(dim over K) (Span K U) \<le> (dim over K) (Span K V)"
+    using linear_ind_card(1)[OF assms(1-3) U'(2-3)] assms(4)
+          span_base_incl[OF subring_props(3) U'(1)]
+          mono_span'[OF subfieldE(1,3)[OF assms(1)] assms(3-4)]
+          linear_ind_dim[OF U'(3)] unfolding U'(4)
+    by auto
+qed
 
 end
