@@ -95,8 +95,7 @@ proof -
 
         moreover have "h1 \<otimes> h2 \<in> H" and "h2 \<otimes> h1 \<in> H"
           using h12 subgroupE(4)[OF A(4)] by auto
-        ultimately have "K #> (h1 \<otimes> h2) = K #> (h2 \<otimes> h1)"
-          using subgroup_rcos_equality[OF A(4) A(1)] by auto
+        ultimately have "K #> (h1 \<otimes> h2) = K #> (h2 \<otimes> h1)" by auto
 
         then obtain k where k: "k \<in> K" "\<one> \<otimes> (h1 \<otimes> h2) = k \<otimes> (h2 \<otimes> h1)"
           using subgroup.one_closed[OF A(3)] unfolding r_coset_def by blast
@@ -161,9 +160,9 @@ qed
 
 subsection \<open>Short Exact Sequences\<close>
 
-text \<open>Even don't talking about short exact sequences explicitly, we show that if there is an
-      injective homomorphism from a group H to a group G, it suffices to prove that H isn't
-      solvable in order to prove that a group G isn't neither\<close>
+text \<open>Even if we don't talk about short exact sequences explicitly, we show that given an
+      injective homomorphism from a group H to a group G, if H isn't solvable the group G
+      isn't neither. \<close>
 
 lemma (in group_hom) generate_of_img:
   assumes "K \<subseteq> carrier G"
