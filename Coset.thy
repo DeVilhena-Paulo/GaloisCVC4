@@ -57,7 +57,7 @@ lemma r_coset_eq_set_mult:
 (* ************************************************************************** *)
 (* Next five lemmas contributed by Paulo Emílio de Vilhena.                    *)
 
-lemma (in subgroup) rcosets_not_empty:
+lemma (in subgroup) rcosets_non_empty:
   assumes "R \<in> rcosets H"
   shows "R \<noteq> {}"
 proof -
@@ -91,26 +91,20 @@ qed
 lemma mono_set_mult: "\<lbrakk> H \<subseteq> H'; K \<subseteq> K' \<rbrakk> \<Longrightarrow> H <#>\<^bsub>G\<^esub> K \<subseteq> H' <#>\<^bsub>G\<^esub> K'"
   unfolding set_mult_def by (simp add: UN_mono)
 
-lemma set_mult_consistent: "N <#>\<^bsub>G\<^esub> K = N <#>\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> K"
+
+subsection \<open>Stable Operations by Change of Carrier\<close>
+
+lemma set_mult_consistent [simp]:
+  "N <#>\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> K = N <#>\<^bsub>G\<^esub> K"
   unfolding set_mult_def by simp
 
+lemma r_coset_consistent [simp]:
+  "I #>\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> h = I #>\<^bsub>G\<^esub> h"
+  unfolding r_coset_def by simp
 
-subsection \<open>Stable Operations for Subgroups\<close>
-
-lemma (in group) subgroup_set_mult_equality[simp]:
-  assumes "subgroup H G" "I \<subseteq> H" "J \<subseteq> H"
-  shows "I <#>\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> J = I <#> J"
-  unfolding set_mult_def subgroup_mult_equality[OF assms(1)] by auto
-
-lemma (in group) subgroup_rcos_equality[simp]:
-  assumes "subgroup H G" "I \<subseteq> H" "h \<in> H"
-  shows "I #>\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> h = I #> h"
-  using subgroup_set_mult_equality by (simp add: r_coset_eq_set_mult assms)
-
-lemma (in group) subgroup_lcos_equality[simp]:
-  assumes "subgroup H G" "I \<subseteq> H" "h \<in> H"
-  shows "h <#\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> I = h <# I"
-  using subgroup_set_mult_equality by (simp add: l_coset_eq_set_mult assms)
+lemma l_coset_consistent [simp]:
+  "h <#\<^bsub>G \<lparr> carrier := H \<rparr>\<^esub> I = h <#\<^bsub>G\<^esub> I"
+  unfolding l_coset_def by simp
 
 (* ************************************************************************** *)
                                  
