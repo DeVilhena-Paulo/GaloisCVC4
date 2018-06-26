@@ -794,6 +794,63 @@ next
     using li_Cons[OF u] by simp
 qed
 
+corollary unique_decomposition:
+  assumes "linear_ind K Us"
+  shows "a \<in> Span K Us \<Longrightarrow> \<exists>!Ks. set Ks \<subseteq> K \<and> length Ks = length Us \<and> a = linear_comb Ks Us"
+proof -
+  note in_carrier = linear_ind_in_carrier[OF assms]
+
+  assume "a \<in> Span K Us"
+  then obtain Ks where Ks: "set Ks \<subseteq> K" "length Ks = length Us" "a = linear_comb Ks Us"
+    using Span_mem_iff_length_version[OF in_carrier] by blast
+
+  moreover
+  have "\<And>Ks'. \<lbrakk> set Ks' \<subseteq> K; length Ks' = length Us; a = linear_comb Ks' Us \<rbrakk> \<Longrightarrow> Ks = Ks'"
+  proof -
+    fix Ks' assume Ks': "set Ks' \<subseteq> K" "length Ks' = length Us" "a = linear_comb Ks' Us"
+    hence set_Ks: "set Ks \<subseteq> carrier R" and set_Ks': "set Ks' \<subseteq> carrier R"
+      using subring_props(1) Ks(1) by blast+
+    have same_length: "length Ks = length Ks'"
+      using Ks Ks' by simp
+
+    have "(linear_comb Ks Us) \<oplus> ((\<ominus> \<one>) \<otimes> (linear_comb Ks' Us)) = \<zero>"
+      using linear_comb_in_carrier[OF set_Ks  in_carrier]
+            linear_comb_in_carrier[OF set_Ks' in_carrier] Ks(3) Ks'(3) by algebra
+    hence "(linear_comb Ks Us) \<oplus> (linear_comb (map ((\<otimes>) (\<ominus> \<one>)) Ks') Us) = \<zero>"
+      using linear_comb_r_distr[OF set_Ks' in_carrier, of "\<ominus> \<one>"] subring_props by auto
+    moreover have set_map: "set (map ((\<otimes>) (\<ominus> \<one>)) Ks') \<subseteq> K"
+      using Ks'(1) subring_props by (induct Ks') (auto)
+    hence "set (map ((\<otimes>) (\<ominus> \<one>)) Ks') \<subseteq> carrier R"
+      using subring_props(1) by blast
+    ultimately have "linear_comb (map2 (\<oplus>) Ks (map ((\<otimes>) (\<ominus> \<one>)) Ks')) Us = \<zero>"
+      using linear_comb_add[OF Ks(2) _ set_Ks _ in_carrier, of "map ((\<otimes>) (\<ominus> \<one>)) Ks'"] Ks'(2) by auto
+    moreover have "set (map2 (\<oplus>) Ks (map ((\<otimes>) (\<ominus> \<one>)) Ks')) \<subseteq> K"
+      using Ks(1) set_map subring_props(7)
+      by (induct Ks) (auto, metis contra_subsetD in_set_zipE local.set_map set_ConsD subring_props(7))
+    ultimately have "set (take (length Us) (map2 (\<oplus>) Ks (map ((\<otimes>) (\<ominus> \<one>)) Ks'))) \<subseteq> { \<zero> }"
+      using linear_ind_imp_non_trivial_linear_comb[OF assms] by auto
+    hence "set (map2 (\<oplus>) Ks (map ((\<otimes>) (\<ominus> \<one>)) Ks')) \<subseteq> { \<zero> }"
+      using Ks(2) Ks'(2) by auto
+    thus "Ks = Ks'"
+      using set_Ks set_Ks' same_length
+    proof (induct Ks arbitrary: Ks')
+      case Nil thus?case by simp
+    next
+      case (Cons k Ks)
+      then obtain k' Ks'' where k': "Ks' = k' # Ks''"
+        by (metis Suc_length_conv)
+      have "Ks = Ks''"
+        using Cons unfolding k' by auto
+      moreover have "k = k'"
+        using Cons(2-4) l_minus minus_equality unfolding k' by (auto, fastforce)
+      ultimately show ?case
+        unfolding k' by simp
+    qed
+  qed
+
+  ultimately show ?thesis by blast
+qed
+
 
 subsection \<open>Replacement Theorem\<close>
 
