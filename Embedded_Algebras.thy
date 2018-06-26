@@ -461,14 +461,6 @@ next
   qed
 qed
 
-lemma (in ring) (* span_m_closed: *)
-  assumes "subring K R" and "S \<subseteq> carrier R"
-  shows "\<And>a b. \<lbrakk> a \<in> Span K S; b \<in> Span K S \<rbrakk> \<Longrightarrow> a \<otimes> b \<in> Span K S"
-proof -
-  fix a b assume "a \<in> Span K S" "b \<in> Span K S"
-  thus "a \<otimes> b \<in> Span K S" sorry
-qed
-
 lemma (in ring) span_smult_closed:
   assumes "subring K R" and "S \<subseteq> carrier R"
   shows "\<lbrakk> k \<in> K; a \<in> Span K S \<rbrakk> \<Longrightarrow> k \<otimes> a \<in> Span K S"
