@@ -44,6 +44,118 @@ definition over :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b" (in
 context ring
 begin
 
+
+subsection \<open>Basic Properties About Linear_Comb\<close>
+
+lemma linear_comb_in_carrier [simp, intro]:
+  "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow> linear_comb Ks Us \<in> carrier R"
+  by (induct Ks Us rule: linear_comb.induct) (auto)
+
+lemma linear_comb_r_distr:
+  "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow>
+     k \<in> carrier R \<Longrightarrow> k \<otimes> (linear_comb Ks Us) = linear_comb (map ((\<otimes>) k) Ks) Us"
+  by (induct Ks Us rule: linear_comb.induct) (auto simp add: m_assoc r_distr)
+
+lemma linear_comb_l_distr:
+  "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow>
+     u \<in> carrier R \<Longrightarrow> (linear_comb Ks Us) \<otimes> u = linear_comb Ks (map (\<lambda>u'. u' \<otimes> u) Us)"
+  by (induct Ks Us rule: linear_comb.induct) (auto simp add: m_assoc l_distr)
+
+lemma linear_comb_eq_foldr:
+  "linear_comb Ks Us = foldr (\<lambda>(k, u). \<lambda>l. (k \<otimes> u) \<oplus> l) (zip Ks Us) \<zero>"
+  by (induct Ks Us rule: linear_comb.induct) (auto)
+
+lemma linear_comb_replicate:
+  "set Us \<subseteq> carrier R \<Longrightarrow> linear_comb (replicate (length Us) \<zero>) Us = \<zero>"
+  by (induct Us) (auto)
+
+lemma linear_comb_append:
+  assumes "length Ks = length Us"
+    and "set Ks  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
+    and "set Ks' \<subseteq> carrier R" "set Vs \<subseteq> carrier R"
+  shows "(linear_comb Ks Us) \<oplus> (linear_comb Ks' Vs) = linear_comb (Ks @ Ks') (Us @ Vs)"
+  using assms
+proof (induct Ks arbitrary: Us)
+  case Nil thus ?case by auto
+next
+  case (Cons k Ks)
+  then obtain u Us' where Us: "Us = u # Us'"
+    by (metis length_Suc_conv)
+  hence u: "u \<in> carrier R" and Us': "set Us' \<subseteq> carrier R"
+    using Cons(4) by auto
+  then show ?case
+    using linear_comb_in_carrier[OF _ Us', of Ks] Cons
+          linear_comb_in_carrier[OF Cons(5-6)] unfolding Us
+    by (auto, simp add: add.m_assoc)
+qed
+
+lemma linear_comb_add:
+  assumes "length Ks = length Us" and "length Ks' = length Us"
+    and "set Ks  \<subseteq> carrier R" "set Ks'  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
+  shows "(linear_comb Ks Us) \<oplus> (linear_comb Ks' Us) = linear_comb (map2 (\<oplus>) Ks Ks') Us"
+  using assms
+proof (induct Us arbitrary: Ks Ks')
+  case Nil thus ?case by simp
+next
+  case (Cons u Us)
+  then obtain c c' Cs Cs' where Ks: "Ks = c # Cs" and Ks': "Ks' = c' # Cs'"
+    by (metis length_Suc_conv)
+  hence in_carrier:
+    "c  \<in> carrier R" "set Cs  \<subseteq> carrier R"
+    "c' \<in> carrier R" "set Cs' \<subseteq> carrier R"
+    "u  \<in> carrier R" "set Us  \<subseteq> carrier R"
+    using Cons(4-6) by auto
+  hence lc_in_carrier: "linear_comb Cs Us \<in> carrier R" "linear_comb Cs' Us \<in> carrier R"
+    using linear_comb_in_carrier by auto
+  have "linear_comb Ks (u # Us) \<oplus> linear_comb Ks' (u # Us) =
+        ((c \<otimes> u) \<oplus> linear_comb Cs Us) \<oplus> ((c' \<otimes> u) \<oplus> linear_comb Cs' Us)"
+    unfolding Ks Ks' by auto
+  also have " ... = ((c \<oplus> c') \<otimes> u \<oplus> (linear_comb Cs Us \<oplus> linear_comb Cs' Us))"
+    using lc_in_carrier in_carrier(1,3,5) by (simp add: l_distr ring_simprules(7,22))
+  also have " ... = linear_comb (map2 (\<oplus>) Ks Ks') (u # Us)"
+    using Cons unfolding Ks Ks' by auto
+  finally show ?case .
+qed
+
+lemma linear_comb_take:
+  assumes "set Ks  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
+  shows "length Ks \<le> length Us \<Longrightarrow> linear_comb Ks Us = linear_comb Ks (take (length Ks) Us)"
+    and "length Us \<le> length Ks \<Longrightarrow> linear_comb Ks Us = linear_comb (take (length Us) Ks) Us"
+proof -
+  assume len: "length Ks \<le> length Us"
+  hence Us: "Us = (take (length Ks) Us) @ (drop (length Ks) Us)" by auto
+  hence set_t: "set (take (length Ks) Us) \<subseteq> carrier R" and set_d: "set (drop (length Ks) Us) \<subseteq> carrier R"
+    using assms(2) len by (metis le_sup_iff set_append)+
+  hence "linear_comb Ks Us = (linear_comb Ks (take (length Ks) Us)) \<oplus> \<zero>"
+    using linear_comb_append[OF _ assms(1), of "take (length Ks) Us" "[]" "drop (length Ks) Us"] len by auto
+  also have " ... = linear_comb Ks (take (length Ks) Us)"
+    using linear_comb_in_carrier[OF assms(1) set_t] by auto
+  finally show "linear_comb Ks Us = linear_comb Ks (take (length Ks) Us)" .
+next
+  assume len: "length Us \<le> length Ks"
+  hence Us: "Ks = (take (length Us) Ks) @ (drop (length Us) Ks)" by auto
+  hence set_t: "set (take (length Us) Ks) \<subseteq> carrier R" and set_d: "set (drop (length Us) Ks) \<subseteq> carrier R"
+    using assms(1) len by (metis le_sup_iff set_append)+
+  hence "linear_comb Ks Us = (linear_comb (take (length Us) Ks) Us) \<oplus> \<zero>"
+    using linear_comb_append[OF _ _ assms(2), of "take (length Us) Ks" "drop (length Us) Ks" "[]"] len by auto
+  also have " ... = linear_comb (take (length Us) Ks) Us"
+    using linear_comb_in_carrier[OF set_t assms(2)] by auto 
+  finally show "linear_comb Ks Us = linear_comb (take (length Us) Ks) Us" .
+qed
+
+
+subsection \<open>Some Basic Properties of Linear_Ind\<close>
+
+lemma linear_ind_in_carrier: "linear_ind K Us \<Longrightarrow> set Us \<subseteq> carrier R"
+  by (induct Us rule: linear_ind.induct) (simp_all)
+
+lemma linear_ind_backwards:
+  "linear_ind K (u # Us) \<Longrightarrow> u \<notin> Span K Us"
+  "linear_ind K (u # Us) \<Longrightarrow> linear_ind K Us"
+  "linear_ind K (u # Us) \<Longrightarrow> u \<in> carrier R"
+  by (cases rule: linear_ind.cases, auto)+
+
+
 context
   fixes K :: "'a set" assumes K: "subfield K R"
 begin
@@ -424,72 +536,6 @@ next
     using Cons by auto
 qed
 
-
-subsection \<open>Basic Properties About Linear_Comb\<close>
-
-lemma linear_comb_in_carrier [simp, intro]:
-  "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow> linear_comb Ks Us \<in> carrier R"
-  by (induct Ks Us rule: linear_comb.induct) (auto)
-
-lemma linear_comb_r_distr:
-  "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow>
-     k \<in> carrier R \<Longrightarrow> k \<otimes> (linear_comb Ks Us) = linear_comb (map ((\<otimes>) k) Ks) Us"
-  by (induct Ks Us rule: linear_comb.induct) (auto simp add: m_assoc r_distr)
-
-lemma linear_comb_eq_foldr:
-  "linear_comb Ks Us = foldr (\<lambda>(k, u). \<lambda>l. (k \<otimes> u) \<oplus> l) (zip Ks Us) \<zero>"
-  by (induct Ks Us rule: linear_comb.induct) (auto)
-
-lemma linear_comb_replicate:
-  "set Us \<subseteq> carrier R \<Longrightarrow> linear_comb (replicate (length Us) \<zero>) Us = \<zero>"
-  by (induct Us) (auto)
-
-lemma linear_comb_append:
-  assumes "length Ks = length Us"
-    and "set Ks  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
-    and "set Ks' \<subseteq> carrier R" "set Vs \<subseteq> carrier R"
-  shows "(linear_comb Ks Us) \<oplus> (linear_comb Ks' Vs) = linear_comb (Ks @ Ks') (Us @ Vs)"
-  using assms
-proof (induct Ks arbitrary: Us)
-  case Nil thus ?case by auto
-next
-  case (Cons k Ks)
-  then obtain u Us' where Us: "Us = u # Us'"
-    by (metis length_Suc_conv)
-  hence u: "u \<in> carrier R" and Us': "set Us' \<subseteq> carrier R"
-    using Cons(4) by auto
-  then show ?case
-    using linear_comb_in_carrier[OF _ Us', of Ks] Cons
-          linear_comb_in_carrier[OF Cons(5-6)] unfolding Us
-    by (auto, simp add: add.m_assoc)
-qed
-
-lemma linear_comb_take:
-  assumes "set Ks  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
-  shows "length Ks \<le> length Us \<Longrightarrow> linear_comb Ks Us = linear_comb Ks (take (length Ks) Us)"
-    and "length Us \<le> length Ks \<Longrightarrow> linear_comb Ks Us = linear_comb (take (length Us) Ks) Us"
-proof -
-  assume len: "length Ks \<le> length Us"
-  hence Us: "Us = (take (length Ks) Us) @ (drop (length Ks) Us)" by auto
-  hence set_t: "set (take (length Ks) Us) \<subseteq> carrier R" and set_d: "set (drop (length Ks) Us) \<subseteq> carrier R"
-    using assms(2) len by (metis le_sup_iff set_append)+
-  hence "linear_comb Ks Us = (linear_comb Ks (take (length Ks) Us)) \<oplus> \<zero>"
-    using linear_comb_append[OF _ assms(1), of "take (length Ks) Us" "[]" "drop (length Ks) Us"] len by auto
-  also have " ... = linear_comb Ks (take (length Ks) Us)"
-    using linear_comb_in_carrier[OF assms(1) set_t] by auto
-  finally show "linear_comb Ks Us = linear_comb Ks (take (length Ks) Us)" .
-next
-  assume len: "length Us \<le> length Ks"
-  hence Us: "Ks = (take (length Us) Ks) @ (drop (length Us) Ks)" by auto
-  hence set_t: "set (take (length Us) Ks) \<subseteq> carrier R" and set_d: "set (drop (length Us) Ks) \<subseteq> carrier R"
-    using assms(1) len by (metis le_sup_iff set_append)+
-  hence "linear_comb Ks Us = (linear_comb (take (length Us) Ks) Us) \<oplus> \<zero>"
-    using linear_comb_append[OF _ _ assms(2), of "take (length Us) Ks" "drop (length Us) Ks" "[]"] len by auto
-  also have " ... = linear_comb (take (length Us) Ks) Us"
-    using linear_comb_in_carrier[OF set_t assms(2)] by auto 
-  finally show "linear_comb Ks Us = linear_comb (take (length Us) Ks) Us" .
-qed
-
 lemma linear_comb_normalize:
   assumes "set Ks \<subseteq> K" "set Us \<subseteq> carrier R" "a = linear_comb Ks Us" 
   shows "\<exists>Ks'. set Ks' \<subseteq> K \<and> length Ks' = length Us \<and> a = linear_comb Ks' Us"
@@ -534,13 +580,8 @@ lemma Span_mem_iff_length_version:
 
 subsection \<open>Characterisation of Linearly Independent "Sets"\<close>
 
-lemma linear_ind_in_carrier [intro]: "linear_ind K Us \<Longrightarrow> set Us \<subseteq> carrier R"
-  by (induct Us rule: linear_ind.induct) (simp_all)
-
-lemma linear_ind_backwards [intro]:
-  "linear_ind K (u # Us) \<Longrightarrow> u \<notin> Span K Us"
-  "linear_ind K (u # Us) \<Longrightarrow> linear_ind K Us"
-  by (cases rule: linear_ind.cases, auto)+
+declare linear_ind_backwards [intro]
+declare linear_ind_in_carrier [intro]
 
 lemma linear_ind_distinct: "linear_ind K Us \<Longrightarrow> distinct Us"
 proof (induct Us rule: list.induct)
@@ -589,17 +630,17 @@ next
   next
     case (Cons u Us')
     hence u: "u \<in> carrier R" and "set Us' \<subseteq> carrier R" "set Vs \<subseteq> carrier R"
-      using linear_ind_in_carrier[of "(u # Us') @ Vs"] by auto
+      using linear_ind_in_carrier[of K "(u # Us') @ Vs"] by auto
     hence "Span K Us' \<subseteq> Span K (Us' @ Vs)"
       using mono_Span_append(1) by simp
     thus ?case
-      using linear_ind_backwards[of u "Us' @ Vs"] Cons li_Cons[OF u] by auto
+      using linear_ind_backwards[of K u "Us' @ Vs"] Cons li_Cons[OF u] by auto
   qed
 next
   from assms show "Span K Us \<inter> Span K Vs = { \<zero> }"
   proof (induct Us rule: list.induct)
     case Nil thus ?case
-      using Span_subgroup_props(2)[OF linear_ind_in_carrier[of Vs]] by simp 
+      using Span_subgroup_props(2)[OF linear_ind_in_carrier[of K Vs]] by simp 
   next
     case (Cons u Us)
     hence IH: "Span K Us \<inter> Span K Vs = {\<zero>}" by auto
@@ -634,7 +675,7 @@ next
         using Cons(2) Span_m_inv_simprule[OF _ _ in_carrier(1), of "Us @ Vs" k]
               diff_zero k(1) in_carrier(2-3) by auto
       moreover have "u \<notin> Span K (Us @ Vs)"
-        using linear_ind_backwards(1)[of u "Us @ Vs"] Cons(2) by auto
+        using linear_ind_backwards(1)[of K u "Us @ Vs"] Cons(2) by auto
       ultimately show False by simp
     qed
 
@@ -688,7 +729,7 @@ qed
 
 lemma linear_ind_imp_non_trivial_linear_comb:
   assumes "linear_ind K Us"
-  shows "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; linear_comb Ks Us = \<zero> \<rbrakk> \<Longrightarrow> fst ` set ((zip Ks Us)) \<subseteq> { \<zero> }"
+  shows "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; linear_comb Ks Us = \<zero> \<rbrakk> \<Longrightarrow> set (take (length Us) Ks) \<subseteq> { \<zero> }"
   using assms
 proof (induct Us rule: list.induct)
   case Nil thus ?case by simp
@@ -708,8 +749,8 @@ next
       using linear_ind_backwards[OF Cons(4)] by blast
     hence "linear_comb Ks' Us = \<zero>"
       using linear_comb_in_carrier[OF _ Us, of Ks'] Ks' u Cons(3) subring_props(1) unfolding Ks by auto
-    hence "fst ` set ((zip Ks' Us)) \<subseteq> { \<zero> }"
-      using Cons(1)[OF Ks' _ linear_ind_backwards(2)[OF Cons(4)]] by simp
+    hence "set (take (length Us) Ks') \<subseteq> { \<zero> }"
+      using Cons(1)[OF Ks' _ linear_ind_backwards(2)[OF Cons(4)]] by simp 
     thus ?thesis
       using k_zero unfolding Ks by auto
   qed
@@ -717,7 +758,7 @@ qed
 
 lemma non_trivial_linear_comb_imp_linear_ind:
   assumes "set Us \<subseteq> carrier R"
-    and "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; linear_comb Ks Us = \<zero> \<rbrakk> \<Longrightarrow> fst ` set ((zip Ks Us)) \<subseteq> { \<zero> }"
+    and "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; linear_comb Ks Us = \<zero> \<rbrakk> \<Longrightarrow> set (take (length Us) Ks) \<subseteq> { \<zero> }"
   shows "linear_ind K Us"
   using assms
 proof (induct Us)
@@ -726,14 +767,14 @@ next
   case (Cons u Us)
   hence Us: "set Us \<subseteq> carrier R" and u: "u \<in> carrier R" by auto
 
-  have "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; linear_comb Ks Us = \<zero> \<rbrakk> \<Longrightarrow> fst ` set ((zip Ks Us)) \<subseteq> { \<zero> }"
+  have "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; linear_comb Ks Us = \<zero> \<rbrakk> \<Longrightarrow> set (take (length Us) Ks) \<subseteq> { \<zero> }"
   proof -
     fix Ks assume Ks: "set Ks \<subseteq> K" and lin_c: "linear_comb Ks Us = \<zero>"
     hence "linear_comb (\<zero> # Ks) (u # Us) = \<zero>"
       using u subring_props(1) linear_comb_in_carrier[OF _ Us] by auto
-    hence "fst ` set ((zip (\<zero> # Ks) (u # Us))) \<subseteq> { \<zero> }"
+    hence "set (take (length (u # Us)) (\<zero> # Ks)) \<subseteq> { \<zero> }"
       using Cons(3)[of "\<zero> # Ks"] subring_props(2) Ks by auto
-    thus "fst ` set ((zip Ks Us)) \<subseteq> { \<zero> }" by auto
+    thus "set (take (length Us) Ks) \<subseteq> { \<zero> }" by auto
   qed
   hence "linear_ind K Us"
     using Cons(1)[OF Us] by simp
@@ -743,7 +784,7 @@ next
     assume "\<not> u \<notin> Span K Us"
     then obtain k Ks where k: "k \<in> K" "k \<noteq> \<zero>" and Ks: "set Ks \<subseteq> K" and u: "linear_comb (k # Ks) (u # Us) = \<zero>"
       using Span_mem_iff[OF Us u] by auto
-    have "fst ` set ((zip (k # Ks) (u # Us))) \<subseteq> { \<zero> }"
+    have "set (take (length (u # Us)) (k # Ks)) \<subseteq> { \<zero> }"
       using Cons(3)[OF _ u] k(1) Ks by auto
     hence "k = \<zero>" by auto
     from \<open>k = \<zero>\<close> and \<open>k \<noteq> \<zero>\<close> show False by simp
@@ -855,27 +896,284 @@ next
   thus ?case by blast
 qed
 
-lemma dimemsion_is_inj:
+lemma dimension_zero [intro]: "dimension 0 K E \<Longrightarrow> E = { \<zero> }"
+proof -
+  assume "dimension 0 K E"
+  then obtain Vs where "length Vs = 0" "Span K Vs = E"
+    using exists_base by blast
+  thus ?thesis
+    by auto
+qed
+
+lemma dimension_linear_ind [intro]: "linear_ind K Us \<Longrightarrow> dimension (length Us) K (Span K Us)"
+proof (induct Us)
+  case Nil thus ?case by simp
+next
+  case Cons thus ?case
+    using Suc_dim[OF linear_ind_backwards(3,1)[OF Cons(2)]] by auto
+qed
+
+lemma dimensionI:
+  assumes "linear_ind K Us" "Span K Us = E"
+  shows "dimension (length Us) K E"
+  using dimension_linear_ind[OF assms(1)] assms(2) by simp
+
+lemma space_subgroup_props:
+  assumes "dimension n K E"
+  shows "E \<subseteq> carrier R"
+    and "\<zero> \<in> E"
+    and "\<And>v1 v2. \<lbrakk> v1 \<in> E; v2 \<in> E \<rbrakk> \<Longrightarrow> (v1 \<oplus> v2) \<in> E"
+    and "\<And>v. v \<in> E \<Longrightarrow> (\<ominus> v) \<in> E"
+    and "\<And>k v. \<lbrakk> k \<in> K; v \<in> E \<rbrakk> \<Longrightarrow> k \<otimes> v \<in> E"
+    and "\<lbrakk> k \<in> K - { \<zero> }; a \<in> carrier R \<rbrakk> \<Longrightarrow> k \<otimes> a \<in> E \<Longrightarrow> a \<in> E"
+  using exists_base[OF assms] Span_subgroup_props Span_smult_closed Span_m_inv_simprule by auto
+
+lemma linear_ind_length_le_dimension:
+  assumes "dimension n K E" and "linear_ind K Us" "set Us \<subseteq> E"
+  shows "length Us \<le> n"
+proof -
+  obtain Vs where Vs: "set Vs \<subseteq> carrier R" "linear_ind K Vs" "length Vs = n" "Span K Vs = E"
+    using exists_base[OF assms(1)] by auto
+  thus ?thesis
+    using linear_ind_length_le assms(2-3) by auto
+qed
+
+lemma dimension_is_inj:
   assumes "dimension n K E" and "dimension m K E"
   shows "n = m"
 proof -
-  { fix n m assume "dimension n K E" and "dimension m K E"
-    then obtain Vs Us
+  { fix n m assume n: "dimension n K E" and m: "dimension m K E"
+    then obtain Vs
       where Vs: "set Vs \<subseteq> carrier R" "linear_ind K Vs" "length Vs = n" "Span K Vs = E"
-        and Us: "set Us \<subseteq> carrier R" "linear_ind K Us" "length Us = m" "Span K Us = E"
       using exists_base by meson
     hence "n \<le> m"
-      using linear_ind_length_le[OF Vs(2) Us(2)] Span_base_incl[OF Vs(1)] by auto
+      using linear_ind_length_le_dimension[OF m Vs(2)] Span_base_incl[OF Vs(1)] by auto
   } note aux_lemma = this
 
   show ?thesis
     using aux_lemma[OF assms] aux_lemma[OF assms(2,1)] by simp
 qed
 
+corollary linear_ind_length_eq_dimension:
+  assumes "dimension n K E" and "linear_ind K Us" "set Us \<subseteq> E"
+  shows "length Us = n \<longleftrightarrow> Span K Us = E"
+proof
+  assume len: "length Us = n" show "Span K Us = E"
+  proof (rule ccontr)
+    assume "Span K Us \<noteq> E"
+    hence "Span K Us \<subset> E"
+      using mono_Span_subset[of Us] exists_base[OF assms(1)] assms(3) by blast
+    then obtain v where v: "v \<in> E" "v \<notin> Span K Us"
+      using Span_strict_incl exists_base[OF assms(1)] space_subgroup_props(1)[OF assms(1)] assms by blast
+    hence "linear_ind K (v # Us)"
+      using li_Cons[OF _ _ assms(2)] space_subgroup_props(1)[OF assms(1)] by auto
+    hence "length (v # Us) \<le> n"
+      using linear_ind_length_le_dimension[OF assms(1)] v(1) assms(2-3) by fastforce
+    moreover have "length (v # Us) = Suc n"
+      using len by simp
+    ultimately show False by simp
+  qed
+next
+  assume "Span K Us = E"
+  hence "dimension (length Us) K E"
+    using dimensionI assms by auto
+  thus "length Us = n"
+    using dimension_is_inj[OF assms(1)] by auto
+qed
 
+lemma complete_base:
+  assumes "dimension n K E" and "linear_ind K Us" "set Us \<subseteq> E"
+  shows "\<exists>Vs. length (Vs @ Us) = n \<and> linear_ind K (Vs @ Us) \<and> Span K (Vs @ Us) = E"
+proof -
+  { fix Us k assume "k \<le> n" "linear_ind K Us" "set Us \<subseteq> E" "length Us = k"
+    hence "\<exists>Vs. length (Vs @ Us) = n \<and> linear_ind K (Vs @ Us) \<and> Span K (Vs @ Us) = E"
+    proof (induct arbitrary: Us rule: inc_induct)
+      case base thus ?case
+        using linear_ind_length_eq_dimension[OF assms(1) base(1-2)] by auto
+    next
+      case (step m)
+      have "Span K Us \<subseteq> E"
+        using mono_Span_subset step(4-6) exists_base[OF assms(1)] by blast
+      hence "Span K Us \<subset> E"
+        using linear_ind_length_eq_dimension[OF assms(1) step(4-5)] step(2,6) assms(1) by blast
+      then obtain v where v: "v \<in> E" "v \<notin> Span K Us"
+        using Span_strict_incl exists_base[OF assms(1)] by blast
+      hence "linear_ind K (v # Us)"
+        using space_subgroup_props(1)[OF assms(1)] li_Cons[OF _ v(2) step(4)] by auto
+      then obtain Vs
+        where "length (Vs @ (v # Us)) = n" "linear_ind K (Vs @ (v # Us))" "Span K (Vs @ (v # Us)) = E"
+        using step(3)[of "v # Us"] step(1-2,4-6) v by auto 
+      thus ?case
+        by (metis append.assoc append_Cons append_Nil)  
+    qed } note aux_lemma = this
+
+  have "length Us \<le> n"
+    using linear_ind_length_le_dimension[OF assms] .
+  thus ?thesis
+    using aux_lemma[OF _ assms(2-3)] by auto
+qed
+
+lemma dimension_backwards:
+  "dimension (Suc n) K E \<Longrightarrow> \<exists>v \<in> carrier R. \<exists>E'. dimension n K E' \<and> v \<notin> E' \<and> E = line_ext K v E'"
+  by (cases rule: dimension.cases) (auto)
+
+lemma dimension_direct_sum_space:
+  assumes "dimension n K E" and "dimension m K F" and "E \<inter> F = { \<zero> }"
+  shows "dimension (n + m) K (E <+>\<^bsub>R\<^esub> F)"
+proof -
+  obtain Us Vs
+    where Vs: "set Vs \<subseteq> carrier R" "linear_ind K Vs" "length Vs = n" "Span K Vs = E"
+      and Us: "set Us \<subseteq> carrier R" "linear_ind K Us" "length Us = m" "Span K Us = F"
+    using assms(1-2)[THEN exists_base] by auto
+  hence "Span K (Vs @ Us) = E <+>\<^bsub>R\<^esub> F"
+    using Span_append_eq_set_add by auto
+  moreover have "linear_ind K (Vs @ Us)"
+    using assms(3) linear_ind_append[OF Vs(2) Us(2)] unfolding Vs(4) Us(4) by simp
+  ultimately show "dimension (n + m) K (E <+>\<^bsub>R\<^esub> F)"
+    using dimensionI[of "Vs @ Us"] Vs(3) Us(3) by auto
+qed
+
+lemma dimension_sum_space:
+  assumes "dimension n K E" and "dimension m K F" and "dimension k K (E \<inter> F)"
+  shows "dimension (n + m - k) K (E <+>\<^bsub>R\<^esub> F)"
+proof -
+  obtain Bs
+    where Bs: "set Bs \<subseteq> carrier R" "length Bs = k" "linear_ind K Bs" "Span K Bs = E \<inter> F"
+    using exists_base[OF assms(3)] by blast
+  then obtain Us Vs
+    where Us: "length (Us @ Bs) = n" "linear_ind K (Us @ Bs)" "Span K (Us @ Bs) = E"
+      and Vs: "length (Vs @ Bs) = m" "linear_ind K (Vs @ Bs)" "Span K (Vs @ Bs) = F"
+    using Span_base_incl[OF Bs(1)] assms(1-2)[THEN complete_base] by (metis le_infE)
+  hence in_carrier: "set Us \<subseteq> carrier R" "set (Vs @ Bs) \<subseteq> carrier R"
+    using linear_ind_in_carrier[OF Us(2)] linear_ind_in_carrier[OF Vs(2)] by auto
+  hence "Span K Us \<inter> (Span K (Vs @ Bs)) \<subseteq> Span K Bs"
+    using Bs(4) Us(3) Vs(3) mono_Span_append(1)[OF _ Bs(1), of Us] by auto 
+  hence "Span K Us \<inter> (Span K (Vs @ Bs)) \<subseteq> { \<zero> }"
+    using linear_ind_split(3)[OF Us(2)] by blast
+  hence "Span K Us \<inter> (Span K (Vs @ Bs)) = { \<zero> }"
+    using in_carrier[THEN Span_subgroup_props(2)] by auto
+
+  hence dim: "dimension (n + m - k) K (Span K (Us @ (Vs @ Bs)))"
+    using linear_ind_append[OF linear_ind_split(2)[OF Us(2)] Vs(2)] Us(1) Vs(1) Bs(2)
+          dimension_linear_ind[of "Us @ (Vs @ Bs)"] by auto
+
+  have "(Span K Us) <+>\<^bsub>R\<^esub> F \<subseteq> E <+>\<^bsub>R\<^esub> F"
+    using mono_Span_append(1)[OF in_carrier(1) Bs(1)] Us(3) unfolding set_add_def' by auto
+  moreover have "E <+>\<^bsub>R\<^esub> F \<subseteq> (Span K Us) <+>\<^bsub>R\<^esub> F"
+  proof
+    fix v assume "v \<in> E <+>\<^bsub>R\<^esub> F"
+    then obtain u' v' where v: "u' \<in> E" "v' \<in> F" "v = u' \<oplus> v'"
+      unfolding set_add_def' by auto
+    then obtain u1' u2' where u1': "u1' \<in> Span K Us" and u2': "u2' \<in> Span K Bs" and u': "u' = u1' \<oplus> u2'"
+      using Span_append_eq_set_add[OF in_carrier(1) Bs(1)] Us(3) unfolding set_add_def' by blast
+
+    have "v = u1' \<oplus> (u2' \<oplus> v')"
+      using Span_subgroup_props(1)[OF Bs(1)] Span_subgroup_props(1)[OF in_carrier(1)]
+            space_subgroup_props(1)[OF assms(2)] u' v u1' u2' a_assoc[of u1' u2' v'] by auto
+    moreover have "u2' \<oplus> v' \<in> F"
+      using space_subgroup_props(3)[OF assms(2) _ v(2)] u2' Bs(4) by auto
+    ultimately show "v \<in> (Span K Us) <+>\<^bsub>R\<^esub> F"
+      using u1' unfolding set_add_def' by auto
+  qed
+  ultimately have "Span K (Us @ (Vs @ Bs)) = E <+>\<^bsub>R\<^esub> F" 
+    using Span_append_eq_set_add[OF in_carrier] Vs(3) by auto
+
+  thus ?thesis using dim by simp
+qed
 
 end
 
 end
+
+lemma (in ring) telescopic_base_aux:
+  assumes "subfield K R" "subfield F R"
+    and "dimension n K F" and "dimension 1 F E"
+  shows "dimension n K E"
+proof -
+  obtain Us u
+    where Us: "set Us \<subseteq> carrier R" "length Us = n" "linear_ind K Us" "Span K Us = F"
+      and u: "u \<in> carrier R" "linear_ind F [u]" "Span F [u] = E"
+    using exists_base[OF assms(2,4)] exists_base[OF assms(1,3)] linear_ind_backwards(3) assms(2)
+    by (metis One_nat_def length_0_conv length_Suc_conv)
+  have in_carrier: "set (map (\<lambda>u'. u' \<otimes> u) Us) \<subseteq> carrier R"
+    using Us(1) u(1) by (induct Us) (auto)
+  
+  have li: "linear_ind K (map (\<lambda>u'. u' \<otimes> u) Us)"
+  proof (rule non_trivial_linear_comb_imp_linear_ind[OF assms(1) in_carrier])
+    fix Ks assume Ks: "set Ks \<subseteq> K" and "linear_comb Ks (map (\<lambda>u'. u' \<otimes> u) Us) = \<zero>"
+    hence "(linear_comb Ks Us) \<otimes> u = \<zero>"
+      using linear_comb_l_distr[OF _ Us(1) u(1)] subring_props(1)[OF assms(1)] by auto
+    hence "linear_comb [ linear_comb Ks Us ] [ u ] = \<zero>"
+      by simp
+    moreover have "linear_comb Ks Us \<in> F"
+      using Us(4) Ks(1) Span_eq_linear_comb_set[OF assms(1) Us(1)] by auto
+    ultimately have "linear_comb Ks Us = \<zero>"
+      using linear_ind_imp_non_trivial_linear_comb[OF assms(2) u(2), of "[ linear_comb Ks Us ]"] by auto
+    hence "set (take (length Us) Ks) \<subseteq> { \<zero> }"
+      using linear_ind_imp_non_trivial_linear_comb[OF assms(1) Us(3) Ks(1)] by simp
+    thus "set (take (length (map (\<lambda>u'. u' \<otimes> u) Us)) Ks) \<subseteq> { \<zero> }" by simp
+  qed
+
+  have "E \<subseteq> Span K (map (\<lambda>u'. u' \<otimes> u) Us)"
+  proof
+    fix v assume "v \<in> E"
+    then obtain f where f: "f \<in> F" "v = f \<otimes> u \<oplus> \<zero>"
+      using u(1,3) line_ext_mem_iff[OF assms(2)] by auto
+    then obtain Ks where Ks: "set Ks \<subseteq> K" "f = linear_comb Ks Us"
+      using Span_eq_linear_comb_set[OF assms(1) Us(1)] Us(4) by auto
+    have "v = f \<otimes> u"
+      using subring_props(1)[OF assms(2)] f u(1) by auto
+    hence "v = linear_comb Ks (map (\<lambda>u'. u' \<otimes> u) Us)"
+      using linear_comb_l_distr[OF _ Us(1) u(1), of Ks] Ks(1-2)
+            subring_props(1)[OF assms(1)] by blast
+    thus "v \<in> Span K (map (\<lambda>u'. u' \<otimes> u) Us)"
+      unfolding Span_eq_linear_comb_set[OF assms(1) in_carrier] using Ks(1) by blast
+  qed
+  moreover have "Span K (map (\<lambda>u'. u' \<otimes> u) Us) \<subseteq> E"
+  proof
+    fix v assume "v \<in> Span K (map (\<lambda>u'. u' \<otimes> u) Us)"
+    then obtain Ks where Ks: "set Ks \<subseteq> K" "v = linear_comb Ks (map (\<lambda>u'. u' \<otimes> u) Us)"
+      unfolding Span_eq_linear_comb_set[OF assms(1) in_carrier] by blast
+    hence "v = (linear_comb Ks Us) \<otimes> u"
+      using linear_comb_l_distr[OF _ Us(1) u(1), of Ks] subring_props(1)[OF assms(1)] by auto
+    moreover have "linear_comb Ks Us \<in> F"
+      using Us(4) Span_eq_linear_comb_set[OF assms(1) Us(1)] Ks(1) by blast
+    ultimately have "v = (linear_comb Ks Us) \<otimes> u \<oplus> \<zero>" and "linear_comb Ks Us \<in> F"
+      using subring_props(1)[OF assms(2)] u(1) by auto
+    thus "v \<in> E"
+      using u(3) line_ext_mem_iff[OF assms(2)] by auto
+  qed
+  ultimately have "Span K (map (\<lambda>u'. u' \<otimes> u) Us) = E" by auto
+  thus ?thesis
+    using dimensionI[OF assms(1) li] Us(2) by simp
+qed
+
+lemma (in ring) telescopic_base:
+  assumes "subfield K R" "subfield F R"
+    and "dimension n K F" and "dimension m F E"
+  shows "dimension (n * m) K E"
+  using assms(4)
+proof (induct m arbitrary: E)
+  case 0 thus ?case
+    using dimension_zero[OF assms(2)] zero_dim by auto
+next
+  case (Suc m)
+  obtain Vs
+    where Vs: "set Vs \<subseteq> carrier R" "length Vs = Suc m" "linear_ind F Vs" "Span F Vs = E"
+    using exists_base[OF assms(2) Suc(2)] by blast
+  then obtain v Vs' where v: "Vs = v # Vs'"
+    by (meson length_Suc_conv)
+  hence li: "linear_ind F [ v ]" "linear_ind F Vs'" and inter: "Span F [ v ] \<inter> Span F Vs' = { \<zero> }"
+    using Vs(3) linear_ind_split[OF assms(2), of "[ v ]" Vs'] by auto
+  have "dimension n K (Span F [ v ])"
+    using dimension_linear_ind[OF assms(2) li(1)] telescopic_base_aux[OF assms(1-3)] by simp
+  moreover have "dimension (n * m) K (Span F Vs')"
+    using Suc(1) dimension_linear_ind[OF assms(2) li(2)] Vs(2) unfolding v by auto
+  ultimately have "dimension (n * Suc m) K (Span F [ v ] <+>\<^bsub>R\<^esub> Span F Vs')"
+    using dimension_direct_sum_space[OF assms(1) _ _ inter] by auto
+  thus "dimension (n * Suc m) K E"
+    using Span_append_eq_set_add[OF assms(2) li[THEN linear_ind_in_carrier]] Vs(4) v by auto 
+qed
+
 
 end
