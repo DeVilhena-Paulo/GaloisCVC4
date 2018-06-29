@@ -1,5 +1,9 @@
+(* ************************************************************************** *)
+(* Title:      Embedded_Algebras.thy                                          *)
+(* Author:     Paulo Emílio de Vilhena                                        *)
+(* ************************************************************************** *)
 
-theory More_Embedded_Algebras
+theory Embedded_Algebras
   imports Subrings Generated_Groups
 
 begin
@@ -116,34 +120,6 @@ next
     using Cons unfolding Ks Ks' by auto
   finally show ?case .
 qed
-
-(*
-lemma combine_take:
-  assumes "set Ks  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
-  shows "length Ks \<le> length Us \<Longrightarrow> combine Ks Us = combine Ks (take (length Ks) Us)"
-    and "length Us \<le> length Ks \<Longrightarrow> combine Ks Us = combine (take (length Us) Ks) Us"
-proof -
-  assume len: "length Ks \<le> length Us"
-  hence Us: "Us = (take (length Ks) Us) @ (drop (length Ks) Us)" by auto
-  hence set_t: "set (take (length Ks) Us) \<subseteq> carrier R" and set_d: "set (drop (length Ks) Us) \<subseteq> carrier R"
-    using assms(2) len by (metis le_sup_iff set_append)+
-  hence "combine Ks Us = (combine Ks (take (length Ks) Us)) \<oplus> \<zero>"
-    using combine_append[OF _ assms(1), of "take (length Ks) Us" "[]" "drop (length Ks) Us"] len by auto
-  also have " ... = combine Ks (take (length Ks) Us)"
-    using combine_in_carrier[OF assms(1) set_t] by auto
-  finally show "combine Ks Us = combine Ks (take (length Ks) Us)" .
-next
-  assume len: "length Us \<le> length Ks"
-  hence Us: "Ks = (take (length Us) Ks) @ (drop (length Us) Ks)" by auto
-  hence set_t: "set (take (length Us) Ks) \<subseteq> carrier R" and set_d: "set (drop (length Us) Ks) \<subseteq> carrier R"
-    using assms(1) len by (metis le_sup_iff set_append)+
-  hence "combine Ks Us = (combine (take (length Us) Ks) Us) \<oplus> \<zero>"
-    using combine_append[OF _ _ assms(2), of "take (length Us) Ks" "drop (length Us) Ks" "[]"] len by auto
-  also have " ... = combine (take (length Us) Ks) Us"
-    using combine_in_carrier[OF set_t assms(2)] by auto 
-  finally show "combine Ks Us = combine (take (length Us) Ks) Us" .
-qed
-*)
 
 
 subsection \<open>Some Basic Properties of Linear_Ind\<close>
@@ -582,44 +558,6 @@ next
   thus ?case
     using Cons by auto
 qed
-
-(*
-lemma combine_normalize:
-  assumes "set Ks \<subseteq> K" "set Us \<subseteq> carrier R" "a = combine Ks Us" 
-  shows "\<exists>Ks'. set Ks' \<subseteq> K \<and> length Ks' = length Us \<and> a = combine Ks' Us"
-proof (cases "length Ks \<le> length Us")
-  assume "\<not> length Ks \<le> length Us"
-  hence len: "length Us < length Ks" by simp
-  hence "length (take (length Us) Ks) = length Us" and "set (take (length Us) Ks) \<subseteq> K"
-    using assms(1) by (auto, metis contra_subsetD in_set_takeD)
-  thus ?thesis
-    using combine_take(2)[OF _ assms(2), of Ks] assms(1,3) subring_props(1) len
-    by (metis dual_order.trans nat_less_le)
-next
-  assume len: "length Ks \<le> length Us"
-  have Ks: "set Ks \<subseteq> carrier R" and set_r: "set (replicate (length Us - length Ks) \<zero>) \<subseteq> carrier R"
-    using assms subring_props(1) zero_closed by (metis dual_order.trans, auto) 
-  moreover
-  have set_t: "set (take (length Ks) Us) \<subseteq> carrier R"
-   and set_d: "set (drop (length Ks) Us) \<subseteq> carrier R"
-    using assms(2) len dual_order.trans by (metis set_take_subset, metis set_drop_subset)
-  ultimately 
-  have "combine (Ks @ (replicate (length Us - length Ks) \<zero>)) Us =
-       (combine Ks (take (length Ks) Us)) \<oplus>
-       (combine (replicate (length Us - length Ks) \<zero>) (drop (length Ks) Us))"
-    using combine_append[OF _ Ks set_t set_r set_d] len by auto
-  also have " ... = combine Ks (take (length Ks) Us)"
-    using combine_replicate[OF set_d] combine_in_carrier[OF Ks set_t] by auto
-  also have " ... = a"
-    using combine_take(1)[OF Ks assms(2) len] assms(3) by simp
-  finally have "combine (Ks @ (replicate (length Us - length Ks) \<zero>)) Us = a" .
-  moreover have "set (Ks @ (replicate (length Us - length Ks) \<zero>)) \<subseteq> K"
-    using assms(1) subring_props(2) by auto
-  moreover have "length (Ks @ (replicate (length Us - length Ks) \<zero>)) = length Us"
-    using len by simp
-  ultimately show ?thesis by blast
-qed
-*)
 
 
 subsection \<open>Characterisation of Linearly Independent "Sets"\<close>
@@ -1275,5 +1213,72 @@ next
   thus "dimension (n * Suc m) K E"
     using Span_append_eq_set_add[OF assms(2) li[THEN linear_indep_in_carrier]] Vs(4) v by auto 
 qed
+
+
+(*
+lemma combine_take:
+  assumes "set Ks  \<subseteq> carrier R" "set Us \<subseteq> carrier R"
+  shows "length Ks \<le> length Us \<Longrightarrow> combine Ks Us = combine Ks (take (length Ks) Us)"
+    and "length Us \<le> length Ks \<Longrightarrow> combine Ks Us = combine (take (length Us) Ks) Us"
+proof -
+  assume len: "length Ks \<le> length Us"
+  hence Us: "Us = (take (length Ks) Us) @ (drop (length Ks) Us)" by auto
+  hence set_t: "set (take (length Ks) Us) \<subseteq> carrier R" and set_d: "set (drop (length Ks) Us) \<subseteq> carrier R"
+    using assms(2) len by (metis le_sup_iff set_append)+
+  hence "combine Ks Us = (combine Ks (take (length Ks) Us)) \<oplus> \<zero>"
+    using combine_append[OF _ assms(1), of "take (length Ks) Us" "[]" "drop (length Ks) Us"] len by auto
+  also have " ... = combine Ks (take (length Ks) Us)"
+    using combine_in_carrier[OF assms(1) set_t] by auto
+  finally show "combine Ks Us = combine Ks (take (length Ks) Us)" .
+next
+  assume len: "length Us \<le> length Ks"
+  hence Us: "Ks = (take (length Us) Ks) @ (drop (length Us) Ks)" by auto
+  hence set_t: "set (take (length Us) Ks) \<subseteq> carrier R" and set_d: "set (drop (length Us) Ks) \<subseteq> carrier R"
+    using assms(1) len by (metis le_sup_iff set_append)+
+  hence "combine Ks Us = (combine (take (length Us) Ks) Us) \<oplus> \<zero>"
+    using combine_append[OF _ _ assms(2), of "take (length Us) Ks" "drop (length Us) Ks" "[]"] len by auto
+  also have " ... = combine (take (length Us) Ks) Us"
+    using combine_in_carrier[OF set_t assms(2)] by auto 
+  finally show "combine Ks Us = combine (take (length Us) Ks) Us" .
+qed
+*)
+
+(*
+lemma combine_normalize:
+  assumes "set Ks \<subseteq> K" "set Us \<subseteq> carrier R" "a = combine Ks Us" 
+  shows "\<exists>Ks'. set Ks' \<subseteq> K \<and> length Ks' = length Us \<and> a = combine Ks' Us"
+proof (cases "length Ks \<le> length Us")
+  assume "\<not> length Ks \<le> length Us"
+  hence len: "length Us < length Ks" by simp
+  hence "length (take (length Us) Ks) = length Us" and "set (take (length Us) Ks) \<subseteq> K"
+    using assms(1) by (auto, metis contra_subsetD in_set_takeD)
+  thus ?thesis
+    using combine_take(2)[OF _ assms(2), of Ks] assms(1,3) subring_props(1) len
+    by (metis dual_order.trans nat_less_le)
+next
+  assume len: "length Ks \<le> length Us"
+  have Ks: "set Ks \<subseteq> carrier R" and set_r: "set (replicate (length Us - length Ks) \<zero>) \<subseteq> carrier R"
+    using assms subring_props(1) zero_closed by (metis dual_order.trans, auto) 
+  moreover
+  have set_t: "set (take (length Ks) Us) \<subseteq> carrier R"
+   and set_d: "set (drop (length Ks) Us) \<subseteq> carrier R"
+    using assms(2) len dual_order.trans by (metis set_take_subset, metis set_drop_subset)
+  ultimately 
+  have "combine (Ks @ (replicate (length Us - length Ks) \<zero>)) Us =
+       (combine Ks (take (length Ks) Us)) \<oplus>
+       (combine (replicate (length Us - length Ks) \<zero>) (drop (length Ks) Us))"
+    using combine_append[OF _ Ks set_t set_r set_d] len by auto
+  also have " ... = combine Ks (take (length Ks) Us)"
+    using combine_replicate[OF set_d] combine_in_carrier[OF Ks set_t] by auto
+  also have " ... = a"
+    using combine_take(1)[OF Ks assms(2) len] assms(3) by simp
+  finally have "combine (Ks @ (replicate (length Us - length Ks) \<zero>)) Us = a" .
+  moreover have "set (Ks @ (replicate (length Us - length Ks) \<zero>)) \<subseteq> K"
+    using assms(1) subring_props(2) by auto
+  moreover have "length (Ks @ (replicate (length Us - length Ks) \<zero>)) = length Us"
+    using len by simp
+  ultimately show ?thesis by blast
+qed
+*)
 
 end
