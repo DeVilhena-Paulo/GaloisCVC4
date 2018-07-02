@@ -1209,11 +1209,13 @@ lemma (in vector_space) extended_replacement_theorem :
     and "lin_indep R M I"
     and "lin_indep R M J"
     and "card J \<ge> card I"
-  shows "\<forall> S \<subseteq> I. \<exists> V \<subseteq> J. finite V \<and> (card V = card S) \<and> lin_indep R M (S \<union> (J - V))" using assms
+  shows "\<forall> S \<subseteq> I. \<exists> V \<subseteq> J. finite V \<and> (card V = card S) \<and> S \<inter> (J-V) = {}
+                            \<and>lin_indep R M (S \<union> (J - V))"
+  using assms
 proof(induction I arbitrary : J rule : finite_induct)
-  case empty 
-  then show ?case using  Diff_empty Un_empty_left  finite.emptyI 
-    by (metis Diff_eq_empty_iff Diff_subset)
+  case empty then  
+  then show ?case using  Diff_empty Un_empty_left  finite.emptyI
+    by (metis Diff_disjoint empty_subsetI subset_empty) 
 next
   case (insert x F)
   have indepF : "lin_indep R M F"
@@ -1221,7 +1223,8 @@ next
   have xnot0 : "x \<noteq> \<zero>\<^bsub>M\<^esub>"
     using zero_imp_dep[of "insert x F"] insert(4) by (meson insert_iff lin_indep_not_dep)
   {fix S assume S_def : "S \<subseteq> insert x F"
-    have "(\<exists>V \<subseteq> J. finite V \<and> card V = card S \<and> lin_indep R M (S \<union> (J - V)))"
+    have "(\<exists>V \<subseteq> J. finite V \<and> card V = card S \<and> S \<inter> (J-V) = {} \<and> lin_indep R M (S \<union> (J - V)))"
+          (is "?P S J")
     proof (cases "S \<subseteq> F")
       case True
       then show ?thesis using insert(3)[OF indepF insert(5)] insert by auto
@@ -1234,12 +1237,14 @@ next
       hence indep2 : "lin_indep R M V"
         using lin_indep_incl[OF indep, of V] V_def  by (simp add: subset_insertI) 
       have notx : "x \<notin> Span R M V"
-        using indep vector_in_Span_imp_dep[of V x] indep2 V_def indep2 by (meson lin_indep_not_dep) 
-      obtain L
-        where L_def : "L\<subseteq>J""lin_indep R M (V \<union> (J - L))" "card L = card V""finite L"
-        using insert(3)[OF lin_indep_incl[OF insert(4)]lin_indep_incl[OF insert(5), of J]]
-              inclF subset_insertI[of F x]insert(6) order_refl card_insert_le[OF insert(1), of x]
-        by (metis (mono_tags, lifting) le_trans)
+        using indep vector_in_Span_imp_dep[of V x] indep2 V_def indep2 by (meson lin_indep_not_dep)
+      have "?P V J"
+        using insert(3)[OF lin_indep_incl[OF insert(4)]lin_indep_incl[OF insert(5), of J]]inclF
+        by (meson card_insert_le le_trans insert(1,6) order_refl subset_insertI)
+      from this obtain L
+        where L_def : "L\<subseteq>J""lin_indep R M (V \<union> (J - L))" "card L = card V"
+                      "finite L" "V \<inter> (J-L) = {}" 
+        by auto
       show ?thesis
       proof (cases "x \<in> Span R M (J-V-L)")
         case True
@@ -1267,11 +1272,14 @@ next
             using L_def(2) indep_inter_null[of "V \<union> (J - V-L - {y})" "{y}"] yz(1,3,4) by auto
         qed
         moreover have "(V \<union> (J - V - L - {y})) = (V \<union> (J  - L - {y}))" by blast
-        ultimately have "x \<notin> Span R M (V \<union> (J - L - {y}))" by auto
-        moreover have "(insert x V) \<union> (J - L - {y}) = insert x (V \<union> (J - L - {y}))" by blast
-        ultimately have "lin_indep R M ((insert x V) \<union> (J - L - {y}))"
+        ultimately have xSpan : "x \<notin> Span R M (V \<union> (J - L - {y}))" by auto
+        hence "x \<notin> ((V \<union> (J - L - {y})))" using Span.incl[of x "(V \<union> (J - L - {y}))"] by auto
+        hence inter : "S \<inter> (J - L - {y}) = {}"
+          using V_def L_def(5) by blast
+        have "(insert x V) \<union> (J - L - {y}) = insert x (V \<union> (J - L - {y}))" by blast
+        hence "lin_indep R M ((insert x V) \<union> (J - L - {y}))"
           using add_vector_indep[OF lin_indep_incl[OF L_def(2),of "(V \<union> (J - L - {y}))"], of x] insert(4)
-                 subsetCE by force
+                 subsetCE xSpan by force
         hence "lin_indep R M (S \<union> (J - L - {y}))" using V_def by auto
         moreover have "y \<notin> L" using yz(1) by auto
         hence "card (insert y L) = card V + 1" using L_def(3,4) by auto
@@ -1279,7 +1287,8 @@ next
           using V_def finite_subset[OF S_def] insert(1) by simp
         moreover have "finite (insert y L)" using L_def(4) by auto
         moreover have "(S \<union> (J - (insert y L))) = (S \<union> (J - L - {y}))"by auto
-        ultimately show ?thesis by (metis Diff_iff L_def(1) insert_subset yz(1)) 
+        ultimately show ?thesis using inter L_def(1) yz(1)
+          by (metis DiffD1 Diff_insert insert_subset) 
       next
         case False
         note F = this
@@ -1320,7 +1329,7 @@ next
             ultimately show False using yz(4) using indep_inter_null[of "(J - L - V - {y})""{y}"]
               by auto
           qed
-          have  "x \<notin> Span R M (V \<union> (J - L - {y}))"
+          have xSpan :  "x \<notin> Span R M (V \<union> (J - L - {y}))"
           proof
             assume hyp : "x \<in> Span R M (V \<union> (J - L - {y}))"
             hence hyp2 : "x \<in> Span R M (V \<union> (J - L - V - {y}))"
@@ -1336,6 +1345,10 @@ next
           hence"lin_indep R M (insert x (V \<union> (J - L - {y})))"
             using add_vector_indep[OF lin_indep_incl[OF L_def(2),of "V \<union> (J-L-{y})"],of x] carrier
             by fastforce
+          moreover from xSpan have "x \<notin> (V \<union> (J - L - {y}))"
+            using Span.incl[of x "V \<union> (J - L - {y})"] by auto
+          hence "S \<inter> (J - L - {y}) = {}"
+            using V_def L_def(5) by blast
           moreover have "y \<notin> L" using yz(1) by auto
           hence "card (insert y L) = card V + 1" using L_def(3,4) by auto
           hence "card (insert y L) = card S"
@@ -1345,7 +1358,7 @@ next
           moreover have "V \<union> (J - L - {y}) = V \<union> (J - insert y L)" by blast
           hence "insert x (V \<union> (J - L - {y})) = S \<union> (J - insert y L)"
             using yz(1) V_def by blast
-          ultimately show ?thesis by metis 
+          ultimately show ?thesis by (metis Diff_insert)
         next
           case False
           have "(V \<union> (J - L - V)) = (V \<union> (J - L))" by blast
@@ -1369,6 +1382,10 @@ next
             using V_def finite_subset[OF S_def] finite_insert[of F] insert(1) by auto
           moreover have "finite (insert y L)" using L_def(4) finite_insert by auto
           moreover have "(insert y L) \<subseteq> J" using L_def(1) y by auto
+          moreover from False have "x \<notin> (V \<union> (J - L)) "
+            using Span.incl[of x "(V \<union> (J - L - V)) "] by auto
+          hence "S \<inter> (J - (insert y L)) = {}"
+            using L_def(5) V_def by blast
           ultimately show ?thesis by blast
         qed
       qed
@@ -1435,23 +1452,8 @@ proposition (in vector_space) dimension_unique :
   assumes "finite_dim R M K"
     and "base R M S K"
     and "dim K = n"
-  shows "card S = n" using assms
-proof (induction n arbitrary : S K)
-  case 0
-  have n_def : "0 = (LEAST n. (\<exists> A. finite A \<and> card A = n  \<and>  generator R M A K))" using assms 0
-    by (simp add: dim_def)
-  moreover have "(\<exists> A. finite A \<and>  generator R M A K)"
-    using assms(1)  "0.prems"(1) finite_dim_def by blast 
-  ultimately have "(\<exists> A. finite A \<and> card A = 0 \<and> generator R M A K)" using assms
-    by (smt LeastI)
-  from this have "generator R M {} K" using card_0_eq by blast
-  hence "K = {\<zero>\<^bsub>M\<^esub>}" using Span_empty unfolding generator_def by auto
-  then show ?case using zero_imp_dep[of S] 0 unfolding base_def generator_def
-    using Span_empty by auto
-next
-  case (Suc n)
-  then show ?case sorry
-qed
+  shows "card S = n"
+proof (rule ccontr)
   assume hyp : "card S \<noteq> n"
   have finite : "finite S" using assms finite_dim_imp_finite_base by auto
   have n_def : "n = (LEAST n. (\<exists> A. finite A \<and> card A = n  \<and>  generator R M A K))" using assms
@@ -1484,20 +1486,29 @@ qed
   show False
   proof (cases "card S \<ge> n")
     case True
-    from this have "card (A - S) \<le> card S"
-      using A_def(1,2) by (meson Diff_subset card_mono dual_order.trans)
-    from this obtain V
-      where V_def :"finite V" "card V = card (A-S)" "lin_indep R M ((A-S)  \<union> (S  - V))"
-      using extended_replacement_theorem[of "A-S"S] lin_indep_trunc[OF indep_A, of S] assms(2)
-      unfolding base_def by (metis A_def(1) finite_Diff order_refl)
-    have "A \<subseteq> ((A-S)  \<union> (S  - V))"
-    have "(S - A - V) \<noteq> {}" using True A_def V_def
-    moreover have "(A \<inter> S) \<union> (S - A) = S"
-   
-
-*)
-
-         
+    from this extended_replacement_theorem[OF A_def(1)indep_A, of S]
+    obtain V
+      where V_def : "V\<subseteq>S" "finite V" "card V = card A" "A \<inter> (S - V) = {}"
+                    "lin_indep R M (A \<union> (S - V))"
+      using A_def(2) assms(2) unfolding base_def by force
+    have "S-V \<noteq> {}" using V_def(1,3) True A_def(2) hyp by auto
+    hence "A \<subset> (A \<union> (S - V))"
+      using V_def(3,4) by auto
+    moreover have "Span R M (A \<union>(S - V)) \<subseteq> K"
+      using assms A_def V_def(1) Span_union unfolding generator_def base_def
+      by (smt Diff_partition Un_subset_iff set_eq_subset sup.right_idem)
+    ultimately show ?thesis
+      using assms(2) A_def(3) V_def(5) unfolding base_def
+      by (metis generator_def psubsetE)
+  next
+    case False
+    define m where m : "m = card S"
+    hence "m < n" using False by linarith
+    moreover have "finite S \<and> card S = m \<and> generator R M S K"
+      using assms(2) m finite unfolding base_def by auto
+    ultimately show False using assms(3) not_less_Least unfolding dim_def by auto
+  qed
+qed
 
 
       
