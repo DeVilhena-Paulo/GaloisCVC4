@@ -29,11 +29,9 @@ lemma RDirProd_monoid:
 lemma RDirProd_abelian_group:
   assumes "ring R" and "ring S"
   shows "abelian_group (RDirProd R S)"
-  apply (rule abelian_groupI)
-  apply (auto simp add: RDirProd_def assms ring.ring_simprules)
-  apply (meson assms(1) ring.ring_simprules(16) ring.ring_simprules(3))
-  apply (meson assms(2) ring.ring_simprules(16) ring.ring_simprules(3))
-  done
+  by (auto intro!: abelian_groupI
+         simp add: RDirProd_def assms ring.ring_simprules)
+     (meson assms ring.ring_simprules(3,16))+
 
 lemma RDirProd_group:
   assumes "ring R" and "ring S"
