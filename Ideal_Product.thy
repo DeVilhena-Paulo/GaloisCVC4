@@ -33,8 +33,7 @@ lemma (in ring) ideal_prod_in_carrier:
   shows "I \<cdot> J \<subseteq> carrier R"
 proof
   fix s assume "s \<in> I \<cdot> J" thus "s \<in> carrier R"
-    apply (induct s rule: ideal_prod.induct) apply auto
-    by (meson assms ideal.I_l_closed ideal.Icarr) 
+    by (induct s rule: ideal_prod.induct) (auto, meson assms ideal.I_l_closed ideal.Icarr) 
 qed
 
 lemma (in ring) ideal_prod_inter:
@@ -42,10 +41,10 @@ lemma (in ring) ideal_prod_inter:
   shows "I \<cdot> J \<subseteq> I \<inter> J"
 proof
   fix s assume "s \<in> I \<cdot> J" thus "s \<in> I \<inter> J"
-    apply (induct s rule: ideal_prod.induct) apply auto
-    apply (meson assms ideal.I_r_closed ideal.Icarr)
-    apply (meson assms ideal.I_l_closed ideal.Icarr)
-    by (simp_all add: additive_subgroup.a_closed assms ideal.axioms(1))
+    apply (induct s rule: ideal_prod.induct)
+    apply (auto, (meson assms ideal.I_r_closed ideal.I_l_closed ideal.Icarr)+)
+    apply (simp_all add: additive_subgroup.a_closed assms ideal.axioms(1))
+    done
 qed
 
 lemma (in ring) ideal_prod_is_ideal:
@@ -55,8 +54,8 @@ proof (rule idealI)
   show "ring R" using is_ring .
 next
   show "subgroup (I \<cdot> J) (add_monoid R)"
-    unfolding subgroup_def apply auto
-  proof -
+    unfolding subgroup_def
+  proof (auto)
     show "\<zero> \<in> I \<cdot> J" using ideal_prod.prod[of \<zero> I \<zero> J R]
       by (simp add: additive_subgroup.zero_closed assms ideal.axioms(1))
   next
@@ -175,9 +174,7 @@ proof
   show "I \<cdot> { \<zero> } \<subseteq> { \<zero> }"
   proof
     fix s assume "s \<in> I \<cdot> {\<zero>}" thus "s \<in> { \<zero> }"
-      apply (induct s rule: ideal_prod.induct)
-      using assms ideal.Icarr apply fastforce
-      by simp
+      using assms ideal.Icarr by (induct s rule: ideal_prod.induct) (fastforce, simp)
   qed
 next
   show "{ \<zero> } \<subseteq> I \<cdot> { \<zero> }"

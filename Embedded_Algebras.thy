@@ -24,10 +24,10 @@ fun (in ring) combine :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a"
     "combine (k # Ks) (u # Us) = (k \<otimes> u) \<oplus> (combine Ks Us)"
   | "combine Ks Us = \<zero>"
 
-inductive (in ring) linear_indep :: "'a set \<Rightarrow> 'a list \<Rightarrow> bool"
+inductive (in ring) independent :: "'a set \<Rightarrow> 'a list \<Rightarrow> bool"
   where
-    li_Nil [simp, intro]: "linear_indep K []"
-  | li_Cons: "\<lbrakk> u \<in> carrier R; u \<notin> Span K Us; linear_indep K Us \<rbrakk> \<Longrightarrow> linear_indep K (u # Us)"
+    li_Nil [simp, intro]: "independent K []"
+  | li_Cons: "\<lbrakk> u \<in> carrier R; u \<notin> Span K Us; independent K Us \<rbrakk> \<Longrightarrow> independent K (u # Us)"
 
 inductive (in ring) dimension :: "nat \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> bool"
   where
@@ -37,8 +37,8 @@ inductive (in ring) dimension :: "nat \<Rightarrow> 'a set \<Rightarrow> 'a set 
 
 subsubsection \<open>Syntactic Definitions\<close>
 
-abbreviation (in ring) linear_dep ::  "'a set \<Rightarrow> 'a list \<Rightarrow> bool"
-  where "linear_dep K U \<equiv> \<not> linear_indep K U"
+abbreviation (in ring) dependent ::  "'a set \<Rightarrow> 'a list \<Rightarrow> bool"
+  where "dependent K U \<equiv> \<not> independent K U"
 
 definition over :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "over" 65)
   where "f over a = f a"
@@ -124,14 +124,14 @@ qed
 
 subsection \<open>Some Basic Properties of Linear_Ind\<close>
 
-lemma linear_indep_in_carrier: "linear_indep K Us \<Longrightarrow> set Us \<subseteq> carrier R"
-  by (induct Us rule: linear_indep.induct) (simp_all)
+lemma independent_in_carrier: "independent K Us \<Longrightarrow> set Us \<subseteq> carrier R"
+  by (induct Us rule: independent.induct) (simp_all)
 
-lemma linear_indep_backwards:
-  "linear_indep K (u # Us) \<Longrightarrow> u \<notin> Span K Us"
-  "linear_indep K (u # Us) \<Longrightarrow> linear_indep K Us"
-  "linear_indep K (u # Us) \<Longrightarrow> u \<in> carrier R"
-  by (cases rule: linear_indep.cases, auto)+
+lemma independent_backwards:
+  "independent K (u # Us) \<Longrightarrow> u \<notin> Span K Us"
+  "independent K (u # Us) \<Longrightarrow> independent K Us"
+  "independent K (u # Us) \<Longrightarrow> u \<in> carrier R"
+  by (cases rule: independent.cases, auto)+
 
 
 text \<open>Now, we fix K, a subfield of the ring. Many lemmas would also be true for weaker
@@ -562,76 +562,76 @@ qed
 
 subsection \<open>Characterisation of Linearly Independent "Sets"\<close>
 
-declare linear_indep_backwards [intro]
-declare linear_indep_in_carrier [intro]
+declare independent_backwards [intro]
+declare independent_in_carrier [intro]
 
-lemma linear_indep_distinct: "linear_indep K Us \<Longrightarrow> distinct Us"
+lemma independent_distinct: "independent K Us \<Longrightarrow> distinct Us"
 proof (induct Us rule: list.induct)
   case Nil thus ?case by simp
 next
   case Cons thus ?case
-    using linear_indep_backwards[OF Cons(2)]
-          linear_indep_in_carrier[OF Cons(2)]
+    using independent_backwards[OF Cons(2)]
+          independent_in_carrier[OF Cons(2)]
           Span_base_incl
     by auto
 qed
 
-lemma linear_indep_strinct_incl:
-  assumes "linear_indep K (u # Us)" shows "Span K Us \<subset> Span K (u # Us)"
+lemma independent_strinct_incl:
+  assumes "independent K (u # Us)" shows "Span K Us \<subset> Span K (u # Us)"
 proof -
   have "u \<in> Span K (u # Us)"
-    using Span_base_incl[OF linear_indep_in_carrier[OF assms]] by auto
+    using Span_base_incl[OF independent_in_carrier[OF assms]] by auto
   moreover have "Span K Us \<subseteq> Span K (u # Us)"
-    using mono_Span linear_indep_in_carrier[OF assms] by auto
+    using mono_Span independent_in_carrier[OF assms] by auto
   ultimately show ?thesis
-    using linear_indep_backwards(1)[OF assms] by auto 
+    using independent_backwards(1)[OF assms] by auto 
 qed
 
-corollary linear_indep_replacement:
-  assumes "linear_indep K (u # Us)" and "linear_indep K Vs"
-  shows "Span K (u # Us) \<subseteq> Span K Vs \<Longrightarrow> (\<exists>v \<in> set Vs. linear_indep K (v # Us))"
+corollary independent_replacement:
+  assumes "independent K (u # Us)" and "independent K Vs"
+  shows "Span K (u # Us) \<subseteq> Span K Vs \<Longrightarrow> (\<exists>v \<in> set Vs. independent K (v # Us))"
 proof -
   assume "Span K (u # Us) \<subseteq> Span K Vs"
   hence "Span K Us \<subset> Span K Vs"
-    using linear_indep_strinct_incl[OF assms(1)] by auto
+    using independent_strinct_incl[OF assms(1)] by auto
   then obtain v where v: "v \<in> set Vs" "v \<notin> Span K Us"
-    using Span_strict_incl[of Us Vs] assms[THEN linear_indep_in_carrier] by auto
+    using Span_strict_incl[of Us Vs] assms[THEN independent_in_carrier] by auto
   thus ?thesis
-    using li_Cons[of v K Us] assms linear_indep_in_carrier[OF assms(2)] by auto
+    using li_Cons[of v K Us] assms independent_in_carrier[OF assms(2)] by auto
 qed
 
-lemma linear_indep_split:
-  assumes "linear_indep K (Us @ Vs)"
-  shows "linear_indep K Vs"
-    and "linear_indep K Us"
+lemma independent_split:
+  assumes "independent K (Us @ Vs)"
+  shows "independent K Vs"
+    and "independent K Us"
     and "Span K Us \<inter> Span K Vs = { \<zero> }"
 proof -
-  from assms show "linear_indep K Vs"
+  from assms show "independent K Vs"
     by (induct Us) (auto)
 next
-  from assms show "linear_indep K Us"
+  from assms show "independent K Us"
   proof (induct Us)
     case Nil thus ?case by simp
   next
     case (Cons u Us')
     hence u: "u \<in> carrier R" and "set Us' \<subseteq> carrier R" "set Vs \<subseteq> carrier R"
-      using linear_indep_in_carrier[of K "(u # Us') @ Vs"] by auto
+      using independent_in_carrier[of K "(u # Us') @ Vs"] by auto
     hence "Span K Us' \<subseteq> Span K (Us' @ Vs)"
       using mono_Span_append(1) by simp
     thus ?case
-      using linear_indep_backwards[of K u "Us' @ Vs"] Cons li_Cons[OF u] by auto
+      using independent_backwards[of K u "Us' @ Vs"] Cons li_Cons[OF u] by auto
   qed
 next
   from assms show "Span K Us \<inter> Span K Vs = { \<zero> }"
   proof (induct Us rule: list.induct)
     case Nil thus ?case
-      using Span_subgroup_props(2)[OF linear_indep_in_carrier[of K Vs]] by simp 
+      using Span_subgroup_props(2)[OF independent_in_carrier[of K Vs]] by simp 
   next
     case (Cons u Us)
     hence IH: "Span K Us \<inter> Span K Vs = {\<zero>}" by auto
     have in_carrier:
       "u \<in> carrier R" "set Us \<subseteq> carrier R" "set Vs \<subseteq> carrier R" "set (u # Us) \<subseteq> carrier R"
-      using Cons(2)[THEN linear_indep_in_carrier] by auto
+      using Cons(2)[THEN independent_in_carrier] by auto
     hence "{ \<zero> } \<subseteq> Span K (u # Us) \<inter> Span K Vs"
       using in_carrier(3-4)[THEN Span_subgroup_props(2)] by auto
 
@@ -660,7 +660,7 @@ next
         using Cons(2) Span_m_inv_simprule[OF _ _ in_carrier(1), of "Us @ Vs" k]
               diff_zero k(1) in_carrier(2-3) by auto
       moreover have "u \<notin> Span K (Us @ Vs)"
-        using linear_indep_backwards(1)[of K u "Us @ Vs"] Cons(2) by auto
+        using independent_backwards(1)[of K u "Us @ Vs"] Cons(2) by auto
       ultimately show False by simp
     qed
 
@@ -668,23 +668,22 @@ next
   qed
 qed
 
-lemma linear_indep_append:
-  assumes "linear_indep K Us" and "linear_indep K Vs" and "Span K Us \<inter> Span K Vs = { \<zero> }"
-  shows "linear_indep K (Us @ Vs)"
+lemma independent_append:
+  assumes "independent K Us" and "independent K Vs" and "Span K Us \<inter> Span K Vs = { \<zero> }"
+  shows "independent K (Us @ Vs)"
   using assms
 proof (induct Us rule: list.induct)
-case Nil
-  then show ?case by simp
+  case Nil thus ?case by simp
 next
   case (Cons u Us)
   hence in_carrier:
     "u \<in> carrier R" "set Us \<subseteq> carrier R" "set Vs \<subseteq> carrier R" "set (u # Us) \<subseteq> carrier R"
-    using Cons(2-3)[THEN linear_indep_in_carrier] by auto
+    using Cons(2-3)[THEN independent_in_carrier] by auto
   hence "Span K Us \<subseteq> Span K (u # Us)" 
     using mono_Span by auto
   hence "Span K Us \<inter> Span K Vs = { \<zero> }"
     using Cons(4) Span_subgroup_props(2)[OF in_carrier(2)] by auto
-  hence "linear_indep K (Us @ Vs)"
+  hence "independent K (Us @ Vs)"
     using Cons by auto
   moreover have "u \<notin> Span K (Us @ Vs)"
   proof (rule ccontr)
@@ -706,14 +705,14 @@ next
     hence "u = u'"
       using Cons(4) v'(1) in_carrier(1) u'(2) \<open>u \<oplus> \<ominus> u' = v'\<close> u by auto
     thus False
-      using u'(1) linear_indep_backwards(1)[OF Cons(2)] by simp
+      using u'(1) independent_backwards(1)[OF Cons(2)] by simp
   qed
   ultimately show ?case
     using in_carrier(1) li_Cons by simp
 qed
 
-lemma linear_indep_imp_non_trivial_combine:
-  assumes "linear_indep K Us"
+lemma independent_imp_trivial_combine:
+  assumes "independent K Us"
   shows "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; combine Ks Us = \<zero> \<rbrakk> \<Longrightarrow> set (take (length Us) Ks) \<subseteq> { \<zero> }"
   using assms
 proof (induct Us rule: list.induct)
@@ -727,24 +726,24 @@ next
     then obtain k Ks' where k: "k \<in> K" and Ks': "set Ks' \<subseteq> K" and Ks: "Ks = k # Ks'"
       using Cons(2) by (metis insert_subset list.exhaust_sel list.simps(15))
     hence Us: "set Us \<subseteq> carrier R" and u: "u \<in> carrier R"
-      using linear_indep_in_carrier[OF Cons(4)] by auto
+      using independent_in_carrier[OF Cons(4)] by auto
     have "u \<in> Span K Us" if "k \<noteq> \<zero>"
       using that Span_mem_iff[OF Us u] Cons(3-4) Ks' k unfolding Ks by blast
     hence k_zero: "k = \<zero>"
-      using linear_indep_backwards[OF Cons(4)] by blast
+      using independent_backwards[OF Cons(4)] by blast
     hence "combine Ks' Us = \<zero>"
       using combine_in_carrier[OF _ Us, of Ks'] Ks' u Cons(3) subring_props(1) unfolding Ks by auto
     hence "set (take (length Us) Ks') \<subseteq> { \<zero> }"
-      using Cons(1)[OF Ks' _ linear_indep_backwards(2)[OF Cons(4)]] by simp 
+      using Cons(1)[OF Ks' _ independent_backwards(2)[OF Cons(4)]] by simp 
     thus ?thesis
       using k_zero unfolding Ks by auto
   qed
 qed
 
-lemma non_trivial_combine_imp_linear_indep:
+lemma trivial_combine_imp_independent:
   assumes "set Us \<subseteq> carrier R"
     and "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; combine Ks Us = \<zero> \<rbrakk> \<Longrightarrow> set (take (length Us) Ks) \<subseteq> { \<zero> }"
-  shows "linear_indep K Us"
+  shows "independent K Us"
   using assms
 proof (induct Us)
   case Nil thus ?case by simp
@@ -761,7 +760,7 @@ next
       using Cons(3)[of "\<zero> # Ks"] subring_props(2) Ks by auto
     thus "set (take (length Us) Ks) \<subseteq> { \<zero> }" by auto
   qed
-  hence "linear_indep K Us"
+  hence "independent K Us"
     using Cons(1)[OF Us] by simp
 
   moreover have "u \<notin> Span K Us"
@@ -780,10 +779,10 @@ next
 qed
 
 corollary unique_decomposition:
-  assumes "linear_indep K Us"
+  assumes "independent K Us"
   shows "a \<in> Span K Us \<Longrightarrow> \<exists>!Ks. set Ks \<subseteq> K \<and> length Ks = length Us \<and> a = combine Ks Us"
 proof -
-  note in_carrier = linear_indep_in_carrier[OF assms]
+  note in_carrier = independent_in_carrier[OF assms]
 
   assume "a \<in> Span K Us"
   then obtain Ks where Ks: "set Ks \<subseteq> K" "length Ks = length Us" "a = combine Ks Us"
@@ -813,7 +812,7 @@ proof -
       using Ks(1) set_map subring_props(7)
       by (induct Ks) (auto, metis contra_subsetD in_set_zipE local.set_map set_ConsD subring_props(7))
     ultimately have "set (take (length Us) (map2 (\<oplus>) Ks (map ((\<otimes>) (\<ominus> \<one>)) Ks'))) \<subseteq> { \<zero> }"
-      using linear_indep_imp_non_trivial_combine[OF assms] by auto
+      using independent_imp_trivial_combine[OF assms] by auto
     hence "set (map2 (\<oplus>) Ks (map ((\<otimes>) (\<ominus> \<one>)) Ks')) \<subseteq> { \<zero> }"
       using Ks(2) Ks'(2) by auto
     thus "Ks = Ks'"
@@ -839,37 +838,72 @@ qed
 
 subsection \<open>Replacement Theorem\<close>
 
-lemma linear_indep_rotate1_aux:
-  "linear_indep K (u # Us @ Vs) \<Longrightarrow> linear_indep K ((Us @ [u]) @ Vs)"
+lemma independent_rotate1_aux:
+  "independent K (u # Us @ Vs) \<Longrightarrow> independent K ((Us @ [u]) @ Vs)"
 proof -
-  assume "linear_indep K (u # Us @ Vs)"
-  hence li: "linear_indep K [u]" "linear_indep K Us" "linear_indep K Vs"
+  assume "independent K (u # Us @ Vs)"
+  hence li: "independent K [u]" "independent K Us" "independent K Vs"
     and inter: "Span K [u] \<inter> Span K Us = { \<zero> }"
                "Span K (u # Us) \<inter> Span K Vs = { \<zero> }"
-    using linear_indep_split[of "u # Us" Vs] linear_indep_split[of "[u]" Us] by auto
-  hence "linear_indep K (Us @ [u])"
-    using linear_indep_append[OF li(2,1)] by auto
+    using independent_split[of "u # Us" Vs] independent_split[of "[u]" Us] by auto
+  hence "independent K (Us @ [u])"
+    using independent_append[OF li(2,1)] by auto
   moreover have "Span K (Us @ [u]) \<inter> Span K Vs = { \<zero> }"
-    using Span_same_set[of "u # Us" "Us @ [u]"] li(1-2)[THEN linear_indep_in_carrier] inter(2) by auto
-  ultimately show "linear_indep K ((Us @ [u]) @ Vs)"
-    using linear_indep_append[OF _ li(3), of "Us @ [u]"] by simp
+    using Span_same_set[of "u # Us" "Us @ [u]"] li(1-2)[THEN independent_in_carrier] inter(2) by auto
+  ultimately show "independent K ((Us @ [u]) @ Vs)"
+    using independent_append[OF _ li(3), of "Us @ [u]"] by simp
 qed
 
-corollary linear_indep_rotate1:
-  "linear_indep K (Us @ Vs) \<Longrightarrow> linear_indep K ((rotate1 Us) @ Vs)"
-  using linear_indep_rotate1_aux by (cases Us) (auto)
+corollary independent_rotate1:
+  "independent K (Us @ Vs) \<Longrightarrow> independent K ((rotate1 Us) @ Vs)"
+  using independent_rotate1_aux by (cases Us) (auto)
 
-corollary linear_indep_rotate:
-  "linear_indep K (Us @ Vs) \<Longrightarrow> linear_indep K ((rotate n Us) @ Vs)"
-  using linear_indep_rotate1 by (induct n) auto
+(*
+corollary independent_rotate:
+  "independent K (Us @ Vs) \<Longrightarrow> independent K ((rotate n Us) @ Vs)"
+  using independent_rotate1 by (induct n) auto
 
 lemma rotate_append: "rotate (length l) (l @ q) = q @ l"
   by (induct l arbitrary: q) (auto simp add: rotate1_rotate_swap)
+*)
+
+corollary independent_same_set:
+  assumes "set Us = set Vs" and "length Us = length Vs"
+  shows "independent K Us \<Longrightarrow> independent K Vs"
+proof -
+  assume "independent K Us" thus ?thesis
+    using assms
+  proof (induct Us arbitrary: Vs rule: list.induct)
+    case Nil thus ?case by simp
+  next
+    case (Cons u Us)
+    then obtain Vs' Vs'' where Vs: "Vs = Vs' @ (u # Vs'')"
+      by (metis list.set_intros(1) split_list)
+    
+    have in_carrier: "u \<in> carrier R" "set Us \<subseteq> carrier R"
+      using independent_in_carrier[OF Cons(2)] by auto 
+    
+    have "distinct Vs"
+      using Cons(3-4) independent_distinct[OF Cons(2)]
+      by (metis card_distinct distinct_card)
+    hence "u \<notin> set (Vs' @ Vs'')" and "u \<notin> set Us"
+      using independent_distinct[OF Cons(2)] unfolding Vs by auto
+    hence set_eq: "set Us = set (Vs' @ Vs'')" and "length (Vs' @ Vs'') = length Us"
+      using Cons(3-4) unfolding Vs by auto
+    hence "independent K (Vs' @ Vs'')"
+      using Cons(1)[OF independent_backwards(2)[OF Cons(2)]] unfolding Vs by simp
+    hence "independent K (u # (Vs' @ Vs''))"
+      using li_Cons Span_same_set[OF _ set_eq] independent_backwards(1)[OF Cons(2)] in_carrier by auto
+    hence "independent K (Vs' @ (u # Vs''))"
+      using independent_rotate1[of "u # Vs'" Vs''] by auto
+    thus ?case unfolding Vs .
+  qed
+qed
 
 lemma replacement_theorem:
-  assumes "linear_indep K (Us' @ Us)" and "linear_indep K Vs"
+  assumes "independent K (Us' @ Us)" and "independent K Vs"
     and "Span K (Us' @ Us) \<subseteq> Span K Vs"
-  shows "\<exists>Vs'. set Vs' \<subseteq> set Vs \<and> length Vs' = length Us' \<and> linear_indep K (Vs' @ Us)"
+  shows "\<exists>Vs'. set Vs' \<subseteq> set Vs \<and> length Vs' = length Us' \<and> independent K (Vs' @ Us)"
   using assms
 proof (induct "length Us'" arbitrary: Us' Us)
   case 0 thus ?case by auto 
@@ -877,13 +911,13 @@ next
   case (Suc n)
   then obtain u Us'' where Us'': "Us' = Us'' @ [u]"
     by (metis list.size(3) nat.simps(3) rev_exhaust)
-  then obtain Vs' where Vs': "set Vs' \<subseteq> set Vs" "length Vs' = n" "linear_indep K (Vs' @ (u # Us))"
+  then obtain Vs' where Vs': "set Vs' \<subseteq> set Vs" "length Vs' = n" "independent K (Vs' @ (u # Us))"
     using Suc(1)[of Us'' "u # Us"] Suc(2-5) by auto
-  hence li: "linear_indep K ((u # Vs') @ Us)"
-    using linear_indep_rotate[of "Vs' @ [u]" Us "length Vs'"] rotate_append[of Vs' "[u]"] by auto
+  hence li: "independent K ((u # Vs') @ Us)"
+    using independent_same_set[OF _ _ Vs'(3), of "(u # Vs') @ Us"] by auto
   moreover have in_carrier:
     "u \<in> carrier R" "set Us \<subseteq> carrier R" "set Us' \<subseteq> carrier R" "set Vs \<subseteq> carrier R"
-    using Suc(3-4)[THEN linear_indep_in_carrier] Us'' by auto
+    using Suc(3-4)[THEN independent_in_carrier] Us'' by auto
   moreover have "Span K ((u # Vs') @ Us) \<subseteq> Span K Vs"
   proof -
     have "set Us \<subseteq> Span K Vs" "u \<in> Span K Vs"
@@ -894,26 +928,26 @@ next
     thus ?thesis
       using mono_Span_subset[OF _ in_carrier(4)] by (simp del: Span.simps)
   qed
-  ultimately obtain v where "v \<in> set Vs" "linear_indep K ((v # Vs') @ Us)"
-    using linear_indep_replacement[OF _ Suc(4), of u "Vs' @ Us"] by auto
+  ultimately obtain v where "v \<in> set Vs" "independent K ((v # Vs') @ Us)"
+    using independent_replacement[OF _ Suc(4), of u "Vs' @ Us"] by auto
   thus ?case
     using Vs'(1-2) Suc(2)
     by (metis (mono_tags, lifting) insert_subset length_Cons list.simps(15))
 qed
 
-corollary linear_indep_length_le:
-  assumes "linear_indep K Us" and "linear_indep K Vs"
+corollary independent_length_le:
+  assumes "independent K Us" and "independent K Vs"
   shows "set Us \<subseteq> Span K Vs \<Longrightarrow> length Us \<le> length Vs"
 proof -
   assume "set Us \<subseteq> Span K Vs"
   hence "Span K Us \<subseteq> Span K Vs"
-    using mono_Span_subset[OF _ linear_indep_in_carrier[OF assms(2)]] by simp
-  then obtain Vs' where Vs': "set Vs' \<subseteq> set Vs" "length Vs' = length Us" "linear_indep K Vs'"
+    using mono_Span_subset[OF _ independent_in_carrier[OF assms(2)]] by simp
+  then obtain Vs' where Vs': "set Vs' \<subseteq> set Vs" "length Vs' = length Us" "independent K Vs'"
     using replacement_theorem[OF _ assms(2), of Us "[]"] assms(1) by auto
   hence "card (set Vs') \<le> card (set Vs)"
     by (simp add: card_mono)
   thus "length Us \<le> length Vs"
-    using linear_indep_distinct assms(2) Vs'(2-3) by (simp add: distinct_card)
+    using independent_distinct assms(2) Vs'(2-3) by (simp add: distinct_card)
 qed
 
 
@@ -921,14 +955,14 @@ subsection \<open>Dimension\<close>
 
 lemma exists_base:
   assumes "dimension n K E"
-  shows "\<exists>Vs. set Vs \<subseteq> carrier R \<and> linear_indep K Vs \<and> length Vs = n \<and> Span K Vs = E"
+  shows "\<exists>Vs. set Vs \<subseteq> carrier R \<and> independent K Vs \<and> length Vs = n \<and> Span K Vs = E"
     (is "\<exists>Vs. ?base K Vs E n")
   using assms
 proof (induct E rule: dimension.induct)
   case zero_dim thus ?case by auto
 next
   case (Suc_dim v E n K)
-  then obtain Vs where Vs: "set Vs \<subseteq> carrier R" "linear_indep K Vs" "length Vs = n" "Span K Vs = E"
+  then obtain Vs where Vs: "set Vs \<subseteq> carrier R" "independent K Vs" "length Vs = n" "Span K Vs = E"
     by auto
   hence "?base K (v # Vs) (line_extension K v E) (Suc n)"
     using Suc_dim li_Cons by auto
@@ -944,18 +978,18 @@ proof -
     by auto
 qed
 
-lemma dimension_linear_indep [intro]: "linear_indep K Us \<Longrightarrow> dimension (length Us) K (Span K Us)"
+lemma dimension_independent [intro]: "independent K Us \<Longrightarrow> dimension (length Us) K (Span K Us)"
 proof (induct Us)
   case Nil thus ?case by simp
 next
   case Cons thus ?case
-    using Suc_dim[OF linear_indep_backwards(3,1)[OF Cons(2)]] by auto
+    using Suc_dim[OF independent_backwards(3,1)[OF Cons(2)]] by auto
 qed
 
 lemma dimensionI:
-  assumes "linear_indep K Us" "Span K Us = E"
+  assumes "independent K Us" "Span K Us = E"
   shows "dimension (length Us) K E"
-  using dimension_linear_indep[OF assms(1)] assms(2) by simp
+  using dimension_independent[OF assms(1)] assms(2) by simp
 
 lemma space_subgroup_props:
   assumes "dimension n K E"
@@ -967,14 +1001,14 @@ lemma space_subgroup_props:
     and "\<lbrakk> k \<in> K - { \<zero> }; a \<in> carrier R \<rbrakk> \<Longrightarrow> k \<otimes> a \<in> E \<Longrightarrow> a \<in> E"
   using exists_base[OF assms] Span_subgroup_props Span_smult_closed Span_m_inv_simprule by auto
 
-lemma linear_indep_length_le_dimension:
-  assumes "dimension n K E" and "linear_indep K Us" "set Us \<subseteq> E"
+lemma independent_length_le_dimension:
+  assumes "dimension n K E" and "independent K Us" "set Us \<subseteq> E"
   shows "length Us \<le> n"
 proof -
-  obtain Vs where Vs: "set Vs \<subseteq> carrier R" "linear_indep K Vs" "length Vs = n" "Span K Vs = E"
+  obtain Vs where Vs: "set Vs \<subseteq> carrier R" "independent K Vs" "length Vs = n" "Span K Vs = E"
     using exists_base[OF assms(1)] by auto
   thus ?thesis
-    using linear_indep_length_le assms(2-3) by auto
+    using independent_length_le assms(2-3) by auto
 qed
 
 lemma dimension_is_inj:
@@ -983,18 +1017,18 @@ lemma dimension_is_inj:
 proof -
   { fix n m assume n: "dimension n K E" and m: "dimension m K E"
     then obtain Vs
-      where Vs: "set Vs \<subseteq> carrier R" "linear_indep K Vs" "length Vs = n" "Span K Vs = E"
+      where Vs: "set Vs \<subseteq> carrier R" "independent K Vs" "length Vs = n" "Span K Vs = E"
       using exists_base by meson
     hence "n \<le> m"
-      using linear_indep_length_le_dimension[OF m Vs(2)] Span_base_incl[OF Vs(1)] by auto
+      using independent_length_le_dimension[OF m Vs(2)] Span_base_incl[OF Vs(1)] by auto
   } note aux_lemma = this
 
   show ?thesis
     using aux_lemma[OF assms] aux_lemma[OF assms(2,1)] by simp
 qed
 
-corollary linear_indep_length_eq_dimension:
-  assumes "dimension n K E" and "linear_indep K Us" "set Us \<subseteq> E"
+corollary independent_length_eq_dimension:
+  assumes "dimension n K E" and "independent K Us" "set Us \<subseteq> E"
   shows "length Us = n \<longleftrightarrow> Span K Us = E"
 proof
   assume len: "length Us = n" show "Span K Us = E"
@@ -1004,10 +1038,10 @@ proof
       using mono_Span_subset[of Us] exists_base[OF assms(1)] assms(3) by blast
     then obtain v where v: "v \<in> E" "v \<notin> Span K Us"
       using Span_strict_incl exists_base[OF assms(1)] space_subgroup_props(1)[OF assms(1)] assms by blast
-    hence "linear_indep K (v # Us)"
+    hence "independent K (v # Us)"
       using li_Cons[OF _ _ assms(2)] space_subgroup_props(1)[OF assms(1)] by auto
     hence "length (v # Us) \<le> n"
-      using linear_indep_length_le_dimension[OF assms(1)] v(1) assms(2-3) by fastforce
+      using independent_length_le_dimension[OF assms(1)] v(1) assms(2-3) by fastforce
     moreover have "length (v # Us) = Suc n"
       using len by simp
     ultimately show False by simp
@@ -1021,33 +1055,33 @@ next
 qed
 
 lemma complete_base:
-  assumes "dimension n K E" and "linear_indep K Us" "set Us \<subseteq> E"
-  shows "\<exists>Vs. length (Vs @ Us) = n \<and> linear_indep K (Vs @ Us) \<and> Span K (Vs @ Us) = E"
+  assumes "dimension n K E" and "independent K Us" "set Us \<subseteq> E"
+  shows "\<exists>Vs. length (Vs @ Us) = n \<and> independent K (Vs @ Us) \<and> Span K (Vs @ Us) = E"
 proof -
-  { fix Us k assume "k \<le> n" "linear_indep K Us" "set Us \<subseteq> E" "length Us = k"
-    hence "\<exists>Vs. length (Vs @ Us) = n \<and> linear_indep K (Vs @ Us) \<and> Span K (Vs @ Us) = E"
+  { fix Us k assume "k \<le> n" "independent K Us" "set Us \<subseteq> E" "length Us = k"
+    hence "\<exists>Vs. length (Vs @ Us) = n \<and> independent K (Vs @ Us) \<and> Span K (Vs @ Us) = E"
     proof (induct arbitrary: Us rule: inc_induct)
       case base thus ?case
-        using linear_indep_length_eq_dimension[OF assms(1) base(1-2)] by auto
+        using independent_length_eq_dimension[OF assms(1) base(1-2)] by auto
     next
       case (step m)
       have "Span K Us \<subseteq> E"
         using mono_Span_subset step(4-6) exists_base[OF assms(1)] by blast
       hence "Span K Us \<subset> E"
-        using linear_indep_length_eq_dimension[OF assms(1) step(4-5)] step(2,6) assms(1) by blast
+        using independent_length_eq_dimension[OF assms(1) step(4-5)] step(2,6) assms(1) by blast
       then obtain v where v: "v \<in> E" "v \<notin> Span K Us"
         using Span_strict_incl exists_base[OF assms(1)] by blast
-      hence "linear_indep K (v # Us)"
+      hence "independent K (v # Us)"
         using space_subgroup_props(1)[OF assms(1)] li_Cons[OF _ v(2) step(4)] by auto
       then obtain Vs
-        where "length (Vs @ (v # Us)) = n" "linear_indep K (Vs @ (v # Us))" "Span K (Vs @ (v # Us)) = E"
+        where "length (Vs @ (v # Us)) = n" "independent K (Vs @ (v # Us))" "Span K (Vs @ (v # Us)) = E"
         using step(3)[of "v # Us"] step(1-2,4-6) v by auto 
       thus ?case
         by (metis append.assoc append_Cons append_Nil)  
     qed } note aux_lemma = this
 
   have "length Us \<le> n"
-    using linear_indep_length_le_dimension[OF assms] .
+    using independent_length_le_dimension[OF assms] .
   thus ?thesis
     using aux_lemma[OF _ assms(2-3)] by auto
 qed
@@ -1061,13 +1095,13 @@ lemma dimension_direct_sum_space:
   shows "dimension (n + m) K (E <+>\<^bsub>R\<^esub> F)"
 proof -
   obtain Us Vs
-    where Vs: "set Vs \<subseteq> carrier R" "linear_indep K Vs" "length Vs = n" "Span K Vs = E"
-      and Us: "set Us \<subseteq> carrier R" "linear_indep K Us" "length Us = m" "Span K Us = F"
+    where Vs: "set Vs \<subseteq> carrier R" "independent K Vs" "length Vs = n" "Span K Vs = E"
+      and Us: "set Us \<subseteq> carrier R" "independent K Us" "length Us = m" "Span K Us = F"
     using assms(1-2)[THEN exists_base] by auto
   hence "Span K (Vs @ Us) = E <+>\<^bsub>R\<^esub> F"
     using Span_append_eq_set_add by auto
-  moreover have "linear_indep K (Vs @ Us)"
-    using assms(3) linear_indep_append[OF Vs(2) Us(2)] unfolding Vs(4) Us(4) by simp
+  moreover have "independent K (Vs @ Us)"
+    using assms(3) independent_append[OF Vs(2) Us(2)] unfolding Vs(4) Us(4) by simp
   ultimately show "dimension (n + m) K (E <+>\<^bsub>R\<^esub> F)"
     using dimensionI[of "Vs @ Us"] Vs(3) Us(3) by auto
 qed
@@ -1077,24 +1111,24 @@ lemma dimension_sum_space:
   shows "dimension (n + m - k) K (E <+>\<^bsub>R\<^esub> F)"
 proof -
   obtain Bs
-    where Bs: "set Bs \<subseteq> carrier R" "length Bs = k" "linear_indep K Bs" "Span K Bs = E \<inter> F"
+    where Bs: "set Bs \<subseteq> carrier R" "length Bs = k" "independent K Bs" "Span K Bs = E \<inter> F"
     using exists_base[OF assms(3)] by blast
   then obtain Us Vs
-    where Us: "length (Us @ Bs) = n" "linear_indep K (Us @ Bs)" "Span K (Us @ Bs) = E"
-      and Vs: "length (Vs @ Bs) = m" "linear_indep K (Vs @ Bs)" "Span K (Vs @ Bs) = F"
+    where Us: "length (Us @ Bs) = n" "independent K (Us @ Bs)" "Span K (Us @ Bs) = E"
+      and Vs: "length (Vs @ Bs) = m" "independent K (Vs @ Bs)" "Span K (Vs @ Bs) = F"
     using Span_base_incl[OF Bs(1)] assms(1-2)[THEN complete_base] by (metis le_infE)
   hence in_carrier: "set Us \<subseteq> carrier R" "set (Vs @ Bs) \<subseteq> carrier R"
-    using linear_indep_in_carrier[OF Us(2)] linear_indep_in_carrier[OF Vs(2)] by auto
+    using independent_in_carrier[OF Us(2)] independent_in_carrier[OF Vs(2)] by auto
   hence "Span K Us \<inter> (Span K (Vs @ Bs)) \<subseteq> Span K Bs"
     using Bs(4) Us(3) Vs(3) mono_Span_append(1)[OF _ Bs(1), of Us] by auto 
   hence "Span K Us \<inter> (Span K (Vs @ Bs)) \<subseteq> { \<zero> }"
-    using linear_indep_split(3)[OF Us(2)] by blast
+    using independent_split(3)[OF Us(2)] by blast
   hence "Span K Us \<inter> (Span K (Vs @ Bs)) = { \<zero> }"
     using in_carrier[THEN Span_subgroup_props(2)] by auto
 
   hence dim: "dimension (n + m - k) K (Span K (Us @ (Vs @ Bs)))"
-    using linear_indep_append[OF linear_indep_split(2)[OF Us(2)] Vs(2)] Us(1) Vs(1) Bs(2)
-          dimension_linear_indep[of "Us @ (Vs @ Bs)"] by auto
+    using independent_append[OF independent_split(2)[OF Us(2)] Vs(2)] Us(1) Vs(1) Bs(2)
+          dimension_independent[of "Us @ (Vs @ Bs)"] by auto
 
   have "(Span K Us) <+>\<^bsub>R\<^esub> F \<subseteq> E <+>\<^bsub>R\<^esub> F"
     using mono_Span_append(1)[OF in_carrier(1) Bs(1)] Us(3) unfolding set_add_def' by auto
@@ -1130,15 +1164,15 @@ lemma (in ring) telescopic_base_aux:
   shows "dimension n K E"
 proof -
   obtain Us u
-    where Us: "set Us \<subseteq> carrier R" "length Us = n" "linear_indep K Us" "Span K Us = F"
-      and u: "u \<in> carrier R" "linear_indep F [u]" "Span F [u] = E"
-    using exists_base[OF assms(2,4)] exists_base[OF assms(1,3)] linear_indep_backwards(3) assms(2)
+    where Us: "set Us \<subseteq> carrier R" "length Us = n" "independent K Us" "Span K Us = F"
+      and u: "u \<in> carrier R" "independent F [u]" "Span F [u] = E"
+    using exists_base[OF assms(2,4)] exists_base[OF assms(1,3)] independent_backwards(3) assms(2)
     by (metis One_nat_def length_0_conv length_Suc_conv)
   have in_carrier: "set (map (\<lambda>u'. u' \<otimes> u) Us) \<subseteq> carrier R"
     using Us(1) u(1) by (induct Us) (auto)
   
-  have li: "linear_indep K (map (\<lambda>u'. u' \<otimes> u) Us)"
-  proof (rule non_trivial_combine_imp_linear_indep[OF assms(1) in_carrier])
+  have li: "independent K (map (\<lambda>u'. u' \<otimes> u) Us)"
+  proof (rule trivial_combine_imp_independent[OF assms(1) in_carrier])
     fix Ks assume Ks: "set Ks \<subseteq> K" and "combine Ks (map (\<lambda>u'. u' \<otimes> u) Us) = \<zero>"
     hence "(combine Ks Us) \<otimes> u = \<zero>"
       using combine_l_distr[OF _ Us(1) u(1)] subring_props(1)[OF assms(1)] by auto
@@ -1147,9 +1181,9 @@ proof -
     moreover have "combine Ks Us \<in> F"
       using Us(4) Ks(1) Span_eq_combine_set[OF assms(1) Us(1)] by auto
     ultimately have "combine Ks Us = \<zero>"
-      using linear_indep_imp_non_trivial_combine[OF assms(2) u(2), of "[ combine Ks Us ]"] by auto
+      using independent_imp_trivial_combine[OF assms(2) u(2), of "[ combine Ks Us ]"] by auto
     hence "set (take (length Us) Ks) \<subseteq> { \<zero> }"
-      using linear_indep_imp_non_trivial_combine[OF assms(1) Us(3) Ks(1)] by simp
+      using independent_imp_trivial_combine[OF assms(1) Us(3) Ks(1)] by simp
     thus "set (take (length (map (\<lambda>u'. u' \<otimes> u) Us)) Ks) \<subseteq> { \<zero> }" by simp
   qed
 
@@ -1198,20 +1232,20 @@ proof (induct m arbitrary: E)
 next
   case (Suc m)
   obtain Vs
-    where Vs: "set Vs \<subseteq> carrier R" "length Vs = Suc m" "linear_indep F Vs" "Span F Vs = E"
+    where Vs: "set Vs \<subseteq> carrier R" "length Vs = Suc m" "independent F Vs" "Span F Vs = E"
     using exists_base[OF assms(2) Suc(2)] by blast
   then obtain v Vs' where v: "Vs = v # Vs'"
     by (meson length_Suc_conv)
-  hence li: "linear_indep F [ v ]" "linear_indep F Vs'" and inter: "Span F [ v ] \<inter> Span F Vs' = { \<zero> }"
-    using Vs(3) linear_indep_split[OF assms(2), of "[ v ]" Vs'] by auto
+  hence li: "independent F [ v ]" "independent F Vs'" and inter: "Span F [ v ] \<inter> Span F Vs' = { \<zero> }"
+    using Vs(3) independent_split[OF assms(2), of "[ v ]" Vs'] by auto
   have "dimension n K (Span F [ v ])"
-    using dimension_linear_indep[OF assms(2) li(1)] telescopic_base_aux[OF assms(1-3)] by simp
+    using dimension_independent[OF assms(2) li(1)] telescopic_base_aux[OF assms(1-3)] by simp
   moreover have "dimension (n * m) K (Span F Vs')"
-    using Suc(1) dimension_linear_indep[OF assms(2) li(2)] Vs(2) unfolding v by auto
+    using Suc(1) dimension_independent[OF assms(2) li(2)] Vs(2) unfolding v by auto
   ultimately have "dimension (n * Suc m) K (Span F [ v ] <+>\<^bsub>R\<^esub> Span F Vs')"
     using dimension_direct_sum_space[OF assms(1) _ _ inter] by auto
   thus "dimension (n * Suc m) K E"
-    using Span_append_eq_set_add[OF assms(2) li[THEN linear_indep_in_carrier]] Vs(4) v by auto 
+    using Span_append_eq_set_add[OF assms(2) li[THEN independent_in_carrier]] Vs(4) v by auto 
 qed
 
 
