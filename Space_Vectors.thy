@@ -1,3 +1,9 @@
+(* ************************************************************************** *)
+(* Title:      Space_Vectors.thy                                              *)
+(* Author:     Martin Baillon                                                 *)
+(* ************************************************************************** *)
+
+
 theory Space_Vectors
 
 imports Module
@@ -1213,7 +1219,7 @@ lemma (in vector_space) extended_replacement_theorem :
                             \<and>lin_indep R M (S \<union> (J - V))"
   using assms
 proof(induction I arbitrary : J rule : finite_induct)
-  case empty then  
+  case empty  
   then show ?case using  Diff_empty Un_empty_left  finite.emptyI
     by (metis Diff_disjoint empty_subsetI subset_empty) 
 next
@@ -1509,11 +1515,6 @@ proof (rule ccontr)
     ultimately show False using assms(3) not_less_Least unfolding dim_def by auto
   qed
 qed
-
-
-      
-
-
 
 
 

@@ -136,7 +136,7 @@ lemma linear_indep_backwards:
 
 text \<open>Now, we fix K, a subfield of the ring. Many lemmas would also be true for weaker
       structures, but our interest is to work with subfields, so generalization could
-      be the subjuct of a future work.\<close>
+      be the subject of a future work.\<close>
 
 context
   fixes K :: "'a set" assumes K: "subfield K R"
