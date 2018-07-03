@@ -4,32 +4,9 @@
 (* ************************************************************************** *)
 
 theory Ring_Divisibility
-imports Ideal Divisibility  QuotRing
+imports Ideal Divisibility QuotRing Multiplicative_Group
 
 begin
-
-(* ************************************************************************** *)
-(* Definitions ported from Multiplicative_Group.thy                           *)
-
-definition mult_of :: "('a, 'b) ring_scheme \<Rightarrow> 'a monoid" where
-  "mult_of R \<equiv> \<lparr> carrier = carrier R - { \<zero>\<^bsub>R\<^esub> }, mult = mult R, one = \<one>\<^bsub>R\<^esub> \<rparr>"
-
-lemma carrier_mult_of [simp]: "carrier (mult_of R) = carrier R - { \<zero>\<^bsub>R\<^esub> }"
-  by (simp add: mult_of_def)
-
-lemma mult_mult_of [simp]: "mult (mult_of R) = mult R"
- by (simp add: mult_of_def)
-
-lemma nat_pow_mult_of: "([^]\<^bsub>mult_of R\<^esub>) = (([^]\<^bsub>R\<^esub>) :: _ \<Rightarrow> nat \<Rightarrow> _)"
-  by (simp add: mult_of_def fun_eq_iff nat_pow_def)
-
-lemma one_mult_of [simp]: "\<one>\<^bsub>mult_of R\<^esub> = \<one>\<^bsub>R\<^esub>"
-  by (simp add: mult_of_def)
-
-lemmas mult_of_simps = carrier_mult_of mult_mult_of nat_pow_mult_of one_mult_of
-
-(* ************************************************************************** *)
-
 
 section \<open>The Arithmetic of Rings\<close>
 
@@ -175,9 +152,17 @@ lemma assoc_mult_imp_assoc [simp]: "a \<sim>\<^bsub>(mult_of R)\<^esub> b \<Long
   unfolding associated_def by simp
 
 lemma (in domain) assoc_imp_assoc_mult [simp]:
-  "\<lbrakk> a \<in> carrier R - { \<zero> } ; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow>
-     a \<sim>\<^bsub>R\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>(mult_of R)\<^esub> b"
-  unfolding associated_def by simp
+  assumes "a \<in> carrier R - { \<zero> }" and "b \<in> carrier R"
+  shows "a \<sim>\<^bsub>R\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>(mult_of R)\<^esub> b"
+proof -
+  assume A: "a \<sim>\<^bsub>R\<^esub> b"
+  then obtain c where "c \<in> carrier R" "a = b \<otimes> c"
+    unfolding associated_def factor_def by auto
+  hence "b \<in> carrier R - { \<zero> }"
+    using assms integral by auto
+  thus "a \<sim>\<^bsub>(mult_of R)\<^esub> b"
+    using A assms(1) unfolding associated_def by simp
+qed
 
 lemma (in domain) Units_mult_eq_Units [simp]: "Units (mult_of R) = Units R"
   unfolding Units_def using insert_Diff integral_iff by auto
@@ -605,7 +590,7 @@ qed
 
 corollary (in principal_domain) primeness_condition:
   assumes "p \<in> carrier (mult_of R)"
-  shows "(irreducible (mult_of R) p) = (prime (mult_of R) p)"
+  shows "(irreducible (mult_of R) p) \<longleftrightarrow> (prime (mult_of R) p)"
 proof
   show "irreducible (mult_of R) p \<Longrightarrow> prime (mult_of R) p"
     using irreducible_imp_maximalideal maximalideal_prime primeideal_iff_prime assms by auto
@@ -616,13 +601,13 @@ qed
 
 lemma (in principal_domain) domain_iff_prime:
   assumes "a \<in> carrier R - { \<zero> }"
-  shows "domain (R Quot (PIdl a)) = prime (mult_of R) a"
+  shows "domain (R Quot (PIdl a)) \<longleftrightarrow> prime (mult_of R) a"
   using quot_domain_iff_primeideal[of "PIdl a"] primeideal_iff_prime[of a]
         cgenideal_ideal[of a] assms by auto
 
 lemma (in principal_domain) field_iff_prime:
   assumes "a \<in> carrier R - { \<zero> }"
-  shows "field (R Quot (PIdl a)) = prime (mult_of R) a"
+  shows "field (R Quot (PIdl a)) \<longleftrightarrow> prime (mult_of R) a"
 proof
   show "prime (mult_of R) a \<Longrightarrow> field  (R Quot (PIdl a))"
     using  primeness_condition[of a] irreducible_imp_maximalideal[of a]
@@ -650,13 +635,13 @@ sublocale principal_domain \<subseteq> factorial_domain
 
 lemma (in principal_domain) ideal_sum_iff_gcd:
   assumes "a \<in> carrier (mult_of R)" "b \<in> carrier (mult_of R)" "d \<in> carrier (mult_of R)"
-  shows "((PIdl a) <+> (PIdl b) = (PIdl d)) = (d gcdof\<^bsub>(mult_of R)\<^esub> a b)"
+  shows "((PIdl a) <+>\<^bsub>R\<^esub> (PIdl b) = (PIdl d)) \<longleftrightarrow> (d gcdof\<^bsub>(mult_of R)\<^esub> a b)"
 proof
-  assume A: "(PIdl a) <+> (PIdl b) = (PIdl d)" show "d gcdof\<^bsub>(mult_of R)\<^esub> a b"
+  assume A: "(PIdl a) <+>\<^bsub>R\<^esub> (PIdl b) = (PIdl d)" show "d gcdof\<^bsub>(mult_of R)\<^esub> a b"
   proof -
     have "(PIdl a) \<subseteq> (PIdl d) \<and> (PIdl b) \<subseteq> (PIdl d)"
-    using assms apply simp
-      by (metis Un_subset_iff cgenideal_ideal cgenideal_minimal local.ring_axioms
+    using assms
+      by (simp, metis Un_subset_iff cgenideal_ideal cgenideal_minimal local.ring_axioms
           ring.genideal_self ring.oneideal ring.union_genideal A)
     hence "d divides a \<and> d divides b"
       using assms apply simp
@@ -673,10 +658,10 @@ proof
       hence "c divides a" "c divides b" by auto
       hence "(PIdl a) \<subseteq> (PIdl c) \<and> (PIdl b) \<subseteq> (PIdl c)"
         using to_contain_is_to_divide[of c a] to_contain_is_to_divide[of c b] c assms by simp
-      hence "((PIdl a) <+> (PIdl b)) \<subseteq> (PIdl c)"
-        using assms c apply simp
-        by (metis Un_subset_iff cgenideal_ideal cgenideal_minimal local.ring_axioms
-            ring.Idl_subset_ideal ring.oneideal ring.union_genideal)
+      hence "((PIdl a) <+>\<^bsub>R\<^esub> (PIdl b)) \<subseteq> (PIdl c)"
+        using assms c
+        by (simp, metis Un_subset_iff cgenideal_ideal cgenideal_minimal
+                        Idl_subset_ideal oneideal union_genideal)
       hence incl: "(PIdl d) \<subseteq> (PIdl c)" using A by simp
       hence "c divides d"
         using c assms(3) apply simp
@@ -687,23 +672,23 @@ proof
     ultimately show ?thesis unfolding isgcd_def by simp
   qed
 next
-  assume A:"d gcdof\<^bsub>mult_of R\<^esub> a b" show "PIdl a <+> PIdl b = PIdl d"
+  assume A:"d gcdof\<^bsub>mult_of R\<^esub> a b" show "PIdl a <+>\<^bsub>R\<^esub> PIdl b = PIdl d"
   proof
     have "d divides a" "d divides b"
       using A unfolding isgcd_def by auto
     hence "(PIdl a) \<subseteq> (PIdl d) \<and> (PIdl b) \<subseteq> (PIdl d)"
       using to_contain_is_to_divide[of d a] to_contain_is_to_divide[of d b] assms by simp
-    thus "PIdl a <+> PIdl b \<subseteq> PIdl d" using assms apply simp
-      by (metis Un_subset_iff cgenideal_ideal cgenideal_minimal local.ring_axioms
-          ring.Idl_subset_ideal ring.oneideal ring.union_genideal)
+    thus "PIdl a <+>\<^bsub>R\<^esub> PIdl b \<subseteq> PIdl d" using assms
+      by (simp, metis Un_subset_iff cgenideal_ideal cgenideal_minimal
+                      Idl_subset_ideal oneideal union_genideal)
   next
-    have "ideal ((PIdl a) <+> (PIdl b)) R"
+    have "ideal ((PIdl a) <+>\<^bsub>R\<^esub> (PIdl b)) R"
       using assms by (simp add: cgenideal_ideal local.ring_axioms ring.add_ideals)
-    then obtain c where c: "c \<in> carrier R" "(PIdl c) = (PIdl a) <+> (PIdl b)"
+    then obtain c where c: "c \<in> carrier R" "(PIdl c) = (PIdl a) <+>\<^bsub>R\<^esub> (PIdl b)"
       using cgenideal_eq_genideal principal_I principalideal.generate by force
-    hence "(PIdl a) \<subseteq> (PIdl c) \<and> (PIdl b) \<subseteq> (PIdl c)" using assms apply simp
-      by (metis Un_subset_iff cgenideal_ideal cgenideal_minimal local.ring_axioms
-          ring.genideal_self ring.oneideal ring.union_genideal)
+    hence "(PIdl a) \<subseteq> (PIdl c) \<and> (PIdl b) \<subseteq> (PIdl c)" using assms
+      by (simp, metis Un_subset_iff cgenideal_ideal cgenideal_minimal
+                      genideal_self oneideal union_genideal)
     hence "c divides a \<and> c divides b" using c(1) assms apply simp
       using to_contain_is_to_divide[of c a] to_contain_is_to_divide[of c b] by blast
     hence "c divides\<^bsub>(mult_of R)\<^esub> a \<and> c divides\<^bsub>(mult_of R)\<^esub> b"
@@ -715,7 +700,7 @@ next
         by (simp add: cgenideal_eq_genideal zero_genideal)
       moreover have "\<one> \<otimes> a \<in> PIdl a \<and> \<zero> \<otimes> b \<in> PIdl b"
         unfolding cgenideal_def using assms one_closed zero_closed by blast
-      hence "(\<one> \<otimes> a) \<oplus> (\<zero> \<otimes> b) \<in> (PIdl a) <+> (PIdl b)"
+      hence "(\<one> \<otimes> a) \<oplus> (\<zero> \<otimes> b) \<in> (PIdl a) <+>\<^bsub>R\<^esub> (PIdl b)"
         unfolding set_add_def' by auto
       hence "a \<in> PIdl c"
         using c assms by simp
@@ -727,17 +712,17 @@ next
       using A c(1) unfolding isgcd_def by simp
     hence "(PIdl d) \<subseteq> (PIdl c)"
       using to_contain_is_to_divide[of c d] c(1) assms(3) by simp
-    thus "PIdl d \<subseteq> PIdl a <+> PIdl b" using c by simp
+    thus "PIdl d \<subseteq> PIdl a <+>\<^bsub>R\<^esub> PIdl b" using c by simp
   qed
 qed
 
 lemma (in principal_domain) bezout_identity:
   assumes "a \<in> carrier (mult_of R)" "b \<in> carrier (mult_of R)"
-  shows "(PIdl a) <+> (PIdl b) = (PIdl (somegcd (mult_of R) a b))"
+  shows "(PIdl a) <+>\<^bsub>R\<^esub> (PIdl b) = (PIdl (somegcd (mult_of R) a b))"
 proof -
   have "(somegcd (mult_of R) a b) \<in> carrier (mult_of R)"
     using mult_of.gcd_exists[OF assms] by simp
-  hence "\<And>x. x = somegcd (mult_of R) a b \<Longrightarrow> (PIdl a) <+> (PIdl b) = (PIdl x)"
+  hence "\<And>x. x = somegcd (mult_of R) a b \<Longrightarrow> (PIdl a) <+>\<^bsub>R\<^esub> (PIdl b) = (PIdl x)"
     using mult_of.gcd_isgcd[OF assms] ideal_sum_iff_gcd[OF assms] by simp
   thus ?thesis
     using mult_of.gcd_exists[OF assms] by blast

@@ -726,7 +726,7 @@ lemma RDirProd_list_in_carrierI:
   assumes "\<And>i. i \<in> {..<(length rs)} \<Longrightarrow> rs ! i \<in> carrier (Rs ! i)"
       and "length rs = length Rs"
     shows "rs \<in> carrier (RDirProd_list Rs)"
-  apply (simp add: monoid.defs) using DirProd_list_in_carrierI assms by blast
+  using DirProd_list_in_carrierI assms by (simp add: monoid.defs, blast)
 
 lemma RDirProd_list_one:
   "\<And>i. i \<in> {..<(length Rs)} \<Longrightarrow> (\<one>\<^bsub>(RDirProd_list Rs)\<^esub>) ! i =  \<one>\<^bsub>(Rs ! i)\<^esub>"
@@ -1100,8 +1100,7 @@ proof (induct n)
 next
   case (Suc n)
   have inter_ideal: "ideal (\<Inter> i \<le> n. I i) R"
-    using Suc.prems(1) ring.i_Intersect[of R "I ` {..n}"] atMost_Suc
-          atLeast1_atMost_eq_remove0 local.ring_axioms by auto 
+    using Suc.prems(1) i_Intersect[of "I ` {..n}"] atMost_Suc atLeast1_atMost_eq_remove0 by auto
   hence "R Quot (\<Inter> i \<le> Suc n. I i) \<simeq> RDirProd (R Quot (\<Inter> i \<le> n. I i)) (R Quot (I (Suc n)))"
     using chinese_remainder_simple[of "\<Inter> i \<le> n. I i" "I (Suc n)"]
           inter_plus_ideal_eq_carrier[of n I] by (simp add: Int_commute Suc.prems(1-2) atMost_Suc)

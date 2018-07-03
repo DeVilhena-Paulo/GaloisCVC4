@@ -646,13 +646,26 @@ proof -
     done
 qed
 
+(* NEW ======================================================================= *)
+lemma subgroup_is_submonoid:
+  assumes "subgroup H G" shows "submonoid H G"
+  using assms by (auto intro: submonoid.intro simp add: subgroup_def)
+(* =========================================================================== *)
+
+(* NEW ======================================================================= *)
+lemma (in group) subgroup_Units:
+  assumes "subgroup H G" shows "H \<subseteq> Units (G \<lparr> carrier := H \<rparr>)"
+  using group.Units[OF subgroup.subgroup_is_group[OF assms group_axioms]] by simp
+(* =========================================================================== *)
+
+(* RENAME ==================================================================== *)
 lemma (in group) m_inv_consistent:
   assumes "subgroup H G" "x \<in> H"
-  shows "inv x = inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> x"
-  unfolding m_inv_def apply auto
-  using subgroup.m_inv_closed[OF assms] inv_equality
-  by (metis (no_types, hide_lams) assms subgroup.mem_carrier)
+  shows "inv\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> x = inv x"
+  using assms m_inv_monoid_consistent[OF _ subgroup_is_submonoid] subgroup_Units[of H] by auto
+(* =========================================================================== *)
 
+(* PROOF ===================================================================== *)
 lemma (in group) int_pow_consistent: (* by Paulo *)
   assumes "subgroup H G" "x \<in> H"
   shows "x [^] (n :: int) = x [^]\<^bsub>(G \<lparr> carrier := H \<rparr>)\<^esub> n"
@@ -679,6 +692,7 @@ next
     using group.int_pow_def2[OF subgroup.subgroup_is_group[OF assms(1) is_group]] lt by auto
   finally show ?thesis .
 qed
+(* =========================================================================== *)
 
 text \<open>
   Since @{term H} is nonempty, it contains some element @{term x}.  Since

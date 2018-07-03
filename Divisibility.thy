@@ -564,30 +564,6 @@ lemma (in comm_monoid) Units_Lower: "Units G = Lower (division_rel G) (carrier G
   apply (metis Unit_eq_dividesone Units_r_inv_ex m_ac(2) one_closed)
   done
 
-(* Next lemma contributed by Paulo Emílio de Vilhena. *)
-
-lemma (in monoid_cancel) associated_Units:
-  assumes "a \<in> carrier G" "b \<in> carrier G"
-  shows "(a \<sim> b) = (\<exists>c \<in> Units G. a = b \<otimes> c)"
-proof
-  assume "a \<sim> b"
-  then obtain c c' where c : "c  \<in> carrier G" "a = b \<otimes> c"
-                     and c': "c' \<in> carrier G" "b = a \<otimes> c'"
-    unfolding associated_def factor_def by auto
-  hence "\<one> = c \<otimes> c' \<and> \<one> = c' \<otimes> c" using assms c c'
-    by (metis (no_types, lifting) l_cancel m_assoc m_closed monoid.r_one monoid_axioms one_closed)
-  thus "\<exists>c \<in> Units G. a = b \<otimes> c"
-    using c c' unfolding Units_def by fastforce 
-next
-  assume "\<exists>c \<in> Units G. a = b \<otimes> c"
-  then obtain c c' where c : "c  \<in> carrier G" "a = b \<otimes> c"
-                     and c': "c' \<in> carrier G" "c \<otimes> c' = \<one>"
-    unfolding Units_def by blast
-  hence "b = a \<otimes> c'" by (simp add: assms(2) m_assoc)
-  thus "a \<sim> b" using c c'(1)
-    unfolding associated_def by auto
-qed
-
 subsubsection \<open>Proper factors\<close>
 
 lemma properfactorI:
