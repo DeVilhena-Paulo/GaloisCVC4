@@ -1,11 +1,9 @@
-(* ************************************************************************** *)
-(* Title:      Subrings.thy                                                   *)
-(* Authors:    Martin Baillon and Paulo Emílio de Vilhena                     *)
-(* ************************************************************************** *)
+(*  Title:      HOL/Algebra/Subrings.thy
+    Authors:    Martin Baillon and Paulo Emílio de Vilhena
+*)
 
 theory Subrings
   imports Ring RingHom QuotRing Multiplicative_Group
-
 begin
 
 section \<open>Subrings\<close>
@@ -358,7 +356,7 @@ lemma (in field) subgroup_mult_of :
   shows "subgroup (K - {\<zero>}) (mult_of R)"
 proof (intro group.group_incl_imp_subgroup[OF field_mult_group])
   show "K - {\<zero>} \<subseteq> carrier (mult_of R)"
-    using subringE(1) subfieldE(1) assms by auto
+    by (simp add: Diff_mono assms carrier_mult_of subfieldE(3))
   show "group ((mult_of R) \<lparr> carrier := K - {\<zero>} \<rparr>)"
     using field.field_mult_group[OF subfield_iff(2)[OF assms]]
     unfolding mult_of_def by simp

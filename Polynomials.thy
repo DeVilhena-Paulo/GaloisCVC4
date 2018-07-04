@@ -4,7 +4,7 @@
 (* ************************************************************************** *)
 
 theory Polynomials
-  imports Ring Ring_Divisibility Subrings
+  imports Ring Ring_Divisibility Embedded_Algebras
 
 begin
 
@@ -15,8 +15,8 @@ subsection \<open>Definitions\<close>
 abbreviation lead_coeff :: "'a list \<Rightarrow> 'a"
   where "lead_coeff \<equiv> hd"
 
-definition degree :: "'a list \<Rightarrow> nat"
-  where "degree p = length p - 1"
+abbreviation degree :: "'a list \<Rightarrow> nat"
+  where "degree p \<equiv> length p - 1"
 
 definition polynomial :: "_ \<Rightarrow> 'a list \<Rightarrow> bool"
   where "polynomial R p \<longleftrightarrow> p = [] \<or> (set p \<subseteq> carrier R \<and> lead_coeff p \<noteq> \<zero>\<^bsub>R\<^esub>)"
@@ -124,7 +124,7 @@ next
         map (coeff (a # p)) ((length p) # (rev [0..<length p]))"
     by simp
   also have " ... = a # (map (coeff p) (rev [0..<length p]))"
-    using degree_def[of "a # p"] by auto
+    by auto
   also have " ... = a # p"
     using Cons by simp
   finally show ?case . 
@@ -165,19 +165,19 @@ lemma coeff_img_restrict: "(coeff p) ` {..< length p} = set p"
   using coeff_list[of p] by (metis atLeast_upt image_set set_rev)
 
 lemma coeff_length: "\<And>i. i \<ge> length p \<Longrightarrow> (coeff p) i = \<zero>"
-  by (induction p) (auto simp add: degree_def)
+  by (induction p) (auto)
 
 lemma coeff_degree: "\<And>i. i > degree p \<Longrightarrow> (coeff p) i = \<zero>"
-  using coeff_length by (simp add: degree_def)
+  using coeff_length by (simp)
 
 lemma replicate_zero_coeff [simp]: "coeff (replicate n \<zero>) = (\<lambda>_. \<zero>)"
   by (induction n) (auto)
 
 lemma scalar_coeff: "a \<in> carrier R \<Longrightarrow> coeff (map (\<lambda>b. a \<otimes> b) p) = (\<lambda>i. a \<otimes> (coeff p) i)"
-  by (induction p) (auto simp add:degree_def)
+  by (induction p) (auto)
 
 lemma monon_coeff: "coeff (monon a n) = (\<lambda>i. if i = n then a else \<zero>)"
-  unfolding monon_def by (induction n) (auto simp add: degree_def)
+  unfolding monon_def by (induction n) (auto)
 
 lemma coeff_img:
   "(coeff p) ` {..< length p} = set p"
@@ -186,7 +186,7 @@ lemma coeff_img:
   using coeff_img_restrict
 proof (simp)
   show coeff_img_up: "(coeff p) ` { length p ..} = { \<zero> }"
-    using coeff_length[of p] unfolding degree_def by force
+    using coeff_length[of p] by force
   from coeff_img_up and coeff_img_restrict[of p]
   show "(coeff p) ` UNIV = (set p) \<union> { \<zero> }"
     by force
@@ -196,8 +196,7 @@ lemma degree_def':
   assumes "polynomial R p"
   shows "degree p = (LEAST n. \<forall>i. i > n \<longrightarrow> (coeff p) i = \<zero>)"
 proof (cases p)
-  case Nil thus ?thesis
-    unfolding degree_def by auto
+  case Nil thus ?thesis by auto
 next
   define P where "P = (\<lambda>n. \<forall>i. i > n \<longrightarrow> (coeff p) i = \<zero>)"
 
@@ -227,8 +226,7 @@ next
   proof (cases)
     assume "p1 \<noteq> [] \<and> p2 \<noteq> []"
     hence "length p1 = length p2"
-      using deg_eq unfolding degree_def
-      by (simp add: Nitpick.size_list_simp(2)) 
+      using deg_eq by (simp add: Nitpick.size_list_simp(2)) 
     thus ?thesis
       using coeff_iff_length_cond[of p1 p2] coeff_eq by simp
   next
@@ -340,11 +338,11 @@ proof (induction p)
 next
   case (Cons a p)
   have "coeff (normalize p) (length p) = \<zero>"
-    using normalize_length_le[of p] coeff_degree[of "normalize p"] unfolding degree_def
+    using normalize_length_le[of p] coeff_degree[of "normalize p"]
     by (metis One_nat_def coeff.simps(1) diff_less length_0_conv
         less_imp_diff_less nat_neq_iff neq0_conv not_le zero_less_Suc)
   then show ?case
-    using Cons by (cases "a = \<zero>") (auto simp add: degree_def)
+    using Cons by (cases "a = \<zero>") (auto)
 qed
 
 lemma append_coeff:
@@ -355,7 +353,7 @@ proof (induction p)
 next
   case (Cons a p)
   have "coeff ((a # p) @ q) = (\<lambda>i. if i = length p + length q then a else (coeff (p @ q)) i)"
-    by (auto simp add: degree_def)
+    by auto
   also have " ... = (\<lambda>i. if i = length p + length q then a
                          else if i < length q then (coeff q) i
                          else (coeff p) (i - length q))"
@@ -367,7 +365,7 @@ next
                          else if i - length q = length p then a else (coeff p) (i - length q))"
     by fastforce
   also have " ... = (\<lambda>i. if i < length q then (coeff q) i else (coeff (a # p)) (i - length q))"
-    by (auto simp add: degree_def)
+    by auto
   finally show ?case .
 qed
 
@@ -460,14 +458,13 @@ proof -
 qed
 
 lemma poly_add_degree: "degree (poly_add p1 p2) \<le> max (degree p1) (degree p2)"
-  unfolding degree_def using poly_add_length_le
-  by (meson diff_le_mono le_max_iff_disj)
+  using poly_add_length_le by (meson diff_le_mono le_max_iff_disj)
 
 lemma poly_add_degree_eq:
   assumes "polynomial R p1" "polynomial R p2" and "degree p1 \<noteq> degree p2"
   shows "degree (poly_add p1 p2) = max (degree p1) (degree p2)"
   using poly_add_length_eq[of p1 p2] assms
-  by (smt degree_def diff_le_mono le_cases max.absorb1 max_def)
+  by (smt diff_le_mono le_cases max.absorb1 max_def)
 
 lemma poly_add_coeff_aux:
   assumes "length p1 \<ge> length p2"
@@ -708,7 +705,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
     hence a: "a \<in> carrier R - { \<zero> }" and l: "set l \<subseteq> carrier R"
       using less(2) by (auto simp add: polynomial_def)
     hence "a # l = poly_add (monon a (degree (a # l))) l"
-      using poly_add_monon by (simp add: degree_def)
+      using poly_add_monon by simp
     also have " ... = poly_add (monon a (degree (a # l))) (normalize l)"
       using poly_add_normalize(2)[of "monon a (degree (a # l))", OF _ l] a
       unfolding monon_def by force
@@ -756,8 +753,7 @@ next
       thus "c \<in> carrier R"
         using Cons(2-3) by auto
     qed
-    thus ?thesis
-      unfolding degree_def by auto
+    thus ?thesis by auto
   qed
 
   ultimately have "polynomial R (poly_add ?a_p2 (poly_mult p1 p2))"
@@ -787,9 +783,9 @@ next
   let ?a_p2 = "(map (\<lambda>b. a \<otimes> b) p2) @ (replicate (degree (a # p1)) \<zero>)"
   have "coeff  (replicate (degree (a # p1)) \<zero>) = (\<lambda>_. \<zero>)"
    and "length (replicate (degree (a # p1)) \<zero>) = length p1"
-    using prefix_replicate_zero_coeff[of "[]" "length p1"] unfolding degree_def by auto
+    using prefix_replicate_zero_coeff[of "[]" "length p1"] by auto
   hence "coeff ?a_p2 = (\<lambda>i. if i < length p1 then \<zero> else (coeff (map (\<lambda>b. a \<otimes> b) p2)) (i - length p1))"
-    using append_coeff[of "map (\<lambda>b. a \<otimes> b) p2" "replicate (length p1) \<zero>"] unfolding degree_def by auto
+    using append_coeff[of "map (\<lambda>b. a \<otimes> b) p2" "replicate (length p1) \<zero>"] by auto
   also have " ... = (\<lambda>i. if i < length p1 then \<zero> else a \<otimes> ((coeff p2) (i - length p1)))"
   proof -
     have "\<And>i. i < length p2 \<Longrightarrow> (coeff (map (\<lambda>b. a \<otimes> b) p2)) i = a \<otimes> ((coeff p2) i)"
@@ -864,7 +860,7 @@ next
   proof
     fix i
     have "\<And>k. ?f i k = ?g i k"
-      using in_carrier coeff_length[of p1] by (auto simp add: degree_def)
+      using in_carrier coeff_length[of p1] by auto
     thus "(\<Oplus> k \<in> {..i}. ?f i k) = (\<Oplus> k \<in> {..i}. ?g i k)" by simp
   qed
   finally show ?case .
@@ -929,7 +925,7 @@ proof -
       have "?a_p2 = replicate (length p2 + length p1) \<zero>"
         using A(2) by (induction p2) (auto)
       hence "poly_mult (\<zero> # p1) p2 = poly_add (replicate (length p2 + length p1) \<zero>) (poly_mult p1 p2)"
-        by (simp add: degree_def)
+        by simp
       also have " ... = poly_add (normalize (replicate (length p2 + length p1) \<zero>)) (poly_mult p1 p2)"
         using poly_add_normalize(1)[of "replicate (length p2 + length p1) \<zero>" "poly_mult p1 p2"]
               poly_mult_in_carrier[OF A] by force
@@ -1032,7 +1028,7 @@ proof -
     hence "poly_mult (replicate (Suc n) \<zero>) p = poly_mult (\<zero> # (replicate n \<zero>)) p"
       by simp
     also have " ... = poly_add ((map (\<lambda>a. \<zero> \<otimes> a) p) @ (replicate n \<zero>)) []"
-      using Suc by (simp add: degree_def)
+      using Suc by simp
     also have " ... = poly_add ((map (\<lambda>a. \<zero>) p) @ (replicate n \<zero>)) []"
       using Suc(2) by (smt map_eq_conv ring_simprules(24) subset_code(1))
     also have " ... = poly_add (replicate (length p + n) \<zero>) []"
@@ -1054,7 +1050,7 @@ proof -
   show "poly_mult [ a ] p = map (\<lambda>b. a \<otimes> b) p"
   proof -
     have "poly_mult [ a ] p = poly_add (map (\<lambda>b. a \<otimes> b) p) []"
-      by (simp add: degree_def)
+      by simp
     moreover have "polynomial R (map (\<lambda>b. a \<otimes> b) p)"
     proof (cases p)
       case Nil thus ?thesis by (simp add: polynomial_def)
@@ -1092,7 +1088,7 @@ next
 
   have "poly_mult (a # replicate n \<zero>) p =
         poly_add ((map (\<lambda>b. a \<otimes> b) p) @ (replicate n \<zero>)) (poly_mult (replicate n \<zero>) p)"
-    by (simp add: degree_def)
+    by simp
   also have " ... = poly_add ((map (\<lambda>b. a \<otimes> b) p) @ (replicate n \<zero>)) []"
     using poly_mult_replicate_zero(1)[OF polynomial_in_carrier[OF assms(1)]] by simp
   also have " ... = (map (\<lambda>b. a \<otimes> b) p) @ (replicate n \<zero>)"
@@ -1133,7 +1129,7 @@ proof -
     moreover have "\<And>i. i > degree p1 \<Longrightarrow> ?f i = \<zero>"
       using coeff_degree[of p1] in_carrier by auto
     moreover have "?f (degree p1) = (lead_coeff p1) \<otimes> (lead_coeff p2)"
-      using assms(3-4) by simp
+      using assms(3-4) lead_coeff_simp by auto 
     ultimately have "?f = (\<lambda>i. if degree p1 = i then (lead_coeff p1) \<otimes> (lead_coeff p2) else \<zero>)"
       using nat_neq_iff by auto
     thus ?thesis
@@ -1147,13 +1143,13 @@ lemma poly_mult_degree_eq:
   assumes "polynomial R p1" "polynomial R p2"
   shows "degree (poly_mult p1 p2) = (if p1 = [] \<or> p2 = [] then 0 else (degree p1) + (degree p2))"
 proof (cases p1)
-  case Nil thus ?thesis by (simp add: degree_def)
+  case Nil thus ?thesis by simp
 next
   case (Cons a p1') note p1 = Cons
   show ?thesis
   proof (cases p2)
     case Nil thus ?thesis
-      using poly_mult_zero(2)[OF assms(1)] by (simp add: degree_def)
+      using poly_mult_zero(2)[OF assms(1)] by simp
   next
     case (Cons b p2') note p2 = Cons
     have a: "a \<in> carrier R" and b: "b \<in> carrier R"
@@ -1175,11 +1171,11 @@ next
         hence "degree (poly_mult (a # p1) p2) \<le> max (degree ?a_p2) (degree (poly_mult p1 p2))"
           using poly_add_degree[of ?a_p2 "poly_mult p1 p2"] by simp
         also have " ... \<le> max ((degree (a # p1)) + (degree p2)) (degree (poly_mult p1 p2))"
-          unfolding degree_def by auto
+          by auto
         also have " ... \<le> max ((degree (a # p1)) + (degree p2)) ((degree p1) + (degree p2))"
           using Cons by simp
         also have " ... \<le> (degree (a # p1)) + (degree p2)"
-          unfolding degree_def by auto
+          by auto
         finally show ?case .
       qed
       fix i show "i > (degree p1) + (degree p2) \<Longrightarrow> (coeff (poly_mult p1 p2)) i = \<zero>"
@@ -1201,7 +1197,7 @@ proof (rule ccontr)
   hence "degree (poly_mult p1 p2) = degree p1 + degree p2"
     using poly_mult_degree_eq[OF assms] by simp
   hence "length p1 = 1 \<and> length p2 = 1"
-    unfolding degree_def using A Suc_diff_Suc by fastforce
+    using A Suc_diff_Suc by fastforce
   then obtain a b where p1: "p1 = [ a ]" and p2: "p2 = [ b ]"
     by (metis One_nat_def length_0_conv length_Suc_conv)
   hence "a \<in> carrier R - { \<zero> }" and "b \<in> carrier R - { \<zero> }"
@@ -1369,7 +1365,7 @@ proof (auto simp add: poly_add_closed poly_mult_closed one_is_polynomial monoid_
         using in_carrier by auto
 
       have "poly_mult (poly_mult (a # p1) p2) p3 = poly_mult (poly_add ?a_p2 (poly_mult p1 p2)) p3"
-        by (simp add: degree_def)
+        by simp
       also have " ... = poly_add (poly_mult ?a_p2 p3) (poly_mult (poly_mult p1 p2) p3)"
         using poly_mult_l_distr'[OF a_p2_in_carrier poly_mult_in_carrier[OF in_carrier(1-2)] in_carrier(3)] .
       also have " ... = poly_add (poly_mult ?a_p2 p3) (poly_mult p1 (poly_mult p2 p3))"
@@ -1460,42 +1456,34 @@ declare poly_add.simps[simp]
 
 end
 
-lemma univ_poly_is_ring:
-  assumes "domain R"
-  shows "ring (univ_poly R)"
+lemma (in domain) univ_poly_is_ring: "ring (univ_poly R)"
 proof -
-  interpret abelian_group "univ_poly R" + monoid "univ_poly R"
-    using domain.univ_poly_is_abelian_group[OF assms] domain.univ_poly_is_monoid[OF assms] .
-  have R: "ring R"
-    using assms unfolding domain_def cring_def by simp
+  interpret UP: abelian_group "univ_poly R" + monoid "univ_poly R"
+    using univ_poly_is_abelian_group univ_poly_is_monoid .
   show ?thesis
-    apply unfold_locales
-    apply (auto simp add: univ_poly_def assms domain.poly_mult_r_distr ring.poly_mult_l_distr[OF R])
-    done
+    by (unfold_locales,
+        auto simp add: univ_poly_def poly_mult_r_distr poly_mult_l_distr
+             simp del: poly_mult.simps poly_add.simps)
 qed
 
-lemma univ_poly_is_cring:
-  assumes "domain R"
-  shows "cring (univ_poly R)"
+lemma (in domain) univ_poly_is_cring: "cring (univ_poly R)"
 proof -
-  interpret ring "univ_poly R"
-    using univ_poly_is_ring[OF assms] by simp
+  interpret UP: ring "univ_poly R"
+    using univ_poly_is_ring .
   have "\<And>p q. \<lbrakk> p \<in> carrier (univ_poly R); q \<in> carrier (univ_poly R) \<rbrakk> \<Longrightarrow>
                 p \<otimes>\<^bsub>univ_poly R\<^esub> q = q \<otimes>\<^bsub>univ_poly R\<^esub> p"
-    unfolding univ_poly_def polynomial_def using domain.poly_mult_comm[OF assms] by auto
+    unfolding univ_poly_def polynomial_def using poly_mult_comm
+    by (auto simp del: poly_mult.simps)
   thus ?thesis
     by unfold_locales auto
 qed
 
-lemma univ_poly_is_domain:
-  assumes "domain R"
-  shows "domain (univ_poly R)"
+lemma (in domain) univ_poly_is_domain: "domain (univ_poly R)"
 proof -
-  interpret cring "univ_poly R"
-    using univ_poly_is_cring[OF assms] by simp
+  interpret UP: cring "univ_poly R"
+    using univ_poly_is_cring .
   show ?thesis
-    by unfold_locales
-      (auto simp add: univ_poly_def domain.poly_mult_integral[OF assms])
+    by (unfold_locales, auto simp add: univ_poly_def poly_mult_integral)
 qed
 
 lemma (in domain) univ_poly_a_inv_def':
@@ -1534,7 +1522,7 @@ proof -
   qed
 
   interpret UP: ring "univ_poly R"
-    using univ_poly_is_ring[OF domain_axioms] .
+    using univ_poly_is_ring .
 
   from aux_lemma
   have "\<And>p. p \<in> carrier (univ_poly R) \<Longrightarrow> \<ominus>\<^bsub>(univ_poly R)\<^esub> p = map (\<lambda>a. \<ominus> a) p"
@@ -1557,13 +1545,13 @@ proof (induct "length p" arbitrary: p rule: less_induct)
   proof (cases p)
     case Nil
     hence "?long_division p [] []"
-      using zero_is_polynomial poly_mult_zero[OF less(3)] by (simp add: degree_def)
+      using zero_is_polynomial poly_mult_zero[OF less(3)] by simp
     thus ?thesis by blast
   next
     case (Cons a p') thus ?thesis
     proof (cases "length b > length p")
       assume "length b > length p"
-      hence "p = [] \<or> degree p < degree b" unfolding degree_def
+      hence "p = [] \<or> degree p < degree b"
         by (meson diff_less_mono length_0_conv less_one not_le) 
       hence "?long_division p [] p"
         using poly_add_zero[OF less(2)] less(2) zero_is_polynomial
@@ -1571,7 +1559,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
       thus ?thesis by blast
     next
       interpret UP: cring "univ_poly R"
-        using univ_poly_is_cring[OF is_domain] .
+        using univ_poly_is_cring .
 
       assume "\<not> length b > length p"
       hence len_ge: "length p \<ge> length b" by simp
@@ -1596,7 +1584,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
         using poly_mult_degree_eq[OF monon_is_polynomial[OF in_carrier] less(3)]
         unfolding s_def b monon_def by auto
       hence "?len s - 1 = ?len p - 1"
-        using len_ge unfolding b Cons by (simp add: monon_def degree_def)
+        using len_ge unfolding b Cons by (simp add: monon_def)
       moreover have "s \<noteq> []"
         using poly_mult_integral[OF monon_is_polynomial[OF in_carrier] less(3)]
         unfolding s_def monon_def b by blast
@@ -1656,26 +1644,22 @@ lemma (in field) field_long_division_theorem:
   using long_division_theorem[OF assms] assms lead_coeff_not_zero[of "hd b" "tl b"]
   by (simp add: field_Units)
 
-theorem univ_poly_is_euclidean:
-  assumes "field R"
+theorem (in field) univ_poly_is_euclidean:
   shows "euclidean_domain (univ_poly R) degree"
 proof -
-  interpret domain "univ_poly R"
-    using univ_poly_is_domain assms field_def by blast
+  interpret UP: domain "univ_poly R"
+    using univ_poly_is_domain field_def by blast
   show ?thesis
-    apply (rule euclidean_domainI)
-    unfolding univ_poly_def
-    using field.field_long_division_theorem[OF assms] by auto
+    using field_long_division_theorem
+    by (auto intro!: UP.euclidean_domainI, auto simp add: univ_poly_def)
 qed
 
-corollary univ_poly_is_principal:
-  assumes "field R"
+corollary (in field) univ_poly_is_principal:
   shows "principal_domain (univ_poly R)"
 proof -
   interpret UP: euclidean_domain "univ_poly R" degree
-    using univ_poly_is_euclidean[OF assms] .
-  show ?thesis
-    using UP.principal_domain_axioms .
+    using univ_poly_is_euclidean .
+  show ?thesis ..
 qed
         
 
@@ -1684,6 +1668,11 @@ subsection \<open>Consistency Rules\<close>
 lemma (in ring) subring_is_ring: (* <- Move to Subrings.thy *)
   assumes "subring K R" shows "ring (R \<lparr> carrier := K \<rparr>)"
   using assms unfolding subring_iff[OF subringE(1)[OF assms]] .
+
+lemma polynomial_consistent [simp]:
+  assumes "subring K R" and "polynomial (R \<lparr> carrier := K \<rparr>) p"
+  shows "polynomial R p" "set p \<subseteq> K"
+  using subringE(1)[OF assms(1)] assms(2) unfolding polynomial_def by auto
 
 lemma (in ring) eval_consistent [simp]:
   assumes "subring K R" shows "ring.eval (R \<lparr> carrier := K \<rparr>) = eval"
@@ -1745,18 +1734,18 @@ proof -
   have "domain (R \<lparr> carrier := K \<rparr>)"
     using subdomainI'[OF assms] unfolding subdomain_iff[OF subringE(1)[OF assms]] .
   thus ?thesis
-    using univ_poly_is_domain[of "R \<lparr> carrier := K \<rparr>"] by simp
+    using domain.univ_poly_is_domain[of "R \<lparr> carrier := K \<rparr>"] by simp
 qed
 
-lemma (in domain) univ_poly_subfield_is_euclidean:
+lemma (in ring) univ_poly_subfield_is_euclidean:
   assumes "subfield K R"
   shows "euclidean_domain (univ_poly (R \<lparr> carrier := K \<rparr>)) degree"
-  using univ_poly_is_euclidean[OF subfield_iff(2)[OF assms]] .
+  using field.univ_poly_is_euclidean[OF subfield_iff(2)[OF assms]] .
 
-lemma (in domain) univ_poly_subfield_is_principal:
+lemma (in ring) univ_poly_subfield_is_principal:
   assumes "subfield K R"
   shows "principal_domain (univ_poly (R \<lparr> carrier := K \<rparr>))"
-  using univ_poly_is_principal[OF subfield_iff(2)[OF assms]] .
+  using field.univ_poly_is_principal[OF subfield_iff(2)[OF assms]] .
 
 
 subsection \<open>The Evaluation Homomorphism\<close>
@@ -1787,7 +1776,7 @@ proof -
     show ?case
       using eval_in_carrier[OF _ Cons(5), of q']
             eval_in_carrier[OF _ Cons(5), of p'] Cons unfolding q
-      by (auto simp add: degree_def ring_simprules(7,13,22))
+      by (auto simp add: ring_simprules(7,13,22))
   qed
   moreover have "set (map2 (\<oplus>) p q) \<subseteq> carrier R"
     using assms(1-2)
@@ -1822,13 +1811,13 @@ lemma (in ring) eval_append_aux:
   shows "eval (p @ [ b ]) a = ((eval p a) \<otimes> a) \<oplus> b"
   using assms(1)
 proof (induct p)
-  case Nil thus ?case by (auto simp add: degree_def assms(2-3))
+  case Nil thus ?case by (auto simp add: assms(2-3))
 next
   case (Cons l q)
   have "a [^] length q \<in> carrier R" "eval q a \<in> carrier R"
     using eval_in_carrier Cons(2) assms(2-3) by auto
   thus ?case
-    using Cons assms(2-3) by (auto simp add: degree_def, algebra)
+    using Cons assms(2-3) by (auto, algebra)
 qed
 
 lemma (in ring) eval_append:
@@ -1862,7 +1851,7 @@ lemma (in ring) eval_monon:
   shows "eval (monon b n) a = b \<otimes> (a [^] n)"
 proof (induct n)
   case 0 thus ?case
-    using assms unfolding monon_def by (auto simp add: degree_def)
+    using assms unfolding monon_def by auto
 next
   case (Suc n)
   have "monon b (Suc n) = (monon b n) @ [ \<zero> ]"
@@ -1889,7 +1878,7 @@ next
       using eval_append[OF _ _ assms(3), of "map ((\<otimes>) b) q" "replicate n \<zero>"] 
             eval_replicate[OF _ assms(3), of "[]"] by auto
     moreover have "eval (map ((\<otimes>) b) q) a = b \<otimes> eval q a"
-      using assms(2-3) eval_in_carrier b by(induct q) (auto simp add: degree_def m_assoc r_distr)
+      using assms(2-3) eval_in_carrier b by(induct q) (auto simp add: m_assoc r_distr)
     ultimately have "eval ((map ((\<otimes>) b) q) @ (replicate n \<zero>)) a = (b \<otimes> eval q a) \<otimes> (a [^] n) \<oplus> \<zero>"
       by simp
     also have " ... = (b \<otimes> (a [^] n)) \<otimes> (eval q a)"
@@ -1909,11 +1898,11 @@ next
   have "eval (poly_mult (b # p) q) a =
       ((eval (monon b (length p)) a) \<otimes> (eval q a)) \<oplus> ((eval p a) \<otimes> (eval q a))"
     using eval_poly_add[OF set_map set_poly assms(3)] aux_lemma[OF in_carrier(4), of "length p"] Cons
-    by (auto simp del: poly_add.simps simp add: degree_def)
+    by (auto simp del: poly_add.simps)
   also have " ... = ((eval (monon b (length p)) a) \<oplus> (eval p a)) \<otimes> (eval q a)"
     using l_distr[OF in_carrier(1-3)] by simp
   also have " ... = (eval (b # p) a) \<otimes> (eval q a)"
-    unfolding eval_monon[OF in_carrier(4) assms(3), of "length p"] by (auto simp add: degree_def)
+    unfolding eval_monon[OF in_carrier(4) assms(3), of "length p"] by auto
   finally show ?case .
 qed
 
@@ -1923,7 +1912,7 @@ proposition (in cring) eval_is_hom:
   unfolding univ_poly_subring_def'[OF assms(1)]
   using polynomial_in_carrier eval_in_carrier eval_poly_add eval_poly_mult assms(2)
   by (auto intro!: ring_hom_memI
-         simp add: univ_poly_def degree_def
+         simp add: univ_poly_def
          simp del: poly_add.simps poly_mult.simps)
 
 theorem (in domain) eval_cring_hom:
@@ -1952,21 +1941,11 @@ lemma (in ring_hom_ring)
 *)
 
 
-subsection \<open>Divisibility of Polynomials\<close>
 
-definition  pirreducible :: "_ \<Rightarrow> 'a list \<Rightarrow> bool"
-  where "pirreducible R p \<longleftrightarrow> irreducible (mult_of (univ_poly R)) p"
-
-definition  pprime :: "_ \<Rightarrow> 'a list \<Rightarrow> bool"
-  where "pprime R p \<longleftrightarrow> prime (mult_of (univ_poly R)) p"
-
-definition rupture :: "_ \<Rightarrow> 'a list \<Rightarrow> _"
-  where "rupture R p = (univ_poly R) Quot (PIdl\<^bsub>(univ_poly R)\<^esub> p)"
-
-
+(*
 text \<open>Be aware of Nil!\<close>
 lemma (in domain) Nil_is_pirreducible: "pirreducible R []"
-  unfolding pirreducible_def using poly_mult_integral
+  using poly_mult_integral
   by (auto intro!: irreducibleI simp add: Units_def univ_poly_def properfactor_def factor_def, force)
 
 lemma (in field) pprime_iff_ppirreducible:
@@ -1976,9 +1955,14 @@ proof -
   have "p \<in> carrier (mult_of (univ_poly R))"
     using assms unfolding univ_poly_def by auto
   thus ?thesis
-    using principal_domain.primeness_condition[OF univ_poly_is_principal[OF field_axioms]]
-    unfolding pprime_def pirreducible_def by simp
+    using principal_domain.primeness_condition[OF univ_poly_is_principal] by simp
 qed
+
+lemma (in ring) pprime_iff_ppirreducible_subfield_version:
+  assumes "subfield K R" and "polynomial R p" "p \<noteq> []" "set p \<subseteq> K"
+  shows "pprime (R \<lparr> carrier := K \<rparr>) p \<longleftrightarrow> pirreducible (R \<lparr> carrier := K \<rparr>) p"
+  using field.pprime_iff_ppirreducible[OF subfield_iff(2)[OF assms(1)]] assms
+        subfieldE(3)[OF assms(1)] unfolding polynomial_def by auto 
 
 lemma (in field) rupture_field:
   assumes "polynomial R p" and "p \<noteq> []"
@@ -1987,16 +1971,16 @@ proof -
   have "p \<in> carrier (mult_of (univ_poly R))"
     using assms(1-2) unfolding univ_poly_def by auto
   thus ?thesis
-    using principal_domain.field_iff_prime[OF univ_poly_is_principal[OF field_axioms]]
+    using principal_domain.field_iff_prime[OF univ_poly_is_principal]
           pprime_iff_ppirreducible[OF assms]
-    unfolding pprime_def rupture_def by simp
+    unfolding rupture_def by simp
 qed
 
 proposition (in field) univ_poly_consts_is_subfield:
   "subfield { p \<in> carrier (univ_poly R). degree p = 0 } (univ_poly R)"
 proof -
   have ring_hom: "ring_hom_ring R (univ_poly R) (\<lambda>k. normalize [ k ])"
-    by (rule ring_hom_ringI[OF ring_axioms univ_poly_is_ring[OF domain_axioms]])
+    by (rule ring_hom_ringI[OF ring_axioms univ_poly_is_ring])
        (auto simp add: univ_poly_def degree_def)
   have subfield: "subfield ((\<lambda>k. normalize [ k ]) ` (carrier R)) (univ_poly R)"
     using ring_hom_ring.img_is_subfield(2)[OF ring_hom carrier_is_subfield]
@@ -2048,17 +2032,22 @@ next
   qed
 qed
 
-(*
 corollary (in field) pirreducible_degree:
   assumes "polynomial R p" "p \<noteq> []" "pirreducible R p"
   shows "degree p \<ge> 1"
-proof -
-  have "p \<notin> Units (mult_of (univ_poly R))"
-    using assms unfolding pirreducible_def irreducible_def by auto
-  hence "p \<notin> { [ k ] | k. k \<in> carrier R - { \<zero> } }"
-    using univ_poly_units
-    unfolding domain.Units_mult_eq_Units[OF univ_poly_is_domain[OF domain_axioms]] by auto
-*)
+proof (rule ccontr)
+  assume "\<not> degree p \<ge> 1" hence "length p \<le> 1"
+    unfolding degree_def by simp
+  then obtain k where k: "p = [ k ]"
+    using assms(2) by (metis One_nat_def le_0_eq le_SucE length_0_conv length_Suc_conv) 
+  hence "p \<in> Units (univ_poly R)"
+    using univ_poly_units lead_coeff_not_zero[of k "[]"] assms(1) unfolding k by auto
+  hence "p \<in> Units (mult_of (univ_poly R))"
+    unfolding domain.Units_mult_eq_Units[OF univ_poly_is_domain] .
+  moreover have "p \<notin> Units (mult_of (univ_poly R))"
+    using assms unfolding irreducible_def by auto
+  ultimately show False by simp
+qed
 
 corollary (in field) univ_poly_not_field: "\<not> field (univ_poly R)"
 proof -
@@ -2076,7 +2065,7 @@ corollary (in field) rupture_field_imp_pirreducible:
   shows "p \<noteq> []" and "pirreducible R p"
 proof -
   interpret UP: domain "univ_poly R"
-    using univ_poly_is_domain[OF domain_axioms] .
+    using univ_poly_is_domain .
 
   show "p \<noteq> []"
   proof (rule ccontr)
@@ -2109,7 +2098,7 @@ lemma (in field) associated_polynomials_iff:
   shows "p \<sim>\<^bsub>(univ_poly R)\<^esub> q \<longleftrightarrow> (\<exists>k \<in> carrier R - { \<zero> }. p = map (\<lambda>a. k \<otimes> a) q)"
 proof
   interpret UP: principal_domain "univ_poly R"
-    using univ_poly_is_principal[OF field_axioms] .
+    using univ_poly_is_principal .
 
   assume A: "p \<sim>\<^bsub>(univ_poly R)\<^esub> q"
   then obtain r1 r2
@@ -2198,7 +2187,7 @@ proposition (in field) exists_ker_generator_pirreducible:
     (is "\<exists>p. polynomial R p \<and> ?pirr R p \<and> ?a_ker p = ?PIdl p")
 proof -
   interpret UP: principal_domain "univ_poly R"
-    using univ_poly_is_principal[OF field_axioms] by simp
+    using univ_poly_is_principal by simp
 
   have ker: "ideal (a_kernel (univ_poly R) R (\<lambda>p. eval p x)) (univ_poly R)"
     using ring_hom_ring.kernel_is_ideal[OF eval_ring_hom[OF carrier_is_subring]] assms by simp
@@ -2224,12 +2213,11 @@ proof -
       using p UP.ideal_eq_carrier_iff by auto
 
     have "pprime R p"
-      unfolding pprime_def
     proof (rule primeI[OF not_unit])
       fix a b
       assume "a \<in> carrier (mult_of (univ_poly R))"
          and "b \<in> carrier (mult_of (univ_poly R))"
-         and "p divides\<^bsub>mult_of (univ_poly R)\<^esub> (a \<otimes>\<^bsub>mult_of (univ_poly R)\<^esub> b)"
+         and "p pdivides (a \<otimes>\<^bsub>mult_of (univ_poly R)\<^esub> b)"
       then obtain c
         where a: "polynomial R a" "a \<noteq> []" and b: "polynomial R b" "b \<noteq> []" and c: "polynomial R c" "c \<noteq> []"
           and dvd: "poly_mult a b = poly_mult p c"
@@ -2244,17 +2232,17 @@ proof -
       hence "(eval a x) = \<zero> \<or> (eval b x) = \<zero>"
         using integral eval_in_carrier polynomial_in_carrier a b assms by auto
       moreover
-      have "\<And>a. \<lbrakk> polynomial R a; a \<noteq> []; (eval a x) = \<zero> \<rbrakk> \<Longrightarrow> p divides\<^bsub>mult_of (univ_poly R)\<^esub> a"
+      have "\<And>a. \<lbrakk> polynomial R a; a \<noteq> []; (eval a x) = \<zero> \<rbrakk> \<Longrightarrow> p pdivides a"
       proof -
         fix a assume a: "polynomial R a" "a \<noteq> []" "(eval a x) = \<zero>"
         hence "a \<in> ?PIdl p"
           using p unfolding a_kernel_def' univ_poly_def by auto
         hence "p divides\<^bsub>(univ_poly R)\<^esub> a"
           using UP.m_comm[OF in_carrier] unfolding cgenideal_def factor_def by auto
-        thus "p divides\<^bsub>mult_of (univ_poly R)\<^esub> a"
+        thus "p pdivides a"
           using UP.divides_imp_divides_mult[OF in_carrier] a unfolding univ_poly_def by auto
       qed
-      ultimately show "p divides\<^bsub>mult_of (univ_poly R)\<^esub> a \<or> p divides\<^bsub>mult_of (univ_poly R)\<^esub> b"
+      ultimately show "p pdivides a \<or> p pdivides b"
         using a b by blast
     qed
     thus ?thesis
@@ -2269,7 +2257,7 @@ corollary (in field) eval_zero_imp_associated:
   shows "p \<sim>\<^bsub>(univ_poly R)\<^esub> q"
 proof -
   interpret UP: principal_domain "univ_poly R"
-    using univ_poly_is_principal[OF field_axioms] .
+    using univ_poly_is_principal .
 
   { fix q p assume q: "polynomial R q" "q \<noteq> []" "pirreducible R q"
                and p: "polynomial R p" "p \<noteq> []" "pirreducible R p"
@@ -2281,11 +2269,11 @@ proof -
         using q p unfolding univ_poly_def by auto
       have "q divides\<^bsub>(univ_poly R)\<^esub> p"
         using PIdl UP.m_comm[OF in_carrier(1)] unfolding cgenideal_def factor_def by auto
-      hence q_dvd_p: "q divides\<^bsub>(mult_of (univ_poly R))\<^esub> p"
+      hence q_dvd_p: "q pdivides p"
         using UP.divides_imp_divides_mult[OF in_carrier(1), of p] in_carrier(3) by auto
       thus "q \<sim>\<^bsub>(mult_of (univ_poly R))\<^esub> p"
         using in_carrier(4) p(3) q(3) properfactorI2[OF q_dvd_p]
-        unfolding pirreducible_def irreducible_def[of "mult_of (univ_poly R)"] by blast
+        unfolding irreducible_def[of "mult_of (univ_poly R)"] by blast
     qed } note aux_lemma = this
 
   obtain r where r: "polynomial R r" "pirreducible R r"
@@ -2308,5 +2296,6 @@ proof -
     using UP.mult_of.associated_sym[OF r_p] UP.mult_of.associated_trans[OF _ r_q, of p] by blast
   thus ?thesis by simp
 qed
+*)
 
 end

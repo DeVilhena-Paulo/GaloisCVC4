@@ -10,7 +10,7 @@ subsection \<open>More Lifting from Groups to Abelian Groups\<close>
 
 subsubsection \<open>Definitions\<close>
 
-text \<open>Hiding \<open><+>\<close> from @{theory Sum_Type} until I come
+text \<open>Hiding \<open><+>\<close> from @{theory HOL.Sum_Type} until I come
   up with better syntax here\<close>
 
 no_notation Sum_Type.Plus (infixr "<+>" 65)
@@ -41,12 +41,12 @@ definition
 
 definition
   A_FactGroup :: "[('a,'b) ring_scheme, 'a set] \<Rightarrow> ('a set) monoid" (infixl "A'_Mod" 65)
-    \<comment>\<open>Actually defined for groups rather than monoids\<close>
+    \<comment> \<open>Actually defined for groups rather than monoids\<close>
   where "A_FactGroup G H = FactGroup (add_monoid G) H"
 
 definition
   a_kernel :: "('a, 'm) ring_scheme \<Rightarrow> ('b, 'n) ring_scheme \<Rightarrow>  ('a \<Rightarrow> 'b) \<Rightarrow> 'a set"
-    \<comment>\<open>the kernel of a homomorphism (additive)\<close>
+    \<comment> \<open>the kernel of a homomorphism (additive)\<close>
   where "a_kernel G H h = kernel (add_monoid G) (add_monoid H) h"
 
 locale abelian_group_hom = G?: abelian_group G + H?: abelian_group H
@@ -198,14 +198,6 @@ lemma (in abelian_group) a_transpose_inv:
   using r_neg1 by blast
 
 
-(*
---"duplicate"
-lemma (in abelian_group) a_rcos_self:
-     "[| x \<in> carrier G; subgroup H (add_monoid G) |] ==> x \<in> H +> x"
-by (rule group.rcos_self [OF a_group,
-    folded a_r_coset_def, simplified monoid_record_simps])
-*)
-
 
 subsubsection \<open>Subgroups\<close>
 
@@ -322,8 +314,8 @@ by (rule group.normal_inv_iff [OF a_group,
 
 lemma (in abelian_group) a_lcos_m_assoc:
   "\<lbrakk> M \<subseteq> carrier G; g \<in> carrier G; h \<in> carrier G \<rbrakk> \<Longrightarrow> g <+ (h <+ M) = (g \<oplus> h) <+ M"
-  by (rule group.lcos_m_assoc [OF a_group,
-      folded a_l_coset_def, simplified monoid_record_simps])
+by (rule group.lcos_m_assoc [OF a_group,
+    folded a_l_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_lcos_mult_one:
      "M \<subseteq> carrier G ==> \<zero> <+ M = M"
@@ -333,8 +325,8 @@ by (rule group.lcos_mult_one [OF a_group,
 
 lemma (in abelian_group) a_l_coset_subset_G:
   "\<lbrakk> H \<subseteq> carrier G; x \<in> carrier G \<rbrakk> \<Longrightarrow> x <+ H \<subseteq> carrier G"
-  by (rule group.l_coset_subset_G [OF a_group,
-      folded a_l_coset_def, simplified monoid_record_simps])
+by (rule group.l_coset_subset_G [OF a_group,
+    folded a_l_coset_def, simplified monoid_record_simps])
 
 
 lemma (in abelian_group) a_l_coset_swap:
@@ -348,9 +340,9 @@ by (rule group.l_coset_carrier [OF a_group,
     folded a_l_coset_def, simplified monoid_record_simps])
 
 lemma (in abelian_group) a_l_repr_imp_subset:
-  assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H (add_monoid G)"
+  assumes "y \<in> x <+ H" "x \<in> carrier G" "subgroup H (add_monoid G)"
   shows "y <+ H \<subseteq> x <+ H"
-  by (metis a_l_coset_defs(1) add.l_repr_independence assms(3) set_eq_subset x y)
+  by (metis (full_types) a_l_coset_defs(1) add.l_repr_independence assms set_eq_subset)
 
 lemma (in abelian_group) a_l_repr_independence:
   assumes y: "y \<in> x <+ H" and x: "x \<in> carrier G" and sb: "subgroup H (add_monoid G)"
@@ -468,7 +460,7 @@ lemmas A_FactGroup_defs = A_FactGroup_def FactGroup_def
 
 lemma A_FactGroup_def':
   fixes G (structure)
-  shows "G A_Mod H \<equiv> \<lparr> carrier = a_rcosets\<^bsub>G\<^esub> H, mult = set_add G, one = H \<rparr>"
+  shows "G A_Mod H \<equiv> \<lparr>carrier = a_rcosets\<^bsub>G\<^esub> H, mult = set_add G, one = H\<rparr>"
 unfolding A_FactGroup_defs
 by (fold A_RCOSETS_def set_add_def)
 
@@ -572,7 +564,7 @@ lemma (in abelian_group_hom) is_abelian_group_hom:
   ..
 
 lemma (in abelian_group_hom) hom_add [simp]:
-  "[| x : carrier G; y : carrier G |]
+  "[| x \<in> carrier G; y \<in> carrier G |]
         ==> h (x \<oplus>\<^bsub>G\<^esub> y) = h x \<oplus>\<^bsub>H\<^esub> h y"
 by (rule group_hom.hom_mult[OF a_group_hom,
     simplified ring_record_simps])
@@ -708,7 +700,7 @@ using assms
 by (rule subgroup.rcos_module [OF a_subgroup a_group,
     folded a_r_coset_def a_inv_def, simplified monoid_record_simps])
 
-\<comment>\<open>"variant"\<close>
+\<comment> \<open>variant\<close>
 lemma (in abelian_subgroup) a_rcos_module_minus:
   assumes "ring G"
   assumes carr: "x \<in> carrier G" "x' \<in> carrier G"

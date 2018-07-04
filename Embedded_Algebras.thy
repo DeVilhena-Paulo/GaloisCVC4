@@ -1,11 +1,9 @@
-(* ************************************************************************** *)
-(* Title:      Embedded_Algebras.thy                                          *)
-(* Author:     Paulo Emílio de Vilhena                                        *)
-(* ************************************************************************** *)
+(*  Title:      HOL/Algebra/Embedded_Algebras.thy
+    Author:     Paulo Emílio de Vilhena
+*)
 
 theory Embedded_Algebras
   imports Subrings Generated_Groups
-
 begin
 
 section \<open>Definitions\<close>
@@ -122,7 +120,7 @@ next
 qed
 
 
-subsection \<open>Some Basic Properties of Linear_Ind\<close>
+subsection \<open>Some Basic Properties of Linear Independence\<close>
 
 lemma independent_in_carrier: "independent K Us \<Longrightarrow> set Us \<subseteq> carrier R"
   by (induct Us rule: independent.induct) (simp_all)
@@ -136,7 +134,7 @@ lemma independent_backwards:
 
 text \<open>Now, we fix K, a subfield of the ring. Many lemmas would also be true for weaker
       structures, but our interest is to work with subfields, so generalization could
-      be the subject of a future work.\<close>
+      be the subjuct of a future work.\<close>
 
 context
   fixes K :: "'a set" assumes K: "subfield K R"
@@ -362,7 +360,7 @@ corollary Span_mem_iff_length_version:
   using Span_eq_combine_set_length_version[OF assms] by blast
 
 
-subsection \<open>Span as the minimal subgroup that contains K <#> (set Us)\<close>
+subsection \<open>Span as the minimal subgroup that contains @{term"K <#> (set Us)"}\<close>
 
 text \<open>Now we show the link between Span and Group.generate\<close>
 

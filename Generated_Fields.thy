@@ -1,12 +1,9 @@
-(* ************************************************************************** *)
-(* Title:      Generated_Fields.thy                                           *)
-(* Author:     Martin Baillon                                                 *)
-(* ************************************************************************** *)
+(*  Title:      HOL/Algebra/Generated_Fields.thy
+    Author:     Martin Baillon
+*)
 
 theory Generated_Fields
-
 imports Generated_Rings Subrings Multiplicative_Group
-
 begin
 
 inductive_set
@@ -159,8 +156,6 @@ proof
                group.m_inv_consistent[of "mult_of R" "K - {\<zero>}"] field_mult_group units_of_inv
                subgroup_mult_of subfieldE[OF assms(2)] unfolding mult_of_def apply simp
         by (metis h_K mult_of_def mult_of_is_Units subgroup.mem_carrier units_of_carrier assms(2))
-        
-
       moreover have h_H : "h \<in> (H - {\<zero>})" using incl_HK[OF assms(1) assms(3)] hyp by auto
       hence "m_inv (R\<lparr>carrier := H\<rparr>) h = m_inv R h"
         using  field.m_inv_mult_of[OF subfield_iff(2)[OF assms(1)]]
@@ -186,7 +181,4 @@ lemma (in field) subfield_gen_equality:
         subfield_gen_incl[OF carrier_is_subfield assms(1) _ assms(2)] subfieldE(1)[OF assms(1)]
   by force
 
-
-
 end
-

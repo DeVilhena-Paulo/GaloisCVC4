@@ -1,11 +1,9 @@
-(* ************************************************************************** *)
-(* Title:      Solvable_Groups.thy                                            *)
-(* Author:     Paulo Emílio de Vilhena                                        *)
-(* ************************************************************************** *)
+(*  Title:      HOL/Algebra/Solvable_Groups.thy
+    Author:     Paulo Emílio de Vilhena
+*)
 
 theory Solvable_Groups
   imports Group Coset Generated_Groups
-    
 begin
 
 inductive solvable_seq :: "('a, 'b) monoid_scheme \<Rightarrow> 'a set \<Rightarrow> bool" for G where
@@ -58,7 +56,7 @@ next
   hence "(derived G ^^ n) (derived G H) = { \<one> }"
     by (simp add: funpow_swap1)
   moreover have "subgroup (derived G H) G" unfolding derived_def
-    using Suc.prems(1) derived_set_incl generate_is_subgroup order.trans subgroup_imp_subset
+    using Suc.prems(1) derived_set_incl generate_is_subgroup order.trans subgroup.subset
     by (metis (no_types, lifting))
   ultimately have "solvable_seq G (derived G H)" by (simp add: Suc.IH)
   thus ?case by (simp add: Suc.prems(1) augment_solvable_seq)
@@ -119,7 +117,7 @@ proof -
     have "derived G H \<subseteq> K" using solvable_imp_subgroup extension aux_lemma by blast
     hence "(derived G ^^ n) (derived G H) \<subseteq> (derived G ^^ n) K"
       using mono_derived solvable_imp_subgroup extension.hyps(4)
-      by (simp add: extension.hyps(1) subgroup_imp_subset) 
+      by (simp add: extension.hyps(1) subgroup.subset) 
     hence "(derived G ^^ (Suc n)) H \<subseteq> { \<one> }"
       by (metis funpow_simps_right(2) n o_apply)
     moreover have "\<one> \<in> derived G ((derived G ^^ n) H)"
@@ -145,7 +143,7 @@ proof -
       obtain n where "(derived G ^^ n) J = { \<one> }"
         using solvable_imp_trivial_derived_seq[OF A(4) A(2)] by auto
       hence "(derived G ^^ n) I \<subseteq> { \<one> }"
-        using mono_derived[OF subgroup_imp_subset[OF A(2)] A(3)] by auto
+        using mono_derived[OF subgroup.subset[OF A(2)] A(3)] by auto
       hence "(derived G ^^ n) I = { \<one> }"
         using subgroup.one_closed[OF exp_of_derived_is_subgroup[OF A(1), of n]] by auto
       thus ?thesis
@@ -153,7 +151,7 @@ proof -
     qed } note aux_lemma = this
   assume "solvable G"
   thus ?thesis
-    using aux_lemma[OF assms subgroup_self subgroup_imp_subset[OF assms]]
+    using aux_lemma[OF assms subgroup_self subgroup.subset[OF assms]]
     unfolding solvable_def by simp 
 qed
 
@@ -174,9 +172,9 @@ proof
   show "generate H (h ` K) \<subseteq> h ` generate G K"
   proof
     fix x assume "x \<in> generate H (h ` K)"
-    then obtain r where r: "elts r \<subseteq> (h ` K)" "norm H r = x"
+    then obtain r where r: "elts r \<subseteq> (h ` K)" "Generated_Groups.norm H r = x"
       using H.generate_repr_iff img_in_carrier by auto
-    from \<open>elts r \<subseteq> (h ` K)\<close> have "norm H r \<in> h ` generate G K"
+    from \<open>elts r \<subseteq> (h ` K)\<close> have "Generated_Groups.norm H r \<in> h ` generate G K"
     proof (induct r rule: repr.induct)
       case One
       have "\<one>\<^bsub>G\<^esub> \<in> generate G K" using generate.one[of G] by simp
@@ -193,11 +191,11 @@ proof
       thus ?case by (simp add: generate.incl)
     next
       case (Mult x1 x2) hence A: "elts x1 \<union> elts x2 \<subseteq> h ` K" by simp
-      have "norm H x1 \<in> h ` (generate G K)" using A Mult by simp
-      moreover have "norm H x2 \<in> h ` (generate G K)" using A Mult by simp
-      ultimately obtain k1 k2 where k1: "k1 \<in> generate G K" "norm H x1 = h k1"
-                                and k2: "k2 \<in> generate G K" "norm H x2 = h k2" by blast
-      hence "norm H (Mult x1 x2) = h (k1 \<otimes> k2)"
+      have "Generated_Groups.norm H x1 \<in> h ` (generate G K)" using A Mult by simp
+      moreover have "Generated_Groups.norm H x2 \<in> h ` (generate G K)" using A Mult by simp
+      ultimately obtain k1 k2 where k1: "k1 \<in> generate G K" "Generated_Groups.norm H x1 = h k1"
+                                and k2: "k2 \<in> generate G K" "Generated_Groups.norm H x2 = h k2" by blast
+      hence "Generated_Groups.norm H (Mult x1 x2) = h (k1 \<otimes> k2)"
         using G.generate_in_carrier assms by auto
       thus ?case using k1 k2 by (simp add: generate.eng) 
     qed
@@ -208,24 +206,24 @@ next
   show "h ` generate G K \<subseteq> generate H (h ` K)"
   proof
     fix x assume "x \<in> h ` generate G K"
-    then obtain r where r: "elts r \<subseteq> K" "x = h (norm G r)" using G.generate_repr_iff assms by auto
-    from \<open>elts r \<subseteq> K\<close> have "h (norm G r) \<in> generate H (h ` K)"
+    then obtain r where r: "elts r \<subseteq> K" "x = h (Generated_Groups.norm G r)" using G.generate_repr_iff assms by auto
+    from \<open>elts r \<subseteq> K\<close> have "h (Generated_Groups.norm G r) \<in> generate H (h ` K)"
     proof (induct r rule: repr.induct)
       case One thus ?case by (simp add: generate.one) 
     next
       case (Inv x) hence A: "x \<in> K" by simp
-      hence "h (norm G (Inv x)) = inv\<^bsub>H\<^esub> (h x)" using assms by auto
+      hence "h (Generated_Groups.norm G (Inv x)) = inv\<^bsub>H\<^esub> (h x)" using assms by auto
       moreover have "h x \<in> generate H (h ` K)" using A by (simp add: generate.incl)
       ultimately show ?case by (simp add: A generate.inv)
     next
       case (Leaf x) thus ?case by (simp add: generate.incl)
     next
       case (Mult x1 x2) hence A: "elts x1 \<union> elts x2 \<subseteq> K" by simp
-      have "norm G x1 \<in> carrier G"
+      have "Generated_Groups.norm G x1 \<in> carrier G"
         by (meson A G.generateE(1) G.generate_repr_iff Un_subset_iff assms subgroup.mem_carrier)
-      moreover have "norm G x2 \<in> carrier G"
+      moreover have "Generated_Groups.norm G x2 \<in> carrier G"
         by (meson A G.generateE(1) G.generate_repr_iff Un_subset_iff assms subgroup.mem_carrier)
-      ultimately have "h (norm G (Mult x1 x2)) = h (norm G x1) \<otimes>\<^bsub>H\<^esub> h (norm G x2)" by simp
+      ultimately have "h (Generated_Groups.norm G (Mult x1 x2)) = h (Generated_Groups.norm G x1) \<otimes>\<^bsub>H\<^esub> h (Generated_Groups.norm G x2)" by simp
       thus ?case using Mult A by (simp add: generate.eng) 
     qed
     thus "x \<in> generate H (h ` K)" using r by simp
@@ -296,7 +294,7 @@ proof -
         case (Suc n)
         hence "(derived G) ((derived G ^^ n) I) \<subseteq> (derived G) I"
           using G.mono_derived[of I "(derived G ^^ n) I" 1,
-                               OF subgroup_imp_subset[OF A(1)] Suc] by simp
+                               OF subgroup.subset[OF A(1)] Suc] by simp
         thus ?case using A(1) G.derived_incl by auto
       qed
       thus ?thesis using A(2) inj_on_subset by blast
@@ -305,7 +303,7 @@ proof -
   obtain n where "(derived H ^^ n) (h ` I) = { \<one>\<^bsub>H\<^esub> }"
     using H.solvable_imp_subgroup H.solvable_imp_trivial_derived_seq assms(3) by blast
   hence "h ` ((derived G ^^ n) I) = { \<one>\<^bsub>H\<^esub> }"
-    by (metis derived_of_img assms(1) subgroup_imp_subset)
+    by (metis derived_of_img assms(1) subgroup.subset)
   moreover have "inj_on h ((derived G ^^ n) I)"
     using aux_lemma[OF assms(1-2), of n] by simp
   hence "\<And>x. \<lbrakk> x \<in> ((derived G ^^ n) I); h x = \<one>\<^bsub>H\<^esub> \<rbrakk> \<Longrightarrow> x = \<one>"
@@ -390,17 +388,17 @@ proof -
           group.solvable_imp_trivial_derived_seq[OF G3, of "f ` J"]
           group_hom.subgroup_img_is_subgroup[OF assms(2) assms(4)] assms(2-4) by auto
   have "f ` ((derived G2 ^^ m) J) = (derived G3 ^^ m) (f ` J)"
-    using group_hom.derived_of_img[OF assms(2), of J m] subgroup_imp_subset[OF assms(4)] by simp
+    using group_hom.derived_of_img[OF assms(2), of J m] subgroup.subset[OF assms(4)] by simp
   hence "f ` ((derived G2 ^^ m) J) = { \<one>\<^bsub>G3\<^esub> }"
     using m by simp
   hence "((derived G2 ^^ m) J) \<subseteq> h ` I"
-    using assms(6) group.exp_of_derived_in_carrier[OF G2 subgroup_imp_subset[OF assms(4)], of m]
+    using assms(6) group.exp_of_derived_in_carrier[OF G2 subgroup.subset[OF assms(4)], of m]
     by blast
   hence "(derived G2 ^^ n) ((derived G2 ^^ m) J) \<subseteq> (derived G2 ^^ n) (h ` I)"
     using group.mono_derived[OF G2, of "h ` I" "(derived G2 ^^ m) J" n]
-          subgroup_imp_subset[OF group_hom.subgroup_img_is_subgroup[OF assms(1) assms(3)]] by blast
+          subgroup.subset[OF group_hom.subgroup_img_is_subgroup[OF assms(1) assms(3)]] by blast
   also have " ... = h ` { \<one>\<^bsub>G1\<^esub> }"
-    using group_hom.derived_of_img[OF assms(1) subgroup_imp_subset[OF assms(3)], of n] n by simp
+    using group_hom.derived_of_img[OF assms(1) subgroup.subset[OF assms(3)], of n] n by simp
   also have " ... = { \<one>\<^bsub>G2\<^esub> }"
     using assms(1) by (simp add: group_hom.hom_one)
   finally have "(derived G2 ^^ n) ((derived G2 ^^ m) J) \<subseteq> { \<one>\<^bsub>G2\<^esub> }" .

@@ -4,9 +4,9 @@
 *)
 
 theory Congruence
-imports 
-  Main
-  "HOL-Library.FuncSet"
+  imports
+    Main
+    "HOL-Library.FuncSet"
 begin
 
 section \<open>Objects\<close>
@@ -151,13 +151,13 @@ lemma set_eqI2:
 lemma set_eqD1:
   fixes R (structure)
   assumes "A {.=} A'" and "a \<in> A"
-  shows "\<exists>a' \<in> A'. a .= a'"
+  shows "\<exists>a'\<in>A'. a .= a'"
   using assms by (simp add: set_eq_def elem_def)
 
 lemma set_eqD2:
   fixes R (structure)
   assumes "A {.=} A'" and "a' \<in> A'"
-  shows "\<exists>a \<in> A. a' .= a"
+  shows "\<exists>a\<in>A. a' .= a"
   using assms by (simp add: set_eq_def elem_def)
 
 lemma set_eqE:
@@ -208,7 +208,7 @@ lemma (in equivalence) set_eq_trans_aux:
 corollary (in equivalence) set_eq_trans [trans]:
   assumes "A \<subseteq> carrier S" "B \<subseteq> carrier S" "C \<subseteq> carrier S"
     and "A {.=} B" " B {.=} C"
-    shows "A {.=} C"
+  shows "A {.=} C"
 proof (intro set_eqI)
   show "\<And>a. a \<in> A \<Longrightarrow> a .\<in> C" using set_eq_trans_aux assms by blast 
 next
@@ -216,11 +216,12 @@ next
 qed
 
 lemma (in equivalence) is_closedI:
-  assumes "\<And>x y. \<lbrakk> y \<in> carrier S; x .= y \<rbrakk> \<Longrightarrow> x \<in> A \<Longrightarrow> y \<in> A"
-    and "A \<subseteq> carrier S"
+  assumes closed: "\<And>x y. \<lbrakk>x .= y; x \<in> A; y \<in> carrier S\<rbrakk> \<Longrightarrow> y \<in> A"
+    and S: "A \<subseteq> carrier S"
   shows "is_closed A"
-  unfolding eq_is_closed_def eq_closure_of_def
-  using Collect_cong Collect_mem_eq assms(1) assms(2) elem_def elem_exact sym subsetCE by smt
+  unfolding eq_is_closed_def eq_closure_of_def elem_def
+  using S
+  by (blast dest: closed sym)
 
 lemma (in equivalence) closure_of_eq:
   assumes "A \<subseteq> carrier S" "x \<in> closure_of A"
@@ -246,20 +247,20 @@ lemma closure_of_memI:
   fixes S (structure)
   assumes "a .\<in> A" "a \<in> carrier S"
   shows "a \<in> closure_of A"
-  unfolding eq_closure_of_def using assms by auto
+  by (simp add: assms eq_closure_of_def)
 
 lemma closure_ofI2:
   fixes S (structure)
-  assumes "a .= a'" "a' \<in> A" "a \<in> carrier S"
+  assumes "a .= a'" and "a' \<in> A" and "a \<in> carrier S"
   shows "a \<in> closure_of A"
-  unfolding eq_closure_of_def elem_def using assms by auto
+  by (meson assms closure_of_memI elem_def)
 
 lemma closure_of_memE:
   fixes S (structure)
   assumes "a \<in> closure_of A"
-    and "\<lbrakk> a \<in> carrier S; a .\<in> A \<rbrakk> \<Longrightarrow> P"
+    and "\<lbrakk>a \<in> carrier S; a .\<in> A\<rbrakk> \<Longrightarrow> P"
   shows "P"
-  using assms unfolding eq_closure_of_def by auto
+  using eq_closure_of_def assms by fastforce
 
 lemma closure_ofE2:
   fixes S (structure)
@@ -454,5 +455,5 @@ proof -
     unfolding eq_classes_def using assms by auto
   thus ?thesis using disjoint_sum assms partition_from_equivalence by blast
 qed
-
+  
 end

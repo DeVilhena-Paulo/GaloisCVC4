@@ -1,5 +1,0 @@
-theory Topological_Dioid
-  imports Dioid 
-begin
-
-End

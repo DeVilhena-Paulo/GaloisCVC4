@@ -1,5 +1,6 @@
 (*  Title:      HOL/Algebra/QuotRing.thy
     Author:     Stephan Hohe
+    Author:     Paulo Emílio de Vilhena
 *)
 
 theory QuotRing
@@ -84,28 +85,28 @@ subsection \<open>Factorization over General Ideals\<close>
 text \<open>The quotient is a ring\<close>
 lemma (in ideal) quotient_is_ring: "ring (R Quot I)"
 apply (rule ringI)
-   \<comment>\<open>abelian group\<close>
+   \<comment> \<open>abelian group\<close>
    apply (rule comm_group_abelian_groupI)
    apply (simp add: FactRing_def)
    apply (rule a_factorgroup_is_comm_group[unfolded A_FactGroup_def'])
-  \<comment>\<open>mult monoid\<close>
+  \<comment> \<open>mult monoid\<close>
   apply (rule monoidI)
       apply (simp_all add: FactRing_def A_RCOSETS_def RCOSETS_def
              a_r_coset_def[symmetric])
-      \<comment>\<open>mult closed\<close>
+      \<comment> \<open>mult closed\<close>
       apply (clarify)
       apply (simp add: rcoset_mult_add, fast)
-     \<comment>\<open>mult \<open>one_closed\<close>\<close>
+     \<comment> \<open>mult \<open>one_closed\<close>\<close>
      apply force
-    \<comment>\<open>mult assoc\<close>
+    \<comment> \<open>mult assoc\<close>
     apply clarify
     apply (simp add: rcoset_mult_add m_assoc)
-   \<comment>\<open>mult one\<close>
+   \<comment> \<open>mult one\<close>
    apply clarify
    apply (simp add: rcoset_mult_add)
   apply clarify
   apply (simp add: rcoset_mult_add)
- \<comment>\<open>distr\<close>
+ \<comment> \<open>distr\<close>
  apply clarify
  apply (simp add: rcoset_mult_add a_rcos_sum l_distr)
 apply clarify
@@ -225,7 +226,7 @@ proof -
      apply (simp add: FactRing_def A_RCOSETS_defs a_r_coset_def[symmetric], clarsimp)
      apply (simp add: rcoset_mult_add) defer 1
   proof (rule ccontr, simp)
-    \<comment>\<open>Quotient is not empty\<close>
+    \<comment> \<open>Quotient is not empty\<close>
     assume "\<zero>\<^bsub>R Quot I\<^esub> = \<one>\<^bsub>R Quot I\<^esub>"
     then have II1: "I = I +> \<one>" by (simp add: FactRing_def)
     from a_rcos_self[OF one_closed] have "\<one> \<in> I"
@@ -233,11 +234,11 @@ proof -
     then have "I = carrier R" by (rule one_imp_carrier)
     with I_notcarr show False by simp
   next
-    \<comment>\<open>Existence of Inverse\<close>
+    \<comment> \<open>Existence of Inverse\<close>
     fix a
     assume IanI: "I +> a \<noteq> I" and acarr: "a \<in> carrier R"
 
-    \<comment>\<open>Helper ideal \<open>J\<close>\<close>
+    \<comment> \<open>Helper ideal \<open>J\<close>\<close>
     define J :: "'a set" where "J = (carrier R #> a) <+> I"
     have idealJ: "ideal J R"
       apply (unfold J_def, rule add_ideals)
@@ -245,7 +246,7 @@ proof -
       apply (rule is_ideal)
       done
 
-    \<comment>\<open>Showing @{term "J"} not smaller than @{term "I"}\<close>
+    \<comment> \<open>Showing @{term "J"} not smaller than @{term "I"}\<close>
     have IinJ: "I \<subseteq> J"
     proof (rule, simp add: J_def r_coset_def set_add_defs)
       fix x
@@ -256,7 +257,7 @@ proof -
       with Zcarr and xI show "\<exists>xa\<in>carrier R. \<exists>k\<in>I. x = xa \<otimes> a \<oplus> k" by fast
     qed
 
-    \<comment>\<open>Showing @{term "J \<noteq> I"}\<close>
+    \<comment> \<open>Showing @{term "J \<noteq> I"}\<close>
     have anI: "a \<notin> I"
     proof (rule ccontr, simp)
       assume "a \<in> I"
@@ -274,7 +275,7 @@ proof -
 
     from aJ and anI have JnI: "J \<noteq> I" by fast
 
-    \<comment>\<open>Deducing @{term "J = carrier R"} because @{term "I"} is maximal\<close>
+    \<comment> \<open>Deducing @{term "J = carrier R"} because @{term "I"} is maximal\<close>
     from idealJ and IinJ have "J = I \<or> J = carrier R"
     proof (rule I_maximal, unfold J_def)
       have "carrier R #> a \<subseteq> carrier R"
@@ -285,7 +286,7 @@ proof -
 
     with JnI have Jcarr: "J = carrier R" by simp
 
-    \<comment>\<open>Calculating an inverse for @{term "a"}\<close>
+    \<comment> \<open>Calculating an inverse for @{term "a"}\<close>
     from one_closed[folded Jcarr]
     have "\<exists>r\<in>carrier R. \<exists>i\<in>I. \<one> = r \<otimes> a \<oplus> i"
       by (simp add: J_def r_coset_def set_add_defs)
@@ -294,7 +295,7 @@ proof -
     from one and rcarr and acarr and iI[THEN a_Hcarr]
     have rai1: "a \<otimes> r = \<ominus>i \<oplus> \<one>" by algebra
 
-    \<comment>\<open>Lifting to cosets\<close>
+    \<comment> \<open>Lifting to cosets\<close>
     from iI have "\<ominus>i \<oplus> \<one> \<in> I +> \<one>"
       by (intro a_rcosI, simp, intro a_subset, simp)
     with rai1 have "a \<otimes> r \<in> I +> \<one>" by simp
@@ -306,8 +307,6 @@ proof -
   qed
 qed
 
-
-(* Next lemmas and subsection contributed by Paulo Emílio de Vilhena. *)
 
 lemma (in ring_hom_ring) trivial_hom_iff:
   "(h ` (carrier R) = { \<zero>\<^bsub>S\<^esub> }) = (a_kernel R S h = carrier R)"
@@ -1022,7 +1021,6 @@ corollary (in ring_hom_ring) FactRing_iso:
   shows "R Quot (a_kernel R S h) \<simeq> S"
   using FactRing_iso_set assms is_ring_iso_def by auto
 
-(* NEW ====================================================================== *)
 corollary (in ring) FactRing_zeroideal:
   shows "R Quot { \<zero> } \<simeq> R" and "R \<simeq> R Quot { \<zero> }"
 proof -
@@ -1034,7 +1032,6 @@ proof -
     using ring_hom_ring.FactRing_iso[of R R id]
           ring_iso_sym[OF ideal.quotient_is_ring[OF zeroideal], of R] by auto
 qed
-(* ========================================================================== *)
 
 lemma (in ring_hom_ring) img_is_ring: "ring (S \<lparr> carrier := h ` (carrier R) \<rparr>)"
 proof -
@@ -1146,7 +1143,6 @@ proof -
         unfolding a_kernel_def kernel_def FactRing_def using r(1) by auto
     qed
   qed
-
   ultimately show "primeideal { r \<in> carrier R. h r \<in> P } R" by simp
 qed
 

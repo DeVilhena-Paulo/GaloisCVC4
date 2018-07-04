@@ -1,6 +1,7 @@
 (*  Title:      HOL/Algebra/Ring.thy
     Author:     Clemens Ballarin, started 9 December 1996
-    Copyright:  Clemens Ballarin
+
+With contributions by Martin Baillon.
 *)
 
 theory Ring
@@ -25,10 +26,9 @@ definition
   a_inv :: "[('a, 'm) ring_scheme, 'a ] \<Rightarrow> 'a" ("\<ominus>\<index> _" [81] 80)
   where "a_inv R = m_inv (add_monoid R)"
 
-
 definition
   a_minus :: "[('a, 'm) ring_scheme, 'a, 'a] => 'a" ("(_ \<ominus>\<index> _)" [65,66] 65)
-  where "\<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> x \<ominus>\<^bsub>R\<^esub> y = x \<oplus>\<^bsub>R\<^esub> (\<ominus>\<^bsub>R\<^esub> y)"
+  where "x \<ominus>\<^bsub>R\<^esub> y = x \<oplus>\<^bsub>R\<^esub> (\<ominus>\<^bsub>R\<^esub> y)"
 
 definition
   add_pow :: "[_, ('b :: semiring_1), 'a] \<Rightarrow> 'a" ("[_] \<cdot>\<index> _" [81, 81] 80)
@@ -65,7 +65,7 @@ lemma abelian_monoidI:
       and "\<And>x y z. \<lbrakk> x \<in> carrier R; y \<in> carrier R; z \<in> carrier R \<rbrakk> \<Longrightarrow> (x \<oplus> y) \<oplus> z = x \<oplus> (y \<oplus> z)"
       and "\<And>x. x \<in> carrier R \<Longrightarrow> \<zero> \<oplus> x = x"
       and "\<And>x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> x \<oplus> y = y \<oplus> x"
-    shows "abelian_monoid R"
+  shows "abelian_monoid R"
   by (auto intro!: abelian_monoid.intro comm_monoidI intro: assms)
 
 lemma abelian_monoidE:
@@ -86,7 +86,7 @@ lemma abelian_groupI:
       and "\<And>x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> x \<oplus> y = y \<oplus> x"
       and "\<And>x. x \<in> carrier R \<Longrightarrow> \<zero> \<oplus> x = x"
       and "\<And>x. x \<in> carrier R \<Longrightarrow> \<exists>y \<in> carrier R. y \<oplus> x = \<zero>"
-    shows "abelian_group R"
+  shows "abelian_group R"
   by (auto intro!: abelian_group.intro abelian_monoidI
       abelian_group_axioms.intro comm_monoidI comm_groupI
     intro: assms)
@@ -104,7 +104,7 @@ lemma abelian_groupE:
 
 lemma (in abelian_monoid) a_monoid:
   "monoid (add_monoid G)"
-  by (rule comm_monoid.axioms, rule a_comm_monoid) 
+by (rule comm_monoid.axioms, rule a_comm_monoid)
 
 lemma (in abelian_group) a_group:
   "group (add_monoid G)"
@@ -126,7 +126,7 @@ sublocale abelian_monoid <
 context abelian_monoid
 begin
 
-lemmas a_closed = add.m_closed 
+lemmas a_closed = add.m_closed
 lemmas zero_closed = add.one_closed
 lemmas a_assoc = add.m_assoc
 lemmas l_zero = add.l_one
@@ -161,7 +161,6 @@ lemmas finsum_cong' = add.finprod_cong'
 lemmas finsum_0 = add.finprod_0
 lemmas finsum_Suc = add.finprod_Suc
 lemmas finsum_Suc2 = add.finprod_Suc2
-lemmas finsum_add = add.finprod_mult
 lemmas finsum_infinite = add.finprod_infinite
 
 lemmas finsum_cong = add.finprod_cong
@@ -171,13 +170,13 @@ text \<open>Usually, if this rule causes a failed congruence proof error,
 
 lemmas finsum_reindex = add.finprod_reindex
 
-(* The following would be wrong.  Needed is the equivalent of (^) for addition,
+(* The following would be wrong.  Needed is the equivalent of [^] for addition,
   or indeed the canonical embedding from Nat into the monoid.
 
 lemma finsum_const:
   assumes fin [simp]: "finite A"
       and a [simp]: "a : carrier G"
-    shows "finsum G (%x. a) A = a (^) card A"
+    shows "finsum G (%x. a) A = a [^] card A"
   using fin apply induct
   apply force
   apply (subst finsum_insert)
@@ -210,11 +209,8 @@ lemma minus_closed [intro, simp]:
   "[| x \<in> carrier G; y \<in> carrier G |] ==> x \<ominus> y \<in> carrier G"
   by (simp add: a_minus_def)
 
-lemmas a_l_cancel = add.l_cancel
-lemmas a_r_cancel = add.r_cancel
 lemmas l_neg = add.l_inv [simp del]
 lemmas r_neg = add.r_inv [simp del]
-lemmas minus_zero = add.inv_one
 lemmas minus_minus = add.inv_inv
 lemmas a_inv_inj = add.inv_inj
 lemmas minus_equality = add.inv_equality
@@ -232,7 +228,7 @@ sublocale abelian_group <
   by (rule a_comm_group) (auto simp: m_inv_def a_inv_def finsum_def add_pow_def)
 
 lemmas (in abelian_group) minus_add = add.inv_mult
- 
+
 text \<open>Derive an \<open>abelian_group\<close> from a \<open>comm_group\<close>\<close>
 
 lemma comm_group_abelian_groupI:
@@ -320,7 +316,7 @@ proof (intro cring.intro ring.intro)
     note [simp] = comm_monoid.axioms [OF comm_monoid]
       abelian_group.axioms [OF abelian_group]
       abelian_monoid.a_closed
-        
+
     from R have "z \<otimes> (x \<oplus> y) = (x \<oplus> y) \<otimes> z"
       by (simp add: comm_monoid.m_comm [OF comm_monoid.intro])
     also from R have "... = x \<otimes> z \<oplus> y \<otimes> z" by (simp add: l_distr)
@@ -338,22 +334,11 @@ lemma cringE:
     and "\<And>x y z. \<lbrakk> x \<in> carrier R; y \<in> carrier R; z \<in> carrier R \<rbrakk> \<Longrightarrow> (x \<oplus> y) \<otimes> z = x \<otimes> z \<oplus> y \<otimes> z"
   using assms cring_def apply auto by (simp add: assms cring.axioms(1) ringE(3))
 
-(*
-lemma (in cring) is_comm_monoid:
-  "comm_monoid R"
-  by (auto intro!: comm_monoidI m_assoc m_comm)
-*)
 lemma (in cring) is_cring:
   "cring R" by (rule cring_axioms)
 
-lemma fieldE :
-  fixes R (structure)
-  assumes "field R"
-  shows "cring R"
-    and one_not_zero : "\<one> \<noteq> \<zero>"
-    and integral: "\<And>a b. \<lbrakk> a \<otimes> b = \<zero>; a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> a = \<zero> \<or> b = \<zero>"
-  and field_Units: "Units R = carrier R - {\<zero>}"
-  using assms unfolding field_def field_axioms_def domain_def domain_axioms_def by simp_all
+lemma (in ring) minus_zero [simp]: "\<ominus> \<zero> = \<zero>"
+  by (simp add: a_inv_def)
 
 subsubsection \<open>Normaliser for Rings\<close>
 
@@ -361,7 +346,7 @@ lemma (in abelian_group) r_neg1:
   "\<lbrakk> x \<in> carrier G; y \<in> carrier G \<rbrakk> \<Longrightarrow> (\<ominus> x) \<oplus> (x \<oplus> y) = y"
 proof -
   assume G: "x \<in> carrier G" "y \<in> carrier G"
-  then have "(\<ominus> x \<oplus> x) \<oplus> y = y" 
+  then have "(\<ominus> x \<oplus> x) \<oplus> y = y"
     by (simp only: l_neg l_zero)
   with G show ?thesis by (simp add: a_ac)
 qed
@@ -426,9 +411,8 @@ qed
 
 end
 
-lemma (in abelian_group) minus_eq:
-  "\<lbrakk> x \<in> carrier G; y \<in> carrier G \<rbrakk> \<Longrightarrow> x \<ominus> y = x \<oplus> (\<ominus> y)"
-  by (simp only: a_minus_def)
+lemma (in abelian_group) minus_eq: "x \<ominus> y = x \<oplus> (\<ominus> y)"
+  by (rule a_minus_def)
 
 text \<open>Setup algebra method:
   compute distributive normal form in locale contexts\<close>
@@ -450,7 +434,7 @@ lemmas (in semiring) semiring_simprules
   [algebra ring "zero R" "add R" "a_inv R" "a_minus R" "one R" "mult R"] =
   a_closed zero_closed  m_closed one_closed
   a_assoc l_zero  a_comm m_assoc l_one l_distr r_zero
-  a_lcomm r_distr l_null r_null 
+  a_lcomm r_distr l_null r_null
 
 lemmas (in ring) ring_simprules
   [algebra ring "zero R" "add R" "a_inv R" "a_minus R" "one R" "mult R"] =
@@ -560,7 +544,7 @@ lemma add_pow_int_ge: "(k :: int) \<ge> 0 \<Longrightarrow> [ k ] \<cdot>\<^bsub
   by (simp add: add_pow_def int_pow_def nat_pow_def)
 
 lemma add_pow_int_lt: "(k :: int) < 0 \<Longrightarrow> [ k ] \<cdot>\<^bsub>R\<^esub> a = \<ominus>\<^bsub>R\<^esub> ([ nat (- k) ] \<cdot>\<^bsub>R\<^esub> a)"
-  by (simp add: int_pow_def nat_pow_def a_inv_def add_pow_def) 
+  by (simp add: int_pow_def nat_pow_def a_inv_def add_pow_def)
 
 corollary (in semiring) add_pow_ldistr:
   assumes "a \<in> carrier R" "b \<in> carrier R"
@@ -586,7 +570,7 @@ proof -
   also have " ... = [k] \<cdot> (a \<otimes> b)"
     using add.finprod_const[of "a \<otimes> b" "{..<k}"] assms by simp
   finally show ?thesis .
-qed 
+qed
 
 (* For integers, we need the uniqueness of the additive inverse *)
 lemma (in ring) add_pow_ldistr_int:
@@ -598,7 +582,7 @@ proof (cases "k \<ge> 0")
 next
   case False thus ?thesis
     using add_pow_int_lt[of k R a] add_pow_int_lt[of k R "a \<otimes> b"]
-          add_pow_ldistr[OF assms, of "nat (- k)"] assms l_minus by auto 
+          add_pow_ldistr[OF assms, of "nat (- k)"] assms l_minus by auto
 qed
 
 lemma (in ring) add_pow_rdistr_int:
@@ -610,9 +594,8 @@ proof (cases "k \<ge> 0")
 next
   case False thus ?thesis
     using add_pow_int_lt[of k R b] add_pow_int_lt[of k R "a \<otimes> b"]
-          add_pow_rdistr[OF assms, of "nat (- k)"] assms r_minus by auto 
+          add_pow_rdistr[OF assms, of "nat (- k)"] assms r_minus by auto
 qed
-(* ************************************************************************** *)
 
 
 subsection \<open>Integral Domains\<close>
@@ -626,9 +609,9 @@ lemma integral_iff: (* not by default a simp rule! *)
   "\<lbrakk> a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> (a \<otimes> b = \<zero>) = (a = \<zero> \<or> b = \<zero>)"
 proof
   assume "a \<in> carrier R" "b \<in> carrier R" "a \<otimes> b = \<zero>"
-  then show "a = \<zero> | b = \<zero>" by (simp add: integral)
+  then show "a = \<zero> \<or> b = \<zero>" by (simp add: integral)
 next
-  assume "a \<in> carrier R" "b \<in> carrier R" "a = \<zero> | b = \<zero>"
+  assume "a \<in> carrier R" "b \<in> carrier R" "a = \<zero> \<or> b = \<zero>"
   then show "a \<otimes> b = \<zero>" by auto
 qed
 
@@ -639,9 +622,9 @@ lemma m_lcancel:
 proof
   assume eq: "a \<otimes> b = a \<otimes> c"
   with R have "a \<otimes> (b \<ominus> c) = \<zero>" by algebra
-  with R have "a = \<zero> | (b \<ominus> c) = \<zero>" by (simp add: integral_iff)
-  with prem and R have "b \<ominus> c = \<zero>" by auto 
-  with R have "b = b \<ominus> (b \<ominus> c)" by algebra 
+  with R have "a = \<zero> \<or> (b \<ominus> c) = \<zero>" by (simp add: integral_iff)
+  with prem and R have "b \<ominus> c = \<zero>" by auto
+  with R have "b = b \<ominus> (b \<ominus> c)" by algebra
   also from R have "b \<ominus> (b \<ominus> c) = c" by algebra
   finally show "b = c" .
 next
@@ -664,6 +647,15 @@ subsection \<open>Fields\<close>
 
 text \<open>Field would not need to be derived from domain, the properties
   for domain follow from the assumptions of field\<close>
+
+lemma fieldE :
+  fixes R (structure)
+  assumes "field R"
+  shows "cring R"
+    and one_not_zero : "\<one> \<noteq> \<zero>"
+    and integral: "\<And>a b. \<lbrakk> a \<otimes> b = \<zero>; a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> a = \<zero> \<or> b = \<zero>"
+  and field_Units: "Units R = carrier R - {\<zero>}"
+  using assms unfolding field_def field_axioms_def domain_def domain_axioms_def by simp_all
 
 lemma (in cring) cring_fieldI:
   assumes field_Units: "Units R = carrier R - {\<zero>}"
@@ -692,11 +684,6 @@ next
   qed
 qed (rule field_Units)
 
-corollary fieldI:
-  assumes "cring R" and "Units R = carrier R - { \<zero>\<^bsub>R\<^esub> }"
-  shows "field R"
-  using cring.cring_fieldI[OF assms] .
-
 text \<open>Another variant to show that something is a field\<close>
 lemma (in cring) cring_fieldI2:
   assumes notzero: "\<zero> \<noteq> \<one>"
@@ -719,13 +706,12 @@ qed
 subsection \<open>Morphisms\<close>
 
 definition
-  ring_hom :: "[('a, 'm) ring_scheme, ('b, 'n) ring_scheme] \<Rightarrow> ('a \<Rightarrow> 'b) set"
-  where "ring_hom R S = { h (* such that *).
-           (* 1: *) (h: carrier R \<rightarrow> carrier S) \<and>
-           (* 2: *) (\<forall> x y. x \<in> carrier R \<and> y \<in> carrier R \<longrightarrow>
-                            h (x \<otimes>\<^bsub>R\<^esub> y) = h x \<otimes>\<^bsub>S\<^esub> h y  \<and>
-                            h (x \<oplus>\<^bsub>R\<^esub> y) = h x \<oplus>\<^bsub>S\<^esub> h y) \<and>
-           (* 3: *) (h \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>) }"
+  ring_hom :: "[('a, 'm) ring_scheme, ('b, 'n) ring_scheme] => ('a => 'b) set"
+  where "ring_hom R S =
+    {h. h \<in> carrier R \<rightarrow> carrier S \<and>
+      (\<forall>x y. x \<in> carrier R \<and> y \<in> carrier R \<longrightarrow>
+        h (x \<otimes>\<^bsub>R\<^esub> y) = h x \<otimes>\<^bsub>S\<^esub> h y \<and> h (x \<oplus>\<^bsub>R\<^esub> y) = h x \<oplus>\<^bsub>S\<^esub> h y) \<and>
+      h \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>}"
 
 lemma ring_hom_memI:
   fixes R (structure) and S (structure)
@@ -752,12 +738,12 @@ lemma ring_hom_closed:
 lemma ring_hom_mult:
   fixes R (structure) and S (structure)
   shows "\<lbrakk> h \<in> ring_hom R S; x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<otimes> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
-  by (simp add: ring_hom_def)
+    by (simp add: ring_hom_def)
 
 lemma ring_hom_add:
   fixes R (structure) and S (structure)
   shows "\<lbrakk> h \<in> ring_hom R S; x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<oplus> y) = h x \<oplus>\<^bsub>S\<^esub> h y"
-  by (simp add: ring_hom_def)
+    by (simp add: ring_hom_def)
 
 lemma ring_hom_one:
   fixes R (structure) and S (structure)
@@ -773,16 +759,16 @@ proof -
     using ring_hom_add[OF assms(1), of \<zero> \<zero>] assms(2)
     by (simp add: ring.ring_simprules(2) ring.ring_simprules(15))
   thus ?thesis
-    by (metis abelian_group.a_r_cancel abelian_groupE(5) assms ring.ring_simprules(2) ring_def ring_hom_closed) 
+    by (metis abelian_group.l_neg assms ring.is_abelian_group ring.ring_simprules(18) ring.ring_simprules(2) ring_hom_closed)
 qed
 
 locale ring_hom_cring =
   R?: cring R + S?: cring S for R (structure) and S (structure) + fixes h
   assumes homh [simp, intro]: "h \<in> ring_hom R S"
-    notes hom_closed [simp, intro] = ring_hom_closed [OF homh]
-      and hom_mult [simp] = ring_hom_mult [OF homh]
-      and hom_add [simp] = ring_hom_add [OF homh]
-      and hom_one [simp] = ring_hom_one [OF homh]
+  notes hom_closed [simp, intro] = ring_hom_closed [OF homh]
+    and hom_mult [simp] = ring_hom_mult [OF homh]
+    and hom_add [simp] = ring_hom_add [OF homh]
+    and hom_one [simp] = ring_hom_one [OF homh]
 
 lemma (in ring_hom_cring) hom_zero [simp]: "h \<zero> = \<zero>\<^bsub>S\<^esub>"
 proof -
@@ -820,5 +806,112 @@ lemma id_ring_hom [simp]: "id \<in> ring_hom R R"
 lemma ring_hom_trans:
   "\<lbrakk> f \<in> ring_hom R S; g \<in> ring_hom S T \<rbrakk> \<Longrightarrow> g \<circ> f \<in> ring_hom R T"
   by (rule ring_hom_memI) (auto simp add: ring_hom_closed ring_hom_mult ring_hom_add ring_hom_one)
+
+subsection\<open>Jeremy Avigad's @{text"More_Finite_Product"} material\<close>
+
+(* need better simplification rules for rings *)
+(* the next one holds more generally for abelian groups *)
+
+lemma (in cring) sum_zero_eq_neg: "x \<in> carrier R \<Longrightarrow> y \<in> carrier R \<Longrightarrow> x \<oplus> y = \<zero> \<Longrightarrow> x = \<ominus> y"
+  by (metis minus_equality)
+
+lemma (in domain) square_eq_one:
+  fixes x
+  assumes [simp]: "x \<in> carrier R"
+    and "x \<otimes> x = \<one>"
+  shows "x = \<one> \<or> x = \<ominus>\<one>"
+proof -
+  have "(x \<oplus> \<one>) \<otimes> (x \<oplus> \<ominus> \<one>) = x \<otimes> x \<oplus> \<ominus> \<one>"
+    by (simp add: ring_simprules)
+  also from \<open>x \<otimes> x = \<one>\<close> have "\<dots> = \<zero>"
+    by (simp add: ring_simprules)
+  finally have "(x \<oplus> \<one>) \<otimes> (x \<oplus> \<ominus> \<one>) = \<zero>" .
+  then have "(x \<oplus> \<one>) = \<zero> \<or> (x \<oplus> \<ominus> \<one>) = \<zero>"
+    by (intro integral) auto
+  then show ?thesis
+    by (metis add.inv_closed add.inv_solve_right assms(1) l_zero one_closed zero_closed)
+qed
+
+lemma (in domain) inv_eq_self: "x \<in> Units R \<Longrightarrow> x = inv x \<Longrightarrow> x = \<one> \<or> x = \<ominus>\<one>"
+  by (metis Units_closed Units_l_inv square_eq_one)
+
+
+text \<open>
+  The following translates theorems about groups to the facts about
+  the units of a ring. (The list should be expanded as more things are
+  needed.)
+\<close>
+
+lemma (in ring) finite_ring_finite_units [intro]: "finite (carrier R) \<Longrightarrow> finite (Units R)"
+  by (rule finite_subset) auto
+
+lemma (in monoid) units_of_pow:
+  fixes n :: nat
+  shows "x \<in> Units G \<Longrightarrow> x [^]\<^bsub>units_of G\<^esub> n = x [^]\<^bsub>G\<^esub> n"
+  apply (induct n)
+  apply (auto simp add: units_group group.is_monoid
+    monoid.nat_pow_0 monoid.nat_pow_Suc units_of_one units_of_mult)
+  done
+
+lemma (in cring) units_power_order_eq_one:
+  "finite (Units R) \<Longrightarrow> a \<in> Units R \<Longrightarrow> a [^] card(Units R) = \<one>"
+  by (metis comm_group.power_order_eq_one units_comm_group units_of_carrier units_of_one units_of_pow)
+
+subsection\<open>Jeremy Avigad's @{text"More_Ring"} material\<close>
+
+lemma (in cring) field_intro2: "\<zero>\<^bsub>R\<^esub> \<noteq> \<one>\<^bsub>R\<^esub> \<Longrightarrow> \<forall>x \<in> carrier R - {\<zero>\<^bsub>R\<^esub>}. x \<in> Units R \<Longrightarrow> field R"
+  apply (unfold_locales)
+    apply (use cring_axioms in auto)
+   apply (rule trans)
+    apply (subgoal_tac "a = (a \<otimes> b) \<otimes> inv b")
+     apply assumption
+    apply (subst m_assoc)
+       apply auto
+  apply (unfold Units_def)
+  apply auto
+  done
+
+lemma (in monoid) inv_char:
+  "x \<in> carrier G \<Longrightarrow> y \<in> carrier G \<Longrightarrow> x \<otimes> y = \<one> \<Longrightarrow> y \<otimes> x = \<one> \<Longrightarrow> inv x = y"
+  apply (subgoal_tac "x \<in> Units G")
+   apply (subgoal_tac "y = inv x \<otimes> \<one>")
+    apply simp
+   apply (erule subst)
+   apply (subst m_assoc [symmetric])
+      apply auto
+  apply (unfold Units_def)
+  apply auto
+  done
+
+lemma (in comm_monoid) comm_inv_char: "x \<in> carrier G \<Longrightarrow> y \<in> carrier G \<Longrightarrow> x \<otimes> y = \<one> \<Longrightarrow> inv x = y"
+  by (simp add: inv_char m_comm)
+
+lemma (in ring) inv_neg_one [simp]: "inv (\<ominus> \<one>) = \<ominus> \<one>"
+  apply (rule inv_char)
+     apply (auto simp add: l_minus r_minus)
+  done
+
+lemma (in monoid) inv_eq_imp_eq: "x \<in> Units G \<Longrightarrow> y \<in> Units G \<Longrightarrow> inv x = inv y \<Longrightarrow> x = y"
+  apply (subgoal_tac "inv (inv x) = inv (inv y)")
+   apply (subst (asm) Units_inv_inv)+
+    apply auto
+  done
+
+lemma (in ring) Units_minus_one_closed [intro]: "\<ominus> \<one> \<in> Units R"
+  apply (unfold Units_def)
+  apply auto
+  apply (rule_tac x = "\<ominus> \<one>" in bexI)
+   apply auto
+  apply (simp add: l_minus r_minus)
+  done
+
+lemma (in ring) inv_eq_neg_one_eq: "x \<in> Units R \<Longrightarrow> inv x = \<ominus> \<one> \<longleftrightarrow> x = \<ominus> \<one>"
+  apply auto
+  apply (subst Units_inv_inv [symmetric])
+   apply auto
+  done
+
+lemma (in monoid) inv_eq_one_eq: "x \<in> Units G \<Longrightarrow> inv x = \<one> \<longleftrightarrow> x = \<one>"
+  by (metis Units_inv_inv inv_one)
 
 end

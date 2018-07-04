@@ -19,7 +19,7 @@ definition (in ring) algebraic :: "'a set \<Rightarrow> 'a \<Rightarrow> bool"
   where "algebraic K x \<longleftrightarrow> \<not> transcendental K x"
 
 definition (in ring) Irr :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a list"
-  where "Irr K x = (THE p. p \<noteq> [] \<and> pirreducible R p \<and> set p \<subseteq> K \<and> eval p x = \<zero> \<and> lead_coeff p = \<one>)"
+  where "Irr K x = (THE p. p \<noteq> [] \<and> pirreducible K p \<and> set p \<subseteq> K \<and> eval p x = \<zero> \<and> lead_coeff p = \<one>)"
 
 inductive_set (in ring) simple_extension :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a set"
   for K and x where
@@ -75,6 +75,44 @@ lemma (in domain) algebraic_iff:
   assumes "subring K R" "x \<in> carrier R"
   shows "(algebraic over K) x \<longleftrightarrow> (\<exists>p \<noteq> []. polynomial R p \<and> set p \<subseteq> K \<and> eval p x = \<zero>)"
   using non_trivial_ker_imp_algebraic[OF assms(2)] algebraic_imp_non_trivial_ker[OF assms] by auto
+
+lemma (in domain) IrrE:
+  assumes "subfield K R" and "(algebraic over K) x" and "x \<in> carrier R - { \<zero> }"
+  shows "Irr K x \<noteq> []"
+    and "(pirreducible over K) (Irr K x)"
+    and "set (Irr K x) \<subseteq> K"
+    and "eval (Irr K x) x = \<zero>"
+    and "lead_coeff (Irr K x) = \<one>"
+  sorry
+(*
+proof -
+  define P :: "'a list \<Rightarrow> bool"
+    where "P = (\<lambda>p. p \<noteq> [] \<and> pirreducible K p \<and>
+                    set p \<subseteq> K \<and> eval p x = \<zero> \<and> lead_coeff p = \<one>)"
+
+  obtain q
+    where "polynomial (R \<lparr> carrier := K \<rparr>) q"
+    and "pirreducible K q"
+    and "a_kernel (univ_poly (R \<lparr> carrier := K \<rparr>)) (R \<lparr> carrier := K \<rparr>) (\<lambda>p. eval p x) =
+         PIdl\<^bsub>(univ_poly (R \<lparr> carrier := K \<rparr>))\<^esub> q"
+    using field.exists_ker_generator_pirreducible[OF subfield_iff(2)[OF assms(1)]]
+
+  hence "Irr K x = (THE p. P p)"
+    unfolding Irr_def P_def by auto
+  moreover have p: "P p" sorry
+  moreover have "\<And>q. P q \<Longrightarrow> p = q" sorry
+*)
+(*
+  ultimately have "Irr K x = p"
+    by (metis the_equality)
+  thus "Irr K x \<noteq> []"
+    and "pirreducible (R \<lparr> carrier := K \<rparr>) (Irr K x)"
+    and "set (Irr K x) \<subseteq> K"
+    and "eval (Irr K x) x = \<zero>"
+    and "lead_coeff (Irr K x) = \<one>"
+    using p unfolding P_def by auto
+*)
+qed
 
 (*
 lemma (in domain) Irr_exists:

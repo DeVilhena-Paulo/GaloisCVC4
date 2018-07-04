@@ -39,8 +39,8 @@ lemma ring_hom_ringI:
   assumes "ring R" "ring S"
   assumes (* morphism: "h \<in> carrier R \<rightarrow> carrier S" *)
           hom_closed: "!!x. x \<in> carrier R ==> h x \<in> carrier S"
-      and compatible_mult: "!!x y. [| x : carrier R; y : carrier R |] ==> h (x \<otimes> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
-      and compatible_add: "!!x y. [| x : carrier R; y : carrier R |] ==> h (x \<oplus> y) = h x \<oplus>\<^bsub>S\<^esub> h y"
+      and compatible_mult: "\<And>x y. [| x \<in> carrier R; y \<in> carrier R |] ==> h (x \<otimes> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
+      and compatible_add: "\<And>x y. [| x \<in> carrier R; y \<in> carrier R |] ==> h (x \<oplus> y) = h x \<oplus>\<^bsub>S\<^esub> h y"
       and compatible_one: "h \<one> = \<one>\<^bsub>S\<^esub>"
   shows "ring_hom_ring R S h"
 proof -
@@ -72,7 +72,7 @@ qed
 lemma ring_hom_ringI3:
   fixes R (structure) and S (structure)
   assumes "abelian_group_hom R S h" "ring R" "ring S" 
-  assumes compatible_mult: "!!x y. [| x : carrier R; y : carrier R |] ==> h (x \<otimes> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
+  assumes compatible_mult: "\<And>x y. [| x \<in> carrier R; y \<in> carrier R |] ==> h (x \<otimes> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
       and compatible_one: "h \<one> = \<one>\<^bsub>S\<^esub>"
   shows "ring_hom_ring R S h"
 proof -
@@ -99,20 +99,10 @@ proof -
     (rule R.is_cring, rule S.is_cring, rule homh)
 qed
 
-lemma ring_hom_ringE:
-  assumes "ring_hom_ring R S h"
-  shows "ring R" "ring S"
-    and "h: carrier R \<rightarrow> carrier S"
-    and  "\<And> x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<otimes>\<^bsub>R\<^esub> y) = h x \<otimes>\<^bsub>S\<^esub> h y"
-    and  "\<And> x y. \<lbrakk> x \<in> carrier R; y \<in> carrier R \<rbrakk> \<Longrightarrow> h (x \<oplus>\<^bsub>R\<^esub> y) = h x \<oplus>\<^bsub>S\<^esub> h y"
-    and "h \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>"
-  using ring_hom_ring.axioms[OF assms]
-  unfolding ring_hom_ring_axioms_def using ring_hom_memE[of h R S] by auto
-
 
 subsection \<open>The Kernel of a Ring Homomorphism\<close>
 
-\<comment>\<open>"the kernel of a ring homomorphism is an ideal"\<close>
+\<comment> \<open>the kernel of a ring homomorphism is an ideal\<close>
 lemma (in ring_hom_ring) kernel_is_ideal:
   shows "ideal (a_kernel R S h) R"
 apply (rule idealI)
@@ -213,8 +203,7 @@ next
       show "x \<in> a_kernel R S h +> a" by (rule homeq_imp_rcos)
 qed
 
-(* Next lemma contributed by Paulo Emílio de Vilhena. *)
-
+(*contributed by Paulo Emílio de Vilhena*)
 lemma (in ring_hom_ring) inj_on_domain:
   assumes "inj_on h (carrier R)"
   shows "domain S \<Longrightarrow> domain R"

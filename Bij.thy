@@ -10,7 +10,7 @@ section \<open>Bijections of a Set, Permutation and Automorphism Groups\<close>
 
 definition
   Bij :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a) set"
-    \<comment>\<open>Only extensional functions, since otherwise we get too many.\<close>
+    \<comment> \<open>Only extensional functions, since otherwise we get too many.\<close>
    where "Bij S = extensional S \<inter> {f. bij_betw f S S}"
 
 definition
@@ -67,7 +67,7 @@ lemma Bij_inv_into_lemma:
  shows "\<lbrakk>h \<in> Bij S;  g \<in> S \<rightarrow> S \<rightarrow> S;  x \<in> S;  y \<in> S\<rbrakk>
         \<Longrightarrow> inv_into S h (g x y) = g (inv_into S h x) (inv_into S h y)"
 apply (simp add: Bij_def bij_betw_def)
-apply (subgoal_tac "\<exists>x'\<in>S. \<exists>y'\<in>S. x = h x' & y = h y'", clarify)
+apply (subgoal_tac "\<exists>x'\<in>S. \<exists>y'\<in>S. x = h x' \<and> y = h y'", clarify)
  apply (simp add: eq [symmetric] inv_f_f funcset_mem [THEN funcset_mem], blast)
 done
 
