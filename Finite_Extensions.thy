@@ -114,7 +114,7 @@ proof -
     and "lead_coeff (Irr K x) = \<one>"
     using p unfolding P_def by auto
 *)
-qed
+
 
 (*
 lemma (in domain) Irr_exists:
