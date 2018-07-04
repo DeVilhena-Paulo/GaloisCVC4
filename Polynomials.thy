@@ -1,10 +1,9 @@
-(* ************************************************************************** *)
-(* Title:      Polynomials.thy                                                *)
-(* Author:     Paulo Emílio de Vilhena                                        *)
-(* ************************************************************************** *)
+(*  Title:      HOL/Algebra/Polynomials.thy
+    Author:     Paulo Emílio de Vilhena
+*)
 
 theory Polynomials
-  imports Ring Ring_Divisibility Embedded_Algebras
+  imports Ring Subrings (* Ring_Divisibility *)(* Embedded_Algebras *)
 
 begin
 
@@ -854,7 +853,7 @@ next
     using Cons  coeff_a_p2 by simp
   also have " ... = (\<lambda>i. (\<Oplus> k \<in> {..i}. ((if k = length p1 then a else \<zero>) \<otimes> (coeff p2) (i - k)) \<oplus>
                                                             ((coeff p1) k \<otimes> (coeff p2) (i - k))))"
-    using add.finprod_mult in_carrier by auto
+    using add.finprod_multf in_carrier by auto
   also have " ... = (\<lambda>i. (\<Oplus> k \<in> {..i}. (coeff (a # p1) k) \<otimes> (coeff p2) (i - k)))"
    (is "(\<lambda>i. (\<Oplus> k \<in> {..i}. ?f i k)) = (\<lambda>i. (\<Oplus> k \<in> {..i}. ?g i k))")
   proof
@@ -1644,6 +1643,7 @@ lemma (in field) field_long_division_theorem:
   using long_division_theorem[OF assms] assms lead_coeff_not_zero[of "hd b" "tl b"]
   by (simp add: field_Units)
 
+(*
 theorem (in field) univ_poly_is_euclidean:
   shows "euclidean_domain (univ_poly R) degree"
 proof -
@@ -1661,6 +1661,7 @@ proof -
     using univ_poly_is_euclidean .
   show ?thesis ..
 qed
+*)
         
 
 subsection \<open>Consistency Rules\<close>
@@ -1737,6 +1738,7 @@ proof -
     using domain.univ_poly_is_domain[of "R \<lparr> carrier := K \<rparr>"] by simp
 qed
 
+(*
 lemma (in ring) univ_poly_subfield_is_euclidean:
   assumes "subfield K R"
   shows "euclidean_domain (univ_poly (R \<lparr> carrier := K \<rparr>)) degree"
@@ -1746,6 +1748,7 @@ lemma (in ring) univ_poly_subfield_is_principal:
   assumes "subfield K R"
   shows "principal_domain (univ_poly (R \<lparr> carrier := K \<rparr>))"
   using field.univ_poly_is_principal[OF subfield_iff(2)[OF assms]] .
+*)
 
 
 subsection \<open>The Evaluation Homomorphism\<close>

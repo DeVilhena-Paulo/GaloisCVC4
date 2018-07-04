@@ -18,8 +18,10 @@ definition (in ring) transcendental :: "'a set \<Rightarrow> 'a \<Rightarrow> bo
 definition (in ring) algebraic :: "'a set \<Rightarrow> 'a \<Rightarrow> bool"
   where "algebraic K x \<longleftrightarrow> \<not> transcendental K x"
 
+(*
 definition (in ring) Irr :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a list"
   where "Irr K x = (THE p. p \<noteq> [] \<and> pirreducible K p \<and> set p \<subseteq> K \<and> eval p x = \<zero> \<and> lead_coeff p = \<one>)"
+*)
 
 inductive_set (in ring) simple_extension :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a set"
   for K and x where
