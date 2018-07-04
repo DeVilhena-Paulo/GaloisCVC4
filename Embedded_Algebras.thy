@@ -134,7 +134,7 @@ lemma independent_backwards:
 
 text \<open>Now, we fix K, a subfield of the ring. Many lemmas would also be true for weaker
       structures, but our interest is to work with subfields, so generalization could
-      be the subjuct of a future work.\<close>
+      be the subject of a future work.\<close>
 
 context
   fixes K :: "'a set" assumes K: "subfield K R"
@@ -574,7 +574,7 @@ next
     by auto
 qed
 
-lemma independent_strinct_incl:
+lemma independent_strict_incl:
   assumes "independent K (u # Us)" shows "Span K Us \<subset> Span K (u # Us)"
 proof -
   have "u \<in> Span K (u # Us)"
@@ -591,7 +591,7 @@ corollary independent_replacement:
 proof -
   assume "Span K (u # Us) \<subseteq> Span K Vs"
   hence "Span K Us \<subset> Span K Vs"
-    using independent_strinct_incl[OF assms(1)] by auto
+    using independent_strict_incl[OF assms(1)] by auto
   then obtain v where v: "v \<in> set Vs" "v \<notin> Span K Us"
     using Span_strict_incl[of Us Vs] assms[THEN independent_in_carrier] by auto
   thus ?thesis
