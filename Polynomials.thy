@@ -868,9 +868,7 @@ qed
 lemma poly_mult_zero:
   assumes "polynomial R p"
   shows "poly_mult [] p = []" and "poly_mult p [] = []"
-proof -
-  show "poly_mult [] p = []" by simp
-next
+proof (simp)
   have "coeff (poly_mult p []) = (\<lambda>_. \<zero>)"
     using poly_mult_coeff[OF polynomial_in_carrier[OF assms], of "[]"]
           poly_coeff_in_carrier[OF assms] by auto
