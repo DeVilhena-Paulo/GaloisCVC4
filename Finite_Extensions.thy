@@ -26,7 +26,7 @@ definition (in ring) Irr :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a list"
 inductive_set (in ring) simple_extension :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a set"
   for K and x where
     zero: "\<zero>\<^bsub>R\<^esub> \<in> simple_extension K x" |
-    lin:  "\<lbrakk> k1 \<in> K; k2 \<in> K \<rbrakk> \<Longrightarrow> (k1 \<otimes> a) \<oplus> k2 \<in> simple_extension K x"
+    lin:  "\<lbrakk> k1 \<in> K; k2 \<in> K \<rbrakk> \<Longrightarrow> (k1 \<otimes> x) \<oplus> k2 \<in> simple_extension K x"
 
 fun (in ring) finite_extension :: "'a set \<Rightarrow> 'a list \<Rightarrow> 'a set"
   where "finite_extension K xs = foldr (\<lambda>x K'. simple_extension K' x) xs K"
@@ -78,14 +78,7 @@ lemma (in domain) algebraic_iff:
   shows "(algebraic over K) x \<longleftrightarrow> (\<exists>p \<noteq> []. polynomial R p \<and> set p \<subseteq> K \<and> eval p x = \<zero>)"
   using non_trivial_ker_imp_algebraic[OF assms(2)] algebraic_imp_non_trivial_ker[OF assms] by auto
 
-lemma (in domain) IrrE:
-  assumes "subfield K R" and "(algebraic over K) x" and "x \<in> carrier R - { \<zero> }"
-  shows "Irr K x \<noteq> []"
-    and "(pirreducible over K) (Irr K x)"
-    and "set (Irr K x) \<subseteq> K"
-    and "eval (Irr K x) x = \<zero>"
-    and "lead_coeff (Irr K x) = \<one>"
-  sorry
+
 (*
 proof -
   define P :: "'a list \<Rightarrow> bool"
@@ -114,7 +107,7 @@ proof -
     and "lead_coeff (Irr K x) = \<one>"
     using p unfolding P_def by auto
 *)
-qed
+
 
 (*
 lemma (in domain) Irr_exists:
