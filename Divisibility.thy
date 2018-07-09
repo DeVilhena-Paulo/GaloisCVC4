@@ -102,28 +102,16 @@ proof -
 qed
 
 lemma (in comm_monoid) unit_factor:
-  assumes abunit: "a \<otimes> b \<in> Units G"
-    and [simp]: "a \<in> carrier G"  "b \<in> carrier G"
+  assumes "a \<otimes> b \<in> Units G"
+    and "a \<in> carrier G" "b \<in> carrier G"
   shows "a \<in> Units G"
-  using abunit[simplified Units_def]
+  using assms(1)[simplified Units_def]
 proof clarsimp
-  fix i
-  assume [simp]: "i \<in> carrier G"
-
-  have carr': "b \<otimes> i \<in> carrier G" by simp
-
-  have "(b \<otimes> i) \<otimes> a = (i \<otimes> b) \<otimes> a" by (simp add: m_comm)
-  also have "\<dots> = i \<otimes> (b \<otimes> a)" by (simp add: m_assoc)
-  also have "\<dots> = i \<otimes> (a \<otimes> b)" by (simp add: m_comm)
-  also assume "i \<otimes> (a \<otimes> b) = \<one>"
-  finally have li': "(b \<otimes> i) \<otimes> a = \<one>" .
-
-  have "a \<otimes> (b \<otimes> i) = a \<otimes> b \<otimes> i" by (simp add: m_assoc)
-  also assume "a \<otimes> b \<otimes> i = \<one>"
-  finally have ri': "a \<otimes> (b \<otimes> i) = \<one>" .
-
-  from carr' li' ri'
-  show "a \<in> Units G" by (simp add: Units_def, fast)
+  fix i assume i: "i \<in> carrier G" "i \<otimes> (a \<otimes> b) = \<one>" "(a \<otimes> b) \<otimes> i = \<one>"
+  hence "(i \<otimes> b) \<otimes> a = \<one>" and "a \<otimes> (i \<otimes> b) = \<one>"
+    using assms m_comm m_lcomm m_assoc by auto
+  thus "a \<in> Units G"
+    using i(1) assms unfolding Units_def by auto
 qed
 
 
@@ -137,7 +125,7 @@ definition factor :: "[_, 'a, 'a] \<Rightarrow> bool" (infix "divides\<index>" 6
 definition associated :: "[_, 'a, 'a] \<Rightarrow> bool" (infix "\<sim>\<index>" 55)
   where "a \<sim>\<^bsub>G\<^esub> b \<longleftrightarrow> a divides\<^bsub>G\<^esub> b \<and> b divides\<^bsub>G\<^esub> a"
 
-abbreviation "division_rel G \<equiv> \<lparr>carrier = carrier G, eq = (\<sim>\<^bsub>G\<^esub>), le = (divides\<^bsub>G\<^esub>)\<rparr>"
+abbreviation "division_rel G \<equiv> \<lparr> carrier = carrier G, eq = (\<sim>\<^bsub>G\<^esub>), le = (divides\<^bsub>G\<^esub>) \<rparr>"
 
 definition properfactor :: "[_, 'a, 'a] \<Rightarrow> bool"
   where "properfactor G a b \<longleftrightarrow> a divides\<^bsub>G\<^esub> b \<and> \<not>(b divides\<^bsub>G\<^esub> a)"
@@ -1511,8 +1499,9 @@ qed
 
 subsubsection \<open>Factorial monoids and wfactors\<close>
 
+(* PROOF ===================================================================== *)
 lemma (in comm_monoid_cancel) factorial_monoidI:
-  assumes wfactors_exists: "\<And>a. a \<in> carrier G \<Longrightarrow> \<exists>fs. set fs \<subseteq> carrier G \<and> wfactors G fs a"
+  assumes wfactors_exists: "\<And>a. \<lbrakk> a \<in> carrier G; a \<notin> Units G \<rbrakk> \<Longrightarrow> \<exists>fs. set fs \<subseteq> carrier G \<and> wfactors G fs a"
     and wfactors_unique:
       "\<And>a fs fs'. \<lbrakk>a \<in> carrier G; set fs \<subseteq> carrier G; set fs' \<subseteq> carrier G;
         wfactors G fs a; wfactors G fs' a\<rbrakk> \<Longrightarrow> essentially_equal G fs fs'"
@@ -1521,7 +1510,7 @@ proof
   fix a
   assume acarr: "a \<in> carrier G" and anunit: "a \<notin> Units G"
 
-  from wfactors_exists[OF acarr]
+  from wfactors_exists[OF acarr anunit]
   obtain as where ascarr: "set as \<subseteq> carrier G" and afs: "wfactors G as a"
     by blast
   from wfactors_factors [OF afs ascarr] obtain a' where afs': "factors G as a'" and a'a: "a' \<sim> a"
