@@ -82,6 +82,18 @@ lemma (in field) simple_extension_field :
   shows "subfield (simple_extension k x) R"
   sorry
 
+lemma (in field) simple_extension_incl :
+  assumes "subfield k R"
+    and "x \<in> carrier R"
+  shows "k \<subseteq> simple_extension k x"
+proof
+  fix y assume hyp : "y \<in> k"
+  thus "y \<in>simple_extension k x"
+    using lin[OF subringE(2)[OF subfieldE(1)[OF assms(1)]] hyp,of x]l_null subfieldE(3) assms
+    by fastforce
+qed
+
+
 lemma (in field) finite_extension_field :
   assumes "subfield k R"
     and "set xs \<subseteq> carrier R"
@@ -102,6 +114,72 @@ qed
 lemma (in field) algebraic_simple_extension :
   assumes "subfield k R"
     and "(algebraic over k) x"
+    and "x \<in> carrier R"
   shows "\<And> y. y \<in> (simple_extension k x) \<Longrightarrow> (algebraic over k) y"
   sorry
+
+lemma (in field) algebraic_finite_extension :
+  assumes "subfield k R"
+    and "\<And> x. x \<in> set xs \<Longrightarrow> (algebraic over k) x \<and> x \<in> carrier R"
+  shows "\<And> y. y \<in> (finite_extension k xs) \<Longrightarrow> (algebraic over k) y"
+  sorry
+
+lemma (in field) algebraic_simple_extension_backward :
+  assumes "subfield k R"
+    and "(algebraic over k) x"
+    and "x \<in> carrier R"
+    and "y \<in> carrier R"
+    and "(algebraic over simple_extension k x) y"
+  shows "(algebraic over k) y"
+    sorry
+
+lemma (in field) algebraic_finite_extension_backward :
+  assumes "subfield k R"
+    and "\<And> x. x \<in> set xs \<Longrightarrow> (algebraic over k) x \<and> x \<in> carrier R"
+    and "y \<in> carrier R"
+    and "(algebraic over finite_extension k xs) y"
+  shows "(algebraic over k) y"
+  sorry
+
+lemma (in field) algebraic_simple_extension_trans :
+  assumes "subfield k R"
+    and "x \<in> carrier R"
+    and "(algebraic over k) x"
+    and "y \<in> carrier R"
+    and "(algebraic over k) y"
+  shows "(algebraic over simple_extension k x) y"
+  sorry
+
+lemma (in field) algebraic_finite_extension_trans :
+  assumes "subfield k R"
+    and "\<And> x. x \<in> set xs \<Longrightarrow> (algebraic over k) x \<and> x \<in> carrier R"
+    and "y \<in> carrier R"
+    and "(algebraic over k) y"
+  shows "(algebraic over finite_extension k xs) y"
+  sorry
+
+lemma (in field) split_add_trans :
+  assumes "subfield k R"
+    and "x \<in> carrier R"
+    and "y \<in> k"
+    and "split k (Irr k x)"
+  shows "split k (Irr k (x \<oplus> y)) "
+  sorry
+
+lemma (in field) split_mult_trans :
+  assumes "subfield k R"
+    and "x \<in> carrier R"
+    and "y \<in> k"
+    and "split k (Irr k x)"
+  shows "split k (Irr k (y \<otimes> x)) "
+  sorry
+
+lemma (in field) split_Irr_incl_trans :
+  assumes "subfield K R"
+    and "x \<in> carrier R"
+    and "(algebraic over k) x"
+    and "k \<subseteq> K"
+  shows "split K (Irr K x)  \<longleftrightarrow> split K (Irr k x)"
+  sorry
+
 end
