@@ -102,6 +102,7 @@ proof-
     by blast
 qed
 
+(* PROOF ====================== *)
 lemma (in ring) subring_gen_incl :
   assumes "subring H R"
     and  "subring K R"
@@ -111,7 +112,7 @@ lemma (in ring) subring_gen_incl :
 proof
   {fix J assume J_def : "subring J R" "I \<subseteq> J"
     have "generate_ring (R \<lparr> carrier := J \<rparr>) I \<subseteq> J"
-      using ring.mono_generate_ring[of "(R\<lparr>carrier := J\<rparr>)" I J ] subring.subring_is_ring[OF J_def(1)]
+      using ring.mono_generate_ring[of "(R\<lparr>carrier := J\<rparr>)" I J ] subring_is_ring[OF J_def(1)]
           ring.generate_ring_in_carrier[of "R\<lparr>carrier := J\<rparr>"]  ring_axioms J_def(2)
       by auto}
   note incl_HK = this
