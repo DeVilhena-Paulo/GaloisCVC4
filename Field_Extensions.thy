@@ -46,15 +46,15 @@ qed
 
 lemma (in field_extension) galoisian_simple_extension :
   assumes "K = simple_extension k x"
-    and "(algebraic over k) x"
-    and "x \<in> carrier R"
-    and "split K (Irr k x) "
+    and "x \<in> Sx"
+    and "split K (Irr k x)"
   shows "galoisian K k" unfolding galoisian_def split_def apply (auto simp add : K)
 proof-
   fix y assume hyp : "y \<in> K"
   hence yR : "y \<in> carrier R" using subfieldE(3)[OF K] by auto
   show alg :  "(algebraic over k) y"
-    using algebraic_simple_extension k assms hyp by auto
+    using algebraic_simple_extension[OF k Sx(2)[OF assms(2)]] k assms hyp Sx(1)
+    by auto
   show "polynomial R (Irr k y)" using IrrE'(2)[OF k alg] yR by auto
   show "size (roots K (Irr k y)) = length (Irr k y) - Suc 0"
   proof (cases "y = \<zero>")
@@ -67,15 +67,25 @@ proof-
     case False
     from hyp this simple_extension.simps[of y k x] assms(1) obtain k1 k2 
       where k1k2 : "y = k1 \<otimes> x \<oplus> k2" "k1 \<in> k" "k2 \<in> k" by auto
-    then show ?thesis sorry
+    hence k1k2K : "k1 \<in> K" "k2 \<in> K"
+      using simple_extension_incl[OF k, of x] assms Sx by auto
+    hence "split K (Irr K (k1 \<otimes> x))"
+      using split_mult_trans[OF K _ k1k2K(1)] assms Sx simple_extension_incl[OF k]
+            split_Irr_incl_trans[OF K, of _ k] by auto
+    hence "split K (Irr K (k1 \<otimes> x \<oplus> k2))"
+      using split_add_trans[OF K _ k1k2K(2), of "k1 \<otimes> x"] k1k2(2) subfieldE(3)[OF k] assms Sx
+             m_closed by auto
+    hence "split K (Irr k (k1 \<otimes> x \<oplus> k2))"
+      using split_Irr_incl_trans[OF K, of "k1 \<otimes> x \<oplus> k2"] assms(1,2) Sx simple_extension_incl[OF k]
+      using alg k1k2(1) yR by blast
+    thus ?thesis unfolding split_def using k1k2 by auto
   qed
-  from hyp
-
+qed
 
 lemma (in field_extension) galoisian_finite_extension :
   assumes "K = finite_extension k xs"
-    and "\<And> x. x \<in> set (xs) \<Longrightarrow>  (algebraic over k) x \<and> (split K (Irr k x)) "
-  shows "galoisian K k" using assms(1) 
+    and "set xs \<subseteq> Sx"
+  shows "galoisian K k" using assms(1,2) K
 proof(induction xs arbitrary : K)
   case Nil
   then have "K = k"
@@ -85,6 +95,22 @@ next
   case (Cons a xs)
   hence "K = simple_extension (finite_extension k xs) a"
     by simp
+  moreover have "galoisian (finite_extension k xs) k"
+    using Cons finite_extension_field[OF k, of xs] Sx(1) by auto
+  moreover have "field_extension R K (finite_extension k xs) Sp Sx"
+    unfolding field_extension_def field_extension_axioms_def
+    apply (auto simp del : finite_extension.simps simp add :field_axioms Cons(4) Sp Sx(1))
+  proof-
+    show "subfield (finite_extension k xs) R"
+      using finite_extension_field[OF k] Cons Sx(1) by auto
+    fix x assume hyp : "x \<in> Sx"
+    show "(algebraic over finite_extension k xs) x"
+      using algebraic_finite_extension_trans[OF k, of xs x] hyp Cons(3) Sx(1,2)
+      by (simp add: subset_iff)
+
+  ultimately show "galoisian K k"
+    using field_extension.galoisian_simple_extension[of R K "finite_extension k xs" Sp Sx a]
+    unfolding field_extension_def field_extension_axioms_def
     
     
   then show ?case sorry
