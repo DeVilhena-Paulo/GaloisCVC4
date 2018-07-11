@@ -67,16 +67,36 @@ lemma (in domain) divides_imp_divides_mult [simp]:
   "\<lbrakk> a \<in> carrier R; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow> a divides\<^bsub>R\<^esub> b \<Longrightarrow> a divides\<^bsub>(mult_of R)\<^esub> b"
   unfolding factor_def using integral_iff by auto
 
+lemma (in cring) divides_one:
+  assumes "a \<in> carrier R"
+  shows "a divides \<one> \<longleftrightarrow> a \<in> Units R"
+  using assms m_comm unfolding factor_def Units_def by force 
+
+lemma (in ring) one_divides:
+  assumes "a \<in> carrier R" shows "\<one> divides a"
+  using assms unfolding factor_def by simp
+
 lemma (in ring) divides_zero:
   assumes "a \<in> carrier R" shows "a divides \<zero>"
-  using r_null[OF assms] zero_closed unfolding factor_def by metis  
+  using r_null[OF assms] unfolding factor_def by force
+
+lemma (in ring) zero_divides:
+  shows "\<zero> divides a \<longleftrightarrow> a = \<zero>"
+  unfolding factor_def by auto
 
 lemma (in domain) divides_mult_zero:
   assumes "a \<in> carrier R" shows "a divides\<^bsub>(mult_of R)\<^esub> \<zero> \<Longrightarrow> a = \<zero>"
-  using integral[OF _ assms] unfolding factor_def by auto 
+  using integral[OF _ assms] unfolding factor_def by auto
 
-lemma assoc_mult_imp_assoc [simp]: "a \<sim>\<^bsub>(mult_of R)\<^esub> b \<Longrightarrow> a \<sim>\<^bsub>R\<^esub> b"
-  unfolding associated_def by simp
+lemma (in ring) divides_mult:
+  assumes "a \<in> carrier R" "c \<in> carrier R"
+  shows "a divides b \<Longrightarrow> (c \<otimes> a) divides (c \<otimes> b)"
+  using m_assoc[OF assms(2,1)] unfolding factor_def by auto 
+
+lemma (in domain) mult_divides:
+  assumes "a \<in> carrier R" "b \<in> carrier R" "c \<in> carrier R - { \<zero> }"
+  shows "(c \<otimes> a) divides (c \<otimes> b) \<Longrightarrow> a divides b"
+  using assms m_assoc[of c] unfolding factor_def by (simp add: m_lcancel)
 
 lemma (in domain) assoc_iff_assoc_mult:
   assumes "a \<in> carrier R" and "b \<in> carrier R"
@@ -108,6 +128,36 @@ qed
 
 lemma (in domain) Units_mult_eq_Units [simp]: "Units (mult_of R) = Units R"
   unfolding Units_def using insert_Diff integral_iff by auto
+
+lemma (in domain) ring_associated_iff:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  shows "a \<sim> b \<longleftrightarrow> (\<exists>u \<in> Units R. a = u \<otimes> b)"
+proof (cases "a = \<zero>")
+  assume [simp]: "a = \<zero>" show ?thesis
+  proof
+    assume "a \<sim> b" thus "\<exists>u \<in> Units R. a = u \<otimes> b"
+      using zero_divides unfolding associated_def by force
+  next
+    assume "\<exists>u \<in> Units R. a = u \<otimes> b" then have "b = \<zero>"
+      by (metis Units_closed Units_l_cancel \<open>a = \<zero>\<close> assms r_null)
+    thus "a \<sim> b"
+      using zero_divides[of \<zero>] by auto
+  qed
+next
+  assume a: "a \<noteq> \<zero>" show ?thesis
+  proof (cases "b = \<zero>")
+    assume "b = \<zero>" thus ?thesis
+      using assms a zero_divides[of a] r_null unfolding associated_def by blast
+  next
+    assume b: "b \<noteq> \<zero>"
+    have "(\<exists>u \<in> Units R. a = u \<otimes> b) \<longleftrightarrow> (\<exists>u \<in> Units R. a = b \<otimes> u)"
+      using m_comm[OF assms(2)] Units_closed by auto
+    thus ?thesis
+      using mult_of.associated_iff[of a b] a b assms
+      unfolding assoc_iff_assoc_mult[OF assms] Units_mult_eq_Units
+      by auto
+  qed
+qed
 
 lemma (in domain) properfactor_mult_imp_properfactor:
   "\<lbrakk> a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> properfactor (mult_of R) b a \<Longrightarrow> properfactor R b a"
@@ -298,7 +348,7 @@ subsection \<open>Basic Properties\<close>
 
 lemma (in cring) to_contain_is_to_divide:
   assumes "a \<in> carrier R" "b \<in> carrier R"
-  shows "(PIdl b \<subseteq> PIdl a) \<longleftrightarrow> (a divides b)"
+  shows "PIdl b \<subseteq> PIdl a \<longleftrightarrow> a divides b"
 proof 
   show "PIdl b \<subseteq> PIdl a \<Longrightarrow> a divides b"
   proof -
@@ -327,7 +377,7 @@ qed
 
 lemma (in cring) associated_iff_same_ideal:
   assumes "a \<in> carrier R" "b \<in> carrier R"
-  shows "(a \<sim> b) \<longleftrightarrow> (PIdl a = PIdl b)"
+  shows "a \<sim> b \<longleftrightarrow> PIdl a = PIdl b"
   unfolding associated_def
   using to_contain_is_to_divide[OF assms]
         to_contain_is_to_divide[OF assms(2,1)] by auto
@@ -479,70 +529,65 @@ qed
 lemma (in ring) trivial_ideal_chain_imp_noetherian:
   assumes "\<And>C. \<lbrakk> C \<noteq> {}; subset.chain { I. ideal I R } C \<rbrakk> \<Longrightarrow> \<Union>C \<in> C"
   shows "noetherian_ring R"
-proof (rule noetherian_ring.intro[OF ring_axioms])
-  have "\<And>I. ideal I R \<Longrightarrow> \<exists>A \<subseteq> carrier R. finite A \<and> I = Idl A"
-  proof -
-    fix I assume I: "ideal I R"
-    have in_carrier: "I \<subseteq> carrier R" and add_subgroup: "additive_subgroup I R"
-      using ideal.axioms(1)[OF I] additive_subgroup.a_subset by auto 
+proof (auto simp add: noetherian_ring_def noetherian_ring_axioms_def ring_axioms)
+  fix I assume I: "ideal I R"
+  have in_carrier: "I \<subseteq> carrier R" and add_subgroup: "additive_subgroup I R"
+    using ideal.axioms(1)[OF I] additive_subgroup.a_subset by auto 
 
-    define S where "S = { Idl S' | S'. S' \<subseteq> I \<and> finite S' }"
-    have "\<exists>M \<in> S. \<forall>S' \<in> S. M \<subseteq> S' \<longrightarrow> S' = M"
-    proof (rule subset_Zorn)
-      fix C assume C: "subset.chain S C"
-      show "\<exists>U \<in> S. \<forall>S' \<in> C. S' \<subseteq> U"
-      proof (cases "C = {}")
-        case True
-        have "{ \<zero> } \<in> S"
-          using additive_subgroup.zero_closed[OF add_subgroup] genideal_zero
-          by (auto simp add: S_def)
-        thus ?thesis
-          using True by auto
-      next
-        case False
-        have "S \<subseteq> { I. ideal I R }"
-          using additive_subgroup.a_subset[OF add_subgroup] genideal_ideal
-          by (auto simp add: S_def)
-        hence "subset.chain { I. ideal I R } C"
-          using C unfolding pred_on.chain_def by auto
-        then have "\<Union>C \<in> C"
-          using assms False by simp
-        thus ?thesis
-          by (meson C Union_upper pred_on.chain_def subsetCE)
-      qed
+  define S where "S = { Idl S' | S'. S' \<subseteq> I \<and> finite S' }"
+  have "\<exists>M \<in> S. \<forall>S' \<in> S. M \<subseteq> S' \<longrightarrow> S' = M"
+  proof (rule subset_Zorn)
+    fix C assume C: "subset.chain S C"
+    show "\<exists>U \<in> S. \<forall>S' \<in> C. S' \<subseteq> U"
+    proof (cases "C = {}")
+      case True
+      have "{ \<zero> } \<in> S"
+        using additive_subgroup.zero_closed[OF add_subgroup] genideal_zero
+        by (auto simp add: S_def)
+      thus ?thesis
+        using True by auto
+    next
+      case False
+      have "S \<subseteq> { I. ideal I R }"
+        using additive_subgroup.a_subset[OF add_subgroup] genideal_ideal
+        by (auto simp add: S_def)
+      hence "subset.chain { I. ideal I R } C"
+        using C unfolding pred_on.chain_def by auto
+      then have "\<Union>C \<in> C"
+        using assms False by simp
+      thus ?thesis
+        by (meson C Union_upper pred_on.chain_def subsetCE)
     qed
-    then obtain M where M: "M \<in> S" "\<And>S'. \<lbrakk>S' \<in> S; M \<subseteq> S' \<rbrakk> \<Longrightarrow> S' = M"
-      by auto
-    then obtain S' where S': "S' \<subseteq> I" "finite S'" "M = Idl S'"
-      by (auto simp add: S_def)
-    hence "M \<subseteq> I"
-      using I genideal_minimal by (auto simp add: S_def)
-    moreover have "I \<subseteq> M"
-    proof (rule ccontr)
-      assume "\<not> I \<subseteq> M"
-      then obtain a where a: "a \<in> I" "a \<notin> M"
-        by auto
-      have "M \<subseteq> Idl (insert a S')"
-        using S' a(1) genideal_minimal[of "Idl (insert a S')" S']
-              in_carrier genideal_ideal genideal_self 
-        by (meson insert_subset subset_trans)
-      moreover have "Idl (insert a S') \<in> S"
-        using a(1) S' by (auto simp add: S_def)
-      ultimately have "M = Idl (insert a S')"
-        using M(2) by auto
-      hence "a \<in> M"
-        using genideal_self S'(1) a (1) in_carrier by (meson insert_subset subset_trans)
-      from \<open>a \<in> M\<close> and \<open>a \<notin> M\<close> show False by simp
-    qed
-    ultimately have "M = I" by simp
-    thus "\<exists>A \<subseteq> carrier R. finite A \<and> I = Idl A"
-      using S' in_carrier by blast
   qed
-  thus "noetherian_ring_axioms R"
-    unfolding noetherian_ring_axioms_def by auto
+  then obtain M where M: "M \<in> S" "\<And>S'. \<lbrakk>S' \<in> S; M \<subseteq> S' \<rbrakk> \<Longrightarrow> S' = M"
+    by auto
+  then obtain S' where S': "S' \<subseteq> I" "finite S'" "M = Idl S'"
+    by (auto simp add: S_def)
+  hence "M \<subseteq> I"
+    using I genideal_minimal by (auto simp add: S_def)
+  moreover have "I \<subseteq> M"
+  proof (rule ccontr)
+    assume "\<not> I \<subseteq> M"
+    then obtain a where a: "a \<in> I" "a \<notin> M"
+      by auto
+    have "M \<subseteq> Idl (insert a S')"
+      using S' a(1) genideal_minimal[of "Idl (insert a S')" S']
+            in_carrier genideal_ideal genideal_self 
+      by (meson insert_subset subset_trans)
+    moreover have "Idl (insert a S') \<in> S"
+      using a(1) S' by (auto simp add: S_def)
+    ultimately have "M = Idl (insert a S')"
+      using M(2) by auto
+    hence "a \<in> M"
+      using genideal_self S'(1) a (1) in_carrier by (meson insert_subset subset_trans)
+    from \<open>a \<in> M\<close> and \<open>a \<notin> M\<close> show False by simp
+  qed
+  ultimately have "M = I" by simp
+  thus "\<exists>A \<subseteq> carrier R. finite A \<and> I = Idl A"
+    using S' in_carrier by blast
 qed
 
-lemma (in noetherian_domain) wfactors_exist:
+lemma (in noetherian_domain) factorization_property:
   assumes "a \<in> carrier R - { \<zero> }" "a \<notin> Units R"
   shows "\<exists>fs. set fs \<subseteq> carrier (mult_of R) \<and> wfactors (mult_of R) fs a" (is "?factorizable a")
 proof (rule ccontr)
@@ -708,7 +753,7 @@ qed
 sublocale principal_domain < mult_of: factorial_monoid "mult_of R"
   rewrites "mult (mult_of R) = mult R"
        and "one  (mult_of R) = one R"
-  using mult_of.wfactors_unique wfactors_exist mult_of.is_comm_monoid_cancel
+  using mult_of.wfactors_unique factorization_property mult_of.is_comm_monoid_cancel
   by (auto intro!: mult_of.factorial_monoidI)
 
 sublocale principal_domain \<subseteq> factorial_domain
