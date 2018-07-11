@@ -67,12 +67,17 @@ proof (rule subringI, auto simp add: assms subringE[of _ R])
     using assms subringE(1)[of _ R] by blast
 qed
 
-lemma (in subring) subring_is_ring:
-  assumes "ring R"
-  shows "ring (R \<lparr> carrier := H \<rparr>)"
-  apply unfold_locales
-  using assms subring_axioms submonoid.one_closed[OF subgroup_is_submonoid] subgroup_is_group
-  by (simp_all add: subringE ring.ring_simprules abelian_group.a_group group.Units_eq ring_def)
+(* NEW ======================= *)
+lemma (in ring) subring_is_ring:
+  assumes "subring H R" shows "ring (R \<lparr> carrier := H \<rparr>)"
+proof -
+  interpret group "add_monoid (R \<lparr> carrier := H \<rparr>)" + monoid "R \<lparr> carrier := H \<rparr>"
+    using subgroup.subgroup_is_group[OF subring.axioms(1) add.is_group] assms
+          submonoid.submonoid_is_monoid[OF subring.axioms(2) monoid_axioms] by auto
+  show ?thesis
+    using subringE(1)[OF assms]
+    by (unfold_locales, simp_all add: subringE(1)[OF assms] add.m_comm subset_eq l_distr r_distr)
+qed
 
 lemma (in ring) ring_incl_imp_subring:
   assumes "H \<subseteq> carrier R"
@@ -83,10 +88,11 @@ lemma (in ring) ring_incl_imp_subring:
         ring.axioms(1, 2)[OF assms(2)] abelian_group.a_group[of "R \<lparr> carrier := H \<rparr>"]
   unfolding subring_def by auto
 
+(* PROOF ====================== *)
 lemma (in ring) subring_iff:
   assumes "H \<subseteq> carrier R"
   shows "subring H R \<longleftrightarrow> ring (R \<lparr> carrier := H \<rparr>)"
-  using subring.subring_is_ring[OF _ ring_axioms] ring_incl_imp_subring[OF assms] by auto
+  using subring_is_ring ring_incl_imp_subring[OF assms] by auto
 
   
 subsubsection \<open>Subcrings\<close>
@@ -330,6 +336,23 @@ proof -
     using monoid.m_inv_monoid_consistent[OF monoid_axioms k K(2)] by auto
 qed
 
+lemma (in ring) subfield_m_inv_simprule:
+  assumes "subfield K R"
+  shows "\<lbrakk> k \<in> K - { \<zero> }; a \<in> carrier R \<rbrakk> \<Longrightarrow> k \<otimes> a \<in> K \<Longrightarrow> a \<in> K"
+proof -
+  note subring_props = subringE[OF subfieldE(1)[OF assms]]
+
+  assume A: "k \<in> K - { \<zero> }" "a \<in> carrier R" "k \<otimes> a \<in> K"
+  then obtain k' where k': "k' \<in> K" "k \<otimes> a = k'" by blast
+  have inv_k: "inv k \<in> K" "inv k \<otimes> k = \<one>"
+    using subfield_m_inv[OF assms A(1)] by auto
+  hence "inv k \<otimes> (k \<otimes> a) \<in> K"
+    using k' A(3) subring_props(6) by auto
+  thus "a \<in> K"
+    using m_assoc[of "inv k" k a] A(2) inv_k subring_props(1)
+    by (metis (no_types, hide_lams) A(1) Diff_iff l_one subsetCE)
+qed
+
 lemma (in ring) subfield_iff:
   shows "\<lbrakk> field (R \<lparr> carrier := K \<rparr>); K \<subseteq> carrier R \<rbrakk> \<Longrightarrow> subfield K R"
     and "subfield K R \<Longrightarrow> field (R \<lparr> carrier := K \<rparr>)"
@@ -365,12 +388,13 @@ qed
 
 subsection \<open>Subring Homomorphisms\<close>
 
+(* PROOF ====================== *)
 lemma (in ring) hom_imp_img_subring:
   assumes "h \<in> ring_hom R S" and "subring K R"
   shows "ring (S \<lparr> carrier := h ` K, one := h \<one>, zero := h \<zero> \<rparr>)"
 proof -
   have "ring (R \<lparr> carrier := K \<rparr>)"
-    using subring.subring_is_ring[OF assms(2) ring_axioms] by simp
+    using subring_is_ring[OF assms(2)] by simp
   moreover have "h \<in> ring_hom (R \<lparr> carrier := K \<rparr>) S"
     using assms subringE(1)[OF assms (2)] unfolding ring_hom_def
     apply simp
@@ -391,6 +415,7 @@ proof -
     using ring_incl_imp_subring by simp
 qed
 
+(* PROOF ====================== *)
 lemma (in ring_hom_ring) img_is_subfield:
   assumes "subfield K R" and "\<one>\<^bsub>S\<^esub> \<noteq> \<zero>\<^bsub>S\<^esub>"
   shows "inj_on h K" and "subfield (h ` K) S"
@@ -400,8 +425,8 @@ proof -
   have field: "field (R \<lparr> carrier := K \<rparr>)"
    and ring: "ring (R \<lparr> carrier := K \<rparr>)" "ring (S \<lparr> carrier := h ` K \<rparr>)"
     using R.subfield_iff assms(1)
-          subring.subring_is_ring[OF K(2) R.ring_axioms]
-          subring.subring_is_ring[OF K(3) S.ring_axioms] by auto
+          R.subring_is_ring[OF K(2)]
+          S.subring_is_ring[OF K(3)] by auto
 
   hence h: "h \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (S \<lparr> carrier := h ` K \<rparr>)"
     unfolding ring_hom_def apply auto
