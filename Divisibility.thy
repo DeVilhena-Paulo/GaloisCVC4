@@ -455,6 +455,13 @@ lemma (in comm_monoid) Units_Lower: "Units G = Lower (division_rel G) (carrier G
   apply (metis Unit_eq_dividesone Units_r_inv_ex m_ac(2) one_closed)
   done
 
+(* NEW ====================================================================== *)
+lemma (in monoid_cancel) associated_iff:
+  assumes "a \<in> carrier G" "b \<in> carrier G"
+  shows "a \<sim> b \<longleftrightarrow> (\<exists>c \<in> Units G. a = b \<otimes> c)"
+  using assms associatedI2' associatedD2 by auto
+(* ========================================================================== *)
+
 
 subsubsection \<open>Proper factors\<close>
 
