@@ -3,7 +3,7 @@
 *)
 
 theory Finite_Extensions
-  imports Embedded_Algebras More_Polynomials Polynomial_Divisibility
+  imports Embedded_Algebras Polynomials Polynomial_Divisibility
     
 begin
 

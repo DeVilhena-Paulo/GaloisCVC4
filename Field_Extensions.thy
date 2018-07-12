@@ -16,8 +16,8 @@ locale field_extension =
      and Sx : "Sx \<subseteq> carrier R""\<And>x. x \<in> Sx \<Longrightarrow> (algebraic over k) x""\<And> x. x \<in> Sx \<Longrightarrow> Irr k x \<in> Sp"
 
 lemma (in field_extension) Sp_in_univ_poly :
-  shows "Sp \<subseteq> carrier (univ_poly R)" using Sp
-  by (simp add: local.split_def subsetI univ_poly_def)
+  shows "Sp \<subseteq> carrier ((carrier R)[X])"
+  using Sp unfolding split_def univ_poly_carrier by auto
 
 definition (in ring) galoisian :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool"
   where "galoisian K k \<equiv> (subfield K R) \<and> (\<forall> x \<in> K. (algebraic over k) x \<and> (split K (Irr k x)))"

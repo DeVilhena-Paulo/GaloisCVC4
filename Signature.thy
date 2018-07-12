@@ -1,6 +1,6 @@
 
 theory Signature
-  imports Embedded_Algebras More_Polynomials Generated_Fields "HOL-Library.Multiset" Finite_Extensions
+  imports Embedded_Algebras Polynomials Generated_Fields "HOL-Library.Multiset" Finite_Extensions
 
 begin
 

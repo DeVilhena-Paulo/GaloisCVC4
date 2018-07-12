@@ -3,7 +3,7 @@
 *)
 
 theory Polynomial_Divisibility
-  imports More_Polynomials
+  imports Polynomials
     
 begin
 
