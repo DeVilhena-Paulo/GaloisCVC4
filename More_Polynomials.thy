@@ -1991,7 +1991,7 @@ proposition (in cring) eval_is_hom:
   using polynomial_in_carrier[OF assms(1)] eval_in_carrier
         eval_poly_add eval_poly_mult assms(2)
   by (auto intro!: ring_hom_memI
-         simp add: univ_poly_def
+         simp add: univ_poly_carrier
          simp del: poly_add.simps poly_mult.simps)
 
 theorem (in domain) eval_cring_hom:
@@ -2072,40 +2072,6 @@ proof -
   finally show ?thesis .
 qed
 
-(*
-lemma (in domain) var_rewrite:
-  assumes "subring K R" and "p \<in> carrier (K[X])"
-  shows "p = foldr (\<lambda>(a, n) l. ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> n)) \<oplus>\<^bsub>K[X]\<^esub> l) (dense_repr p) []"
-  using assms(2)
-proof (induct "length p" arbitrary: p rule: less_induct)
-  case less thus ?case
-  proof (cases p)
-    case Nil thus ?thesis by simp
-  next
-    case (Cons a l)
-    hence in_carrier:
-      "normalize l \<in> carrier (K[X])" "polynomial K (normalize l)" "polynomial K (a # l)"
-      using normalize_gives_polynomial polynomial_incl[of K p] less(2)
-      unfolding univ_poly_carrier by auto
-
-    have a: "a \<in> carrier R - { \<zero> }"
-      using less(2) subringE(1)[OF assms(1)] unfolding Cons univ_poly_def polynomial_def by auto 
-    hence "a # l = poly_add (monom a (length l)) (of_dense (dense_repr l))"
-      using monom_decomp[OF assms(1), of p] univ_poly_carrier less(2) unfolding Cons
-      by (auto simp del: poly_add.simps)
-    also have " ... = ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> (length l))) \<oplus>\<^bsub>K[X]\<^esub> (normalize l)"
-      unfolding univ_poly_add univ_poly_mult monom_eq_var_pow[OF assms(1) a]
-      using monom_decomp[OF assms(1) in_carrier(2)] dense_repr_normalize[of l] by simp
-    also have " ... = ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> (length l))) \<oplus>\<^bsub>K[X]\<^esub>
-                      (foldr (\<lambda>(a, n) l. ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> n)) \<oplus>\<^bsub>K[X]\<^esub> l) (dense_repr (normalize l)) [])"
-      using less(1)[OF _ in_carrier(1)] Cons normalize_length_le by (auto simp add: le_imp_less_Suc)
-    also have " ... = foldr (\<lambda>(a, n) l. ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> n)) \<oplus>\<^bsub>K[X]\<^esub> l) (dense_repr (a # l)) []"
-      using polynomial_dense_repr[OF in_carrier(3)] by simp
-    finally show ?thesis unfolding Cons .
-  qed
-qed
-*)
-
 lemma (in ring) dense_repr_set_fst:
   assumes "set p \<subseteq> K" shows "fst ` (set (dense_repr p)) \<subseteq> K - { \<zero> }"
   using assms by (induct p) (auto)
@@ -2120,7 +2086,7 @@ lemma (in domain) dense_repr_monom_closed:
   using dense_repr_set_fst[OF assms(2)] monom_is_polynomial[OF assms(1)]
   by (auto simp add: univ_poly_carrier)
 
-lemma (in domain) monom_decomp_finsum:
+lemma (in domain) monom_finsum_decomp:
   assumes "subring K R" "p \<in> carrier (K[X])"
   shows "p = (\<Oplus>\<^bsub>K[X]\<^esub> t \<in> set (dense_repr p). monom (fst t) (snd t))"
 proof -
@@ -2166,7 +2132,7 @@ proof -
   qed
 qed
 
-lemma (in domain) var_pow_decomp_finsum:
+lemma (in domain) var_pow_finsum_decomp:
   assumes "subring K R" "p \<in> carrier (K[X])"
   shows "p = (\<Oplus>\<^bsub>K[X]\<^esub> t \<in> set (dense_repr p). [ fst t ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> (snd t)))"
 proof -
@@ -2188,14 +2154,75 @@ proof -
     using monom_eq_var_pow[OF assms(1)] by auto
 
   ultimately show ?thesis
-    using UP.add.finprod_cong[of _ _ ?f ?g] monom_decomp_finsum[OF assms] by auto
+    using UP.add.finprod_cong[of _ _ ?f ?g] monom_finsum_decomp[OF assms] by auto
 qed
 
-corollary (in domain)
-  fixes A :: "('b, 'm) ring_scheme" (structure)
-  assumes "subring K R" and "p \<in> carrier (K[X])" "h \<in> ring_hom (K[X]) A"
+corollary (in domain) hom_var_pow_finsum:
+  assumes "subring K R" and "p \<in> carrier (K[X])" "ring_hom_ring (K[X]) A h"
   shows "h p = (\<Oplus>\<^bsub>A\<^esub> t \<in> set (dense_repr p). h [ fst t ] \<otimes>\<^bsub>A\<^esub> (h X [^]\<^bsub>A\<^esub> (snd t)))"
-  sorry
+proof -
+  let ?f = "\<lambda>t. [ fst t ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> (snd t))"
+  let ?g = "\<lambda>t. h [ fst t ] \<otimes>\<^bsub>A\<^esub> (h X [^]\<^bsub>A\<^esub> (snd t))"
+
+  interpret UP: domain "K[X]" + A: ring A
+    using univ_poly_is_domain[OF assms(1)] ring_hom_ring.axioms(2)[OF assms(3)] by simp+
+
+  have const_in_carrier:
+    "\<And>t. t \<in> set (dense_repr p) \<Longrightarrow> [ fst t ] \<in> carrier (K[X])"
+    using dense_repr_set_fst[OF polynomial_incl, of K p] assms(2) const_is_polynomial[of _ K]
+    by (auto simp add: univ_poly_carrier)
+  hence f: "?f: set (dense_repr p) \<rightarrow> carrier (K[X])"
+    using UP.m_closed[OF _ var_pow_closed[OF assms(1)]] by auto
+  hence h: "h \<circ> ?f: set (dense_repr p) \<rightarrow> carrier A"
+    using ring_hom_memE(1)[OF ring_hom_ring.homh[OF assms(3)]] by (auto simp add: Pi_def)
+
+  have hp: "h p = (\<Oplus>\<^bsub>A\<^esub> t \<in> set (dense_repr p). (h \<circ> ?f) t)"
+    using ring_hom_ring.hom_finsum[OF assms(3) f] var_pow_finsum_decomp[OF assms(1-2)]
+    by (auto, meson o_apply)
+  have eq: "\<And>t. t \<in> set (dense_repr p) \<Longrightarrow> h [ fst t ] \<otimes>\<^bsub>A\<^esub> (h X [^]\<^bsub>A\<^esub> (snd t)) = (h \<circ> ?f) t"
+    using ring_hom_memE(2)[OF ring_hom_ring.homh[OF assms(3)]
+          const_in_carrier var_pow_closed[OF assms(1)]]
+          ring_hom_ring.nat_pow_hom[OF assms(3) var_closed(1)[OF assms(1)]] by auto
+  show ?thesis
+    using A.add.finprod_cong'[OF _ h eq] hp by simp
+qed
+
+corollary (in domain) determination_of_hom:
+  assumes "subring K R"
+    and "ring_hom_ring (K[X]) A h" "ring_hom_ring (K[X]) A g"
+    and "\<And>k. k \<in> K \<Longrightarrow> h [ k ] = g [ k ]" and "h X = g X"
+  shows "\<And>p. p \<in> carrier (K[X]) \<Longrightarrow> h p = g p"
+proof -
+  interpret A: ring A
+    using ring_hom_ring.axioms(2)[OF assms(2)] by simp
+
+  fix p assume p: "p \<in> carrier (K[X])"
+  hence
+    "\<And>t. t \<in> set (dense_repr p) \<Longrightarrow> [ fst t ] \<in> carrier (K[X])"
+    using dense_repr_set_fst[OF polynomial_incl, of K p] const_is_polynomial[of _ K]
+    by (auto simp add: univ_poly_carrier)
+  hence f: "(\<lambda>t. h [ fst t ] \<otimes>\<^bsub>A\<^esub> (h X [^]\<^bsub>A\<^esub> (snd t))): set (dense_repr p) \<rightarrow> carrier A"
+    using ring_hom_memE(1)[OF ring_hom_ring.homh[OF assms(2)]] var_closed(1)[OF assms(1)]
+          A.m_closed[OF _ A.nat_pow_closed]
+    by auto
+
+  have eq: "\<And>t. t \<in> set (dense_repr p) \<Longrightarrow>
+    g [ fst t ] \<otimes>\<^bsub>A\<^esub> (g X [^]\<^bsub>A\<^esub> (snd t)) = h [ fst t ] \<otimes>\<^bsub>A\<^esub> (h X [^]\<^bsub>A\<^esub> (snd t))"
+    using dense_repr_set_fst[OF polynomial_incl, of K p] p assms(4-5)
+    by (auto simp add: univ_poly_carrier)
+  show "h p = g p"
+    unfolding assms(2-3)[THEN hom_var_pow_finsum[OF assms(1) p]]
+    using A.add.finprod_cong'[OF _ f eq] by simp
+qed
+
+corollary (in domain) eval_as_unique_hom:
+  assumes "subring K R" "x \<in> carrier R"
+    and "ring_hom_ring (K[X]) R h"
+    and "\<And>k. k \<in> K \<Longrightarrow> h [ k ] = k" and "h X = x"
+  shows "\<And>p. p \<in> carrier (K[X]) \<Longrightarrow> h p = eval p x"
+  using determination_of_hom[OF assms(1,3) eval_ring_hom[OF assms(1-2)]]
+        eval_var[OF assms(2)] assms(4-5) subringE(1)[OF assms(1)]
+  by fastforce
 
 
 subsection \<open>The Constant Term\<close>
