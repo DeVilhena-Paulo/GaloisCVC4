@@ -203,6 +203,12 @@ next
       show "x \<in> a_kernel R S h +> a" by (rule homeq_imp_rcos)
 qed
 
+(* NEW ========================================================================= *)
+lemma (in ring_hom_ring) nat_pow_hom:
+  "x \<in> carrier R \<Longrightarrow> h (x [^] (n :: nat)) = (h x) [^]\<^bsub>S\<^esub> n"
+  by (induct n) (auto)
+(* ============================================================================= *)
+
 (*contributed by Paulo Emílio de Vilhena*)
 lemma (in ring_hom_ring) inj_on_domain:
   assumes "inj_on h (carrier R)"
