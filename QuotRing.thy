@@ -317,6 +317,25 @@ lemma (in ring_hom_ring) trivial_ker_imp_inj:
   shows "inj_on h (carrier R)"
   using group_hom.trivial_ker_imp_inj[OF a_group_hom] assms a_kernel_def[of R S h] by simp 
 
+(* NEW ========================================================================== *)
+lemma (in ring_hom_ring) inj_iff_trivial_ker:
+  shows "inj_on h (carrier R) \<longleftrightarrow> a_kernel R S h = { \<zero> }"
+  using group_hom.inj_iff_trivial_ker[OF a_group_hom] a_kernel_def[of R S h] by simp
+
+(* NEW ========================================================================== *)
+corollary (in ring_hom_ring) set_add_hom:
+  assumes "I \<subseteq> carrier R" and "J \<subseteq> carrier R"
+  shows "h ` (I <+> J) = h ` I <+>\<^bsub>S\<^esub> h ` J"
+  using group_hom.set_mult_hom[OF a_group_hom] assms
+  unfolding a_kernel_def[of R S h] set_add_def by simp
+
+(* NEW ========================================================================== *)
+corollary (in ring_hom_ring) set_add_ker_hom:
+  assumes "I \<subseteq> carrier R"
+  shows "h ` (I <+> (a_kernel R S h)) = h ` I" and "h ` ((a_kernel R S h) <+> I) = h ` I"
+  using group_hom.set_mult_ker_hom[OF a_group_hom] assms
+  unfolding a_kernel_def[of R S h] set_add_def by simp+
+
 lemma (in ring_hom_ring) non_trivial_field_hom_imp_inj:
   assumes "field R"
   shows "h ` (carrier R) \<noteq> { \<zero>\<^bsub>S\<^esub> } \<Longrightarrow> inj_on h (carrier R)"

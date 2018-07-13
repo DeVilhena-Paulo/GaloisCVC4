@@ -448,4 +448,23 @@ proof -
     using S.subfield_iff[of "h ` K"] K(1) ring_hom_memE(1)[OF homh] by blast
 qed
 
+(* NEW ========================================================================== *)
+lemma (in ring_hom_ring) induced_ring_hom:
+  assumes "subring K R" shows "ring_hom_ring (R \<lparr> carrier := K \<rparr>) S h"
+proof -
+  have "h \<in> ring_hom (R \<lparr> carrier := K \<rparr>) S"
+    using homh subringE(1)[OF assms] unfolding ring_hom_def
+    by (auto, meson hom_mult hom_add subsetCE)+
+  thus ?thesis
+    using R.subring_is_ring[OF assms] ring_axioms
+    unfolding ring_hom_ring_def ring_hom_ring_axioms_def by auto
+qed
+
+(* NEW ========================================================================== *)
+lemma (in ring_hom_ring) inj_on_subgroup_iff_trivial_ker:
+  assumes "subring K R"
+  shows "inj_on h K \<longleftrightarrow> a_kernel (R \<lparr> carrier := K \<rparr>) S h = { \<zero> }"
+  using ring_hom_ring.inj_iff_trivial_ker[OF induced_ring_hom[OF assms]] by simp
+
+
 end
