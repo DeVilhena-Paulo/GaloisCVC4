@@ -1322,29 +1322,10 @@ lemma combine_hom:
 lemma line_extension_hom:
   assumes "K \<subseteq> carrier R" "a \<in> carrier R" "E \<subseteq> carrier R"
   shows "line_extension (h ` K) (h a) (h ` E) = h ` R.line_extension K a E"
-proof
-  show "S.line_extension (h ` K) (h a) (h ` E) \<subseteq> h ` R.line_extension K a E"
-  proof
-    fix u assume "u \<in> S.line_extension (h ` K) (h a) (h ` E)"
-    then obtain k v where u: "k \<in> K" "v \<in> E" "u = ((h k) \<otimes>\<^bsub>S\<^esub> (h a)) \<oplus>\<^bsub>S\<^esub> (h v)"
-      using S.line_extension_mem_iff by auto
-    hence "u = h ((k \<otimes> a) \<oplus> v)"
-      by (metis (no_types, lifting) assms R.m_closed hom_add hom_mult subsetCE)
-    thus "u \<in> h ` R.line_extension K a E"
-      using R.line_extension_mem_iff[of "(k \<otimes> a) \<oplus> v" K a E] u(1-2) by auto
-  qed
-next
-  show "h ` R.line_extension K a E \<subseteq> S.line_extension (h ` K) (h a) (h ` E)"
-  proof
-    fix u assume "u \<in> h ` R.line_extension K a E"
-    then obtain k v where u: "k \<in> K" "v \<in> E" "u =  h ((k \<otimes> a) \<oplus> v)"
-      using R.line_extension_mem_iff by auto
-    hence "u = ((h k) \<otimes>\<^bsub>S\<^esub> (h a)) \<oplus>\<^bsub>S\<^esub> (h v)"
-      by (metis (no_types, lifting) assms R.m_closed hom_add hom_mult subsetCE)
-    thus "u \<in> S.line_extension (h ` K) (h a) (h ` E)"
-      using S.line_extension_mem_iff u(1-2) by auto
-  qed
-qed
+  using set_add_hom[OF homh R.r_coset_subset_G[OF assms(1-2)] assms(3)]
+        coset_hom(2)[OF ring_hom_in_hom(1)[OF homh] assms(1-2)]
+  unfolding R.line_extension_def S.line_extension_def
+  by simp
 
 lemma Span_hom:
   assumes "K \<subseteq> carrier R" "set Us \<subseteq> carrier R"
@@ -1445,7 +1426,7 @@ proof -
   have "h ` E = h ` (R.Span K Vs <+>\<^bsub>R\<^esub> R.Span K Us)"
     using R.Span_append_eq_set_add[OF K set_Vs Us(1)] Vs(3) by simp
   hence "h ` E = h ` (R.Span K Vs) <+>\<^bsub>S\<^esub> h ` (R.Span K Us)"
-    using R.Span_subgroup_props(1)[OF K] set_Vs Us(1) set_add_hom by auto
+    using R.Span_subgroup_props(1)[OF K] set_Vs Us(1) set_add_hom[OF homh] by auto
   moreover have "h ` (R.Span K Us) = { \<zero>\<^bsub>S\<^esub> }"
     using R.space_subgroup_props(2)[OF K assms(1)] unfolding Us(4) a_kernel_def' by force
   ultimately have "h ` E = h ` (R.Span K Vs) <+>\<^bsub>S\<^esub> { \<zero>\<^bsub>S\<^esub> }"
@@ -1461,18 +1442,3 @@ end
 end
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
