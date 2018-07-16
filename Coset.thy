@@ -1105,38 +1105,38 @@ lemma (in group_hom) inj_on_subgroup_iff_trivial_ker:
   using group_hom.inj_iff_trivial_ker[OF induced_group_hom[OF assms]] by simp
 
 (* NEW ========================================================================== *)
-lemma (in group_hom) set_mult_hom:
-  assumes "I \<subseteq> carrier G" and "J \<subseteq> carrier G"
-  shows "h ` (I <#> J) = (h ` I) <#>\<^bsub>H\<^esub> (h ` J)"
+lemma set_mult_hom:
+  assumes "h \<in> hom G H" "I \<subseteq> carrier G" and "J \<subseteq> carrier G"
+  shows "h ` (I <#>\<^bsub>G\<^esub> J) = (h ` I) <#>\<^bsub>H\<^esub> (h ` J)"
 proof
-  show "h ` (I <#> J) \<subseteq> (h ` I) <#>\<^bsub>H\<^esub> (h ` J)"
+  show "h ` (I <#>\<^bsub>G\<^esub> J) \<subseteq> (h ` I) <#>\<^bsub>H\<^esub> (h ` J)"
   proof
-    fix a assume "a \<in> h ` (I <#> J)"
-    then obtain i j where i: "i \<in> I" and j: "j \<in> J" and "a = h (i \<otimes> j)"
+    fix a assume "a \<in> h ` (I <#>\<^bsub>G\<^esub> J)"
+    then obtain i j where i: "i \<in> I" and j: "j \<in> J" and "a = h (i \<otimes>\<^bsub>G\<^esub> j)"
       unfolding set_mult_def by auto
     hence "a = (h i) \<otimes>\<^bsub>H\<^esub> (h j)"
-      using assms hom_mult by blast
+      using assms unfolding hom_def by blast
     thus "a \<in> (h ` I) <#>\<^bsub>H\<^esub> (h ` J)"
       using i and j unfolding set_mult_def by auto
   qed
 next
-  show "(h ` I) <#>\<^bsub>H\<^esub> (h ` J) \<subseteq> h ` (I <#> J)"
+  show "(h ` I) <#>\<^bsub>H\<^esub> (h ` J) \<subseteq> h ` (I <#>\<^bsub>G\<^esub> J)"
   proof
     fix a assume "a \<in> (h ` I) <#>\<^bsub>H\<^esub> (h ` J)"
     then obtain i j where i: "i \<in> I" and j: "j \<in> J" and "a = (h i) \<otimes>\<^bsub>H\<^esub> (h j)"
       unfolding set_mult_def by auto
-    hence "a = h (i \<otimes> j)"
-      using assms hom_mult[of i j] by force
-    thus "a \<in> h ` (I <#> J)"
+    hence "a = h (i \<otimes>\<^bsub>G\<^esub> j)"
+      using assms unfolding hom_def by fastforce
+    thus "a \<in> h ` (I <#>\<^bsub>G\<^esub> J)"
       using i and j unfolding set_mult_def by auto
   qed
 qed
 
 (* NEW ========================================================================== *)
-corollary (in group_hom) coset_hom:
-  assumes "I \<subseteq> carrier G" "a \<in> carrier G"
-  shows "h ` (a <# I) = h a <#\<^bsub>H\<^esub> (h ` I)" and "h ` (I #> a) = (h ` I) #>\<^bsub>H\<^esub> h a"
-  unfolding l_coset_eq_set_mult r_coset_eq_set_mult using assms set_mult_hom by auto
+corollary coset_hom:
+  assumes "h \<in> hom G H" "I \<subseteq> carrier G" "a \<in> carrier G"
+  shows "h ` (a <#\<^bsub>G\<^esub> I) = h a <#\<^bsub>H\<^esub> (h ` I)" and "h ` (I #>\<^bsub>G\<^esub> a) = (h ` I) #>\<^bsub>H\<^esub> h a"
+  unfolding l_coset_eq_set_mult r_coset_eq_set_mult using assms set_mult_hom[OF assms(1)] by auto
 
 (* NEW ========================================================================== *)
 corollary (in group_hom) set_mult_ker_hom:
@@ -1153,7 +1153,7 @@ proof -
   hence "(h ` I) <#>\<^bsub>H\<^esub> { \<one>\<^bsub>H\<^esub> } = h ` I" and "{ \<one>\<^bsub>H\<^esub> } <#>\<^bsub>H\<^esub> (h ` I) = h ` I"
     unfolding set_mult_def by force+
   ultimately show "h ` (I <#> (kernel G H h)) = h ` I" and "h ` ((kernel G H h) <#> I) = h ` I"
-    using set_mult_hom[OF assms ker_in_carrier] set_mult_hom[OF ker_in_carrier assms] by simp+
+    using set_mult_hom[OF homh assms ker_in_carrier] set_mult_hom[OF homh ker_in_carrier assms] by simp+
 qed
 
 

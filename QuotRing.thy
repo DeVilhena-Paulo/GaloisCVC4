@@ -323,11 +323,25 @@ lemma (in ring_hom_ring) inj_iff_trivial_ker:
   using group_hom.inj_iff_trivial_ker[OF a_group_hom] a_kernel_def[of R S h] by simp
 
 (* NEW ========================================================================== *)
-corollary (in ring_hom_ring) set_add_hom:
-  assumes "I \<subseteq> carrier R" and "J \<subseteq> carrier R"
-  shows "h ` (I <+> J) = h ` I <+>\<^bsub>S\<^esub> h ` J"
-  using group_hom.set_mult_hom[OF a_group_hom] assms
+corollary ring_hom_in_hom:
+  assumes "h \<in> ring_hom R S" shows "h \<in> hom R S" and "h \<in> hom (add_monoid R) (add_monoid S)"
+  using assms unfolding ring_hom_def hom_def by auto 
+
+(* NEW ========================================================================== *)
+corollary set_add_hom:
+  assumes "h \<in> ring_hom R S" "I \<subseteq> carrier R" and "J \<subseteq> carrier R"
+  shows "h ` (I <+>\<^bsub>R\<^esub> J) = h ` I <+>\<^bsub>S\<^esub> h ` J"
+  using set_mult_hom[OF ring_hom_in_hom(2)[OF assms(1)]] assms(2-3)
   unfolding a_kernel_def[of R S h] set_add_def by simp
+
+(* NEW ========================================================================== *)
+corollary a_coset_hom:
+  assumes "h \<in> ring_hom R S" "I \<subseteq> carrier R" "a \<in> carrier R"
+  shows "h ` (a <+\<^bsub>R\<^esub> I) = h a <+\<^bsub>S\<^esub> (h ` I)" and "h ` (I +>\<^bsub>R\<^esub> a) = (h ` I) +>\<^bsub>S\<^esub> h a"
+  using assms coset_hom[OF ring_hom_in_hom(2)[OF assms(1)], of I a]
+  unfolding a_l_coset_def l_coset_eq_set_mult
+            a_r_coset_def r_coset_eq_set_mult
+  by simp_all
 
 (* NEW ========================================================================== *)
 corollary (in ring_hom_ring) set_add_ker_hom:
