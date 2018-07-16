@@ -20,6 +20,9 @@ abbreviation pprime :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a list \<Rightarro
 definition pdivides :: "_ \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" (infix "pdivides\<index>" 65)
   where "p pdivides\<^bsub>R\<^esub> q \<equiv> p divides\<^bsub>(univ_poly R (carrier R))\<^esub> q"
 
+definition rupture :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a list \<Rightarrow> (('a list) set) ring" ("Rupt\<index>")
+  where "Rupt\<^bsub>R\<^esub> K p = (K[X]\<^bsub>R\<^esub>) Quot (PIdl\<^bsub>K[X]\<^bsub>R\<^esub>\<^esub> p)"
+
 
 subsection \<open>Basic Properties\<close>
 
@@ -44,28 +47,32 @@ lemma (in domain) pirreducibleI:
   using domain.ring_irreducibleI[OF univ_poly_is_domain[OF assms(1)] _ assms(4)] assms(2-3,5)
   by (auto simp add: univ_poly_zero)
 
+lemma (in domain) univ_poly_carrier_units_incl:
+  shows "Units ((carrier R) [X]) \<subseteq> { [ k ] | k. k \<in> carrier R - { \<zero> } }"
+proof
+  fix p assume "p \<in> Units ((carrier R) [X])"
+  then obtain q
+    where p: "polynomial (carrier R) p" and q: "polynomial (carrier R) q" and pq: "poly_mult p q = [ \<one> ]"
+    unfolding Units_def univ_poly_def by auto
+  hence not_nil: "p \<noteq> []" and "q \<noteq> []"
+    using poly_mult_integral[OF carrier_is_subring p q] poly_mult_zero[OF polynomial_incl[OF p]] by auto
+  hence "degree p = 0"
+    using poly_mult_degree_eq[OF carrier_is_subring p q] unfolding pq by simp
+  hence "length p = 1"
+    using not_nil by (metis One_nat_def Suc_pred length_greater_0_conv)
+  then obtain k where k: "p = [ k ]"
+    by (metis One_nat_def length_0_conv length_Suc_conv)
+  hence "k \<in> carrier R - { \<zero> }"
+    using p unfolding polynomial_def by auto 
+  thus "p \<in> { [ k ] | k. k \<in> carrier R - { \<zero> } }"
+    unfolding k by blast
+qed
+
 lemma (in field) univ_poly_carrier_units:
   "Units ((carrier R) [X]) = { [ k ] | k. k \<in> carrier R - { \<zero> } }"
 proof
   show "Units ((carrier R) [X]) \<subseteq> { [ k ] | k. k \<in> carrier R - { \<zero> } }"
-  proof
-    fix p assume "p \<in> Units ((carrier R) [X])"
-    then obtain q
-      where p: "polynomial (carrier R) p" and q: "polynomial (carrier R) q" and pq: "poly_mult p q = [ \<one> ]"
-      unfolding Units_def univ_poly_def by auto
-    hence not_nil: "p \<noteq> []" and "q \<noteq> []"
-      using poly_mult_integral[OF carrier_is_subring p q] poly_mult_zero[OF polynomial_incl[OF p]] by auto
-    hence "degree p = 0"
-      using poly_mult_degree_eq[OF carrier_is_subring p q] unfolding pq by simp
-    hence "length p = 1"
-      using not_nil by (metis One_nat_def Suc_pred length_greater_0_conv)
-    then obtain k where k: "p = [ k ]"
-      by (metis One_nat_def length_0_conv length_Suc_conv)
-    hence "k \<in> carrier R - { \<zero> }"
-      using p unfolding polynomial_def by auto 
-    thus "p \<in> { [ k ] | k. k \<in> carrier R - { \<zero> } }"
-      unfolding k by blast
-  qed
+    using univ_poly_carrier_units_incl by simp
 next
   show "{ [ k ] | k. k \<in> carrier R - { \<zero> } } \<subseteq> Units ((carrier R) [X])"
   proof (auto)
@@ -80,6 +87,11 @@ next
       unfolding Units_def univ_poly_def by (auto simp del: poly_mult.simps)
   qed
 qed
+
+lemma (in domain) univ_poly_units_incl:
+  assumes "subring K R" shows "Units (K[X]) \<subseteq> { [ k ] | k. k \<in> K - { \<zero> } }"
+  using domain.univ_poly_carrier_units_incl[OF subring_is_domain[OF assms]]
+        univ_poly_consistent[OF assms] by auto
 
 lemma (in ring) univ_poly_units:
   assumes "subfield K R" shows "Units (K[X]) = { [ k ] | k. k \<in> K - { \<zero> } }"
@@ -103,54 +115,51 @@ proof (rule ccontr)
   from \<open>p \<in> Units (K[X])\<close> and \<open>p \<notin> Units (K[X])\<close> show False by simp
 qed
 
-corollary (in ring) univ_poly_not_field:
-  assumes "subfield K R" shows "\<not> field (K[X])"
+corollary (in domain) univ_poly_not_field:
+  assumes "subring K R" shows "\<not> field (K[X])"
 proof -
-  have "[ \<one>, \<zero> ] \<in> carrier (K[X]) - { \<zero>\<^bsub>(K[X])\<^esub> }"
-   and "[ \<one>, \<zero> ] \<notin> { [ k ] | k. k \<in> K - { \<zero> } }"
-    using subringE(2-3)[of K] subfieldE(1,6)[OF assms(1)]
-    unfolding univ_poly_def polynomial_def by auto 
+  have "X \<in> carrier (K[X]) - { \<zero>\<^bsub>(K[X])\<^esub> }" and "X \<notin> { [ k ] | k. k \<in> K - { \<zero> } }"
+    using var_closed(1)[OF assms] unfolding univ_poly_zero var_def by auto 
   thus ?thesis
-    using field.field_Units[of "K[X]"]
-    unfolding univ_poly_units[OF assms] by blast
+    using field.field_Units[of "K[X]"] univ_poly_units_incl[OF assms] by blast 
 qed
 
 lemma (in domain) rupture_is_field_iff_pirreducible:
   assumes "subfield K R" "p \<in> carrier (K[X])"
-  shows "field ((K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p)) \<longleftrightarrow> pirreducible K p"
+  shows "field (Rupt K p) \<longleftrightarrow> pirreducible K p"
 proof
-  assume "pirreducible K p" thus "field ((K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p))"
+  assume "pirreducible K p" thus "field (Rupt K p)"
     using principal_domain.field_iff_prime[OF univ_poly_is_principal[OF assms(1)]] assms(2)
           pprime_iff_pirreducible[OF assms] pirreducibleE(1)[OF subfieldE(1)[OF assms(1)]]
-    by (simp add: univ_poly_zero)
+    by (simp add: univ_poly_zero rupture_def)
 next
   interpret UP: principal_domain "K[X]"
     using univ_poly_is_principal[OF assms(1)] .
 
-  assume field: "field ((K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p))"
+  assume field: "field (Rupt K p)"
   have "p \<noteq> []"
   proof (rule ccontr)
     assume "\<not> p \<noteq> []" then have p: "p = []"
       by simp
-    hence "(K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p) \<simeq> (K[X])"
+    hence "Rupt K p \<simeq> (K[X])"
       using UP.FactRing_zeroideal(1) UP.genideal_zero
             UP.cgenideal_eq_genideal[OF UP.zero_closed]
-      by (simp add: univ_poly_zero)
-    then obtain h where h: "h \<in> ring_iso ((K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p)) (K[X])"
+      by (simp add: rupture_def univ_poly_zero)
+    then obtain h where h: "h \<in> ring_iso (Rupt K p) (K[X])"
       unfolding is_ring_iso_def by blast
-    moreover have "ring ((K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p))"
+    moreover have "ring (Rupt K p)"
       using field by (simp add: cring_def domain_def field_def) 
-    ultimately interpret R: ring_hom_ring "(K[X]) Quot (PIdl\<^bsub>K[X]\<^esub> p)" "K[X]" h
+    ultimately interpret R: ring_hom_ring "Rupt K p" "K[X]" h
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def ring_iso_def
       using UP.is_ring by simp
     have "field (K[X])"
       using field.ring_iso_imp_img_field[OF field h] by simp
     thus False
-      using univ_poly_not_field[OF assms(1)] by simp
+      using univ_poly_not_field[OF subfieldE(1)[OF assms(1)]] by simp
   qed
   thus "pirreducible K p"
     using UP.field_iff_prime pprime_iff_pirreducible[OF assms] assms(2) field
-    by (simp add: univ_poly_zero)
+    by (simp add: univ_poly_zero rupture_def)
 qed
 
 
@@ -327,6 +336,21 @@ lemma (in domain) pdivides_iff_shell:
   assumes "subfield K R" and "p \<in> carrier (K[X])" "q \<in> carrier (K[X])"
   shows "p pdivides q \<longleftrightarrow> p divides\<^bsub>K[X]\<^esub> q"
   using pdivides_iff assms by (simp add: univ_poly_carrier)
+
+lemma (in domain) pdivides_imp_degree_le:
+  assumes "subring K R" and "p \<in> carrier (K[X])" "q \<in> carrier (K[X])" "q \<noteq> []"
+  shows "p pdivides q \<Longrightarrow> degree p \<le> degree q"
+proof -
+  assume "p pdivides q"
+  then obtain r where r: "polynomial (carrier R) r" "q = poly_mult p r"
+    unfolding pdivides_def factor_def univ_poly_mult univ_poly_carrier by blast
+  moreover have p: "polynomial (carrier R) p"
+    using assms(2) carrier_polynomial[OF assms(1)] unfolding univ_poly_carrier by auto
+  moreover have "p \<noteq> []" and "r \<noteq> []"
+    using poly_mult_zero(2)[OF polynomial_incl[OF p]] r(2) assms(4) by auto 
+  ultimately show "degree p \<le> degree q"
+    using poly_mult_degree_eq[OF carrier_is_subring, of p r] by auto
+qed
 
 lemma (in domain) pprimeE:
   assumes "subfield K R" "p \<in> carrier (K[X])" "pprime K p"
@@ -513,13 +537,5 @@ proof -
     using UP.ring_associated_iff[OF in_carrier assms(2)] r(2) UP.associated_sym
     unfolding UP.m_comm[OF assms(2) r(1)] by auto
 qed
-
-(*
-text \<open>We don't suppose that x is algebraic, because, in our definition, [] is pirreducible.\<close>
-proposition (in field) exists_ker_generator_pirreducible:
-  assumes "x \<in> carrier R - { \<zero> }"
-  shows "\<exists>p \<in> carrier (K[X]). pirreducible K p \<and> a_kernel (K[X]) R (\<lambda>p. eval p x) = PIdl\<^bsub>K[X]\<^esub> p"
-  sorry
-*)
 
 end
