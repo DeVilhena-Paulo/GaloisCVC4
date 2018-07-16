@@ -223,6 +223,11 @@ next
     unfolding subdomain_axioms_def by auto
 qed
 
+(* NEW ====================== *)
+lemma (in domain) subring_is_domain:
+  assumes "subring H R" shows "domain (R \<lparr> carrier := H \<rparr>)"
+  using subdomainI'[OF assms] unfolding subdomain_iff[OF subringE(1)[OF assms]] .
+
 
 subsubsection \<open>Subfields\<close>
 
@@ -374,7 +379,7 @@ next
     using cring.cring_fieldI[OF cring] subfield.subfield_Units[OF A] by simp
 qed
 
-lemma (in field) subgroup_mult_of :
+lemma (in field) subgroup_mult_of:
   assumes "subfield K R"
   shows "subgroup (K - {\<zero>}) (mult_of R)"
 proof (intro group.group_incl_imp_subgroup[OF field_mult_group])
