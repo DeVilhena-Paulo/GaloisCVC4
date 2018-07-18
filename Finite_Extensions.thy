@@ -17,9 +17,6 @@ definition (in ring) transcendental :: "'a set \<Rightarrow> 'a \<Rightarrow> bo
 abbreviation (in ring) algebraic :: "'a set \<Rightarrow> 'a \<Rightarrow> bool"
   where "algebraic K x \<equiv> \<not> transcendental K x"
 
-definition (in ring) algebraic_set :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool"
-  where "algebraic_set K A \<longleftrightarrow> (\<forall>x \<in> A. (algebraic over K) x)"
-
 definition (in ring) Irr :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a list"
   where "Irr K x = (THE p. p \<in> carrier (K[X]) \<and> pirreducible K p \<and> eval p x = \<zero> \<and> lead_coeff p = \<one>)"
 
@@ -397,12 +394,187 @@ next
     using simple_extension_subfield_imp_algebraic[OF subfieldE(1)[OF assms(1)] assms(2)] by simp
 qed
 
-(*
-corollary (in domain)
+
+subsection \<open>Link between dimension of K-algebras and algebraic extensions\<close>
+
+abbreviation (in ring) exp_base :: "'a \<Rightarrow> nat \<Rightarrow> 'a list"
+  where "exp_base x n \<equiv> map (\<lambda>i. x [^] i) (rev [0..< n])"
+
+lemma (in ring) exp_base_closed:
+  assumes "x \<in> carrier R" shows "set (exp_base x n) \<subseteq> carrier R"
+  using assms by (induct n) (auto)
+
+lemma (in ring) exp_base_append:
+  shows "exp_base x (n + m) = (map (\<lambda>i. x [^] i) (rev [n..< n + m])) @ exp_base x n"
+  by (metis map_append rev_append upt_add_eq_append zero_le)
+
+lemma (in ring) drop_exp_base:
+  shows "drop n (exp_base x m) = exp_base x (m - n)"
+proof -
+  have ?thesis if "n > m"
+    using that by simp
+  moreover have ?thesis if "n \<le> m"
+    using exp_base_append[of x "m - n" n] that by auto
+  ultimately show ?thesis
+    by linarith 
+qed
+
+lemma (in ring) combine_eq_eval:
+  shows "combine Ks (exp_base x (length Ks)) = eval Ks x"
+  by (induct Ks) (auto)
+
+lemma (in domain) exp_base_independent:
+  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
+  shows "independent K (exp_base x (degree (Irr K x)))"
+proof -
+  have "\<And>n. n \<le> degree (Irr K x) \<Longrightarrow> independent K (exp_base x n)"
+  proof -
+    fix n show "n \<le> degree (Irr K x) \<Longrightarrow> independent K (exp_base x n)"
+    proof (induct n, simp)
+      case (Suc n)
+      have "x [^] n \<notin> Span K (exp_base x n)"
+      proof (rule ccontr)
+        assume "\<not> x [^] n \<notin> Span K (exp_base x n)"
+        then obtain a Ks
+          where Ks: "a \<in> K - { \<zero> }" "set Ks \<subseteq> K" "length Ks = n" "combine (a # Ks) (exp_base x (Suc n)) = \<zero>"
+          using Span_mem_imp_non_trivial_combine[OF assms(1) exp_base_closed[OF assms(2), of n]] by auto
+        hence "eval (a # Ks) x = \<zero>"
+          using combine_eq_eval by auto
+        moreover have "(a # Ks) \<in> carrier (K[X]) - { [] }"
+          unfolding univ_poly_def polynomial_def using Ks(1-2) by auto
+        ultimately have "degree (Irr K x) \<le> n"
+          using pdivides_imp_degree_le[OF subfieldE(1)[OF assms(1)]
+                IrrE(1)[OF assms] _ _  Irr_minimal[OF assms, of "a # Ks"]] Ks(3) by auto
+        from \<open>Suc n \<le> degree (Irr K x)\<close> and this show False by simp
+      qed
+      thus ?case
+        using independent.li_Cons assms(2) Suc by auto
+    qed
+  qed
+  thus ?thesis
+    by simp
+qed
+
+lemma (in ring) Span_eq_eval_img:
   assumes "subfield K R" "x \<in> carrier R"
-  shows "dimension (degree (Irr K x)) K (simple_extension K x) \<longleftrightarrow> (algebraic over K) x"
-  sorry
-*)
+  shows "Span K (exp_base x n) = (\<lambda>p. eval p x) ` { p \<in> carrier (K[X]). length p \<le> n }"
+    (is "?Span = ?eval_img")
+proof
+  show "?Span \<subseteq> ?eval_img"
+  proof
+    fix u assume "u \<in> Span K (exp_base x n)"
+    then obtain Ks where Ks: "set Ks \<subseteq> K" "length Ks = n" "u = combine Ks (exp_base x n)"
+      using Span_eq_combine_set_length_version[OF assms(1) exp_base_closed[OF assms(2)]] by auto
+    hence "u = eval (normalize Ks) x"
+      using combine_eq_eval eval_normalize[OF _ assms(2)] subfieldE(3)[OF assms(1)] by auto
+    moreover have "normalize Ks \<in> carrier (K[X])"
+      using normalize_gives_polynomial[OF Ks(1)] unfolding univ_poly_def by auto
+    moreover have "length (normalize Ks) \<le> n"
+      using normalize_length_le[of Ks] Ks(2) by auto
+    ultimately show "u \<in> ?eval_img" by auto
+  qed
+next
+  show "?eval_img \<subseteq> ?Span"
+  proof
+    fix u assume "u \<in> ?eval_img"
+    then obtain p where p: "p \<in> carrier (K[X])" "length p \<le> n" "u = eval p x"
+      by blast
+    hence "combine p (exp_base x (length p)) = u"
+      using combine_eq_eval by auto
+    moreover have set_p: "set p \<subseteq> K"
+      using polynomial_incl[of K p] p(1) unfolding univ_poly_carrier by auto
+    hence "set p \<subseteq> carrier R"
+      using subfieldE(3)[OF assms(1)] by auto 
+    moreover have "drop (n - length p) (exp_base x n) = exp_base x (length p)"
+      using p(2) drop_exp_base by auto
+    ultimately have "combine ((replicate (n - length p) \<zero>) @ p) (exp_base x n) = u"
+      using combine_prepend_replicate[OF _ exp_base_closed[OF assms(2), of n]] by auto
+    moreover have "set ((replicate (n - length p) \<zero>) @ p) \<subseteq> K"
+      using subringE(2)[OF subfieldE(1)[OF assms(1)]] set_p by auto
+    ultimately show "u \<in> ?Span"
+      using Span_eq_combine_set[OF assms(1) exp_base_closed[OF assms(2), of n]] by blast
+  qed
+qed
+
+lemma (in domain) Span_exp_base:
+  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
+  shows "Span K (exp_base x (degree (Irr K x))) = simple_extension K x"
+  unfolding simple_extension_as_eval_img[OF subfieldE(3)[OF assms(1)] assms(2)]
+            Span_eq_eval_img[OF assms(1-2)]
+proof (auto)
+  interpret UP: principal_domain "K[X]"
+    using univ_poly_is_principal[OF assms(1)] .
+  note hom_simps = ring_hom_memE[OF eval_is_hom[OF subfieldE(1)[OF assms(1)] assms(2)]]
+
+  fix p assume p: "p \<in> carrier (K[X])"
+  have Irr: "Irr K x \<in> carrier (K[X])" "Irr K x \<noteq> []"
+    using IrrE(1-2)[OF assms] unfolding ring_irreducible_def univ_poly_zero by auto 
+  then obtain q r
+    where q: "q \<in> carrier (K[X])" and r: "r \<in> carrier (K[X])"
+      and dvd: "p = Irr K x \<otimes>\<^bsub>K [X]\<^esub> q \<oplus>\<^bsub>K [X]\<^esub> r" "r = [] \<or> degree r < degree (Irr K x)"
+    using subfield_long_division_theorem_shell[OF assms(1) p Irr(1)] unfolding univ_poly_zero by auto
+  hence "eval p x = (eval (Irr K x) x) \<otimes> (eval q x) \<oplus> (eval r x)"
+    using hom_simps(2-3) Irr(1) by simp
+  hence "eval p x = eval r x"
+    using hom_simps(1) q r unfolding IrrE(4)[OF assms] by simp
+  moreover have "length r < length (Irr K x)"
+    using dvd(2) Irr(2) by auto
+  ultimately
+  show "eval p x \<in> (\<lambda>p. local.eval p x) ` { p \<in> carrier (K [X]). length p \<le> length (Irr K x) - Suc 0 }"
+    using r by auto
+qed
+
+lemma (in ring) finite_dimension_imp_algebraic:
+  assumes "subfield K R" "subring F R" and "finite_dimension K F"
+  shows "x \<in> F \<Longrightarrow> (algebraic over K) x"
+proof -
+  let ?Us = "\<lambda>n. map (\<lambda>i. x [^] i) (rev [0..< Suc n])"
+
+  assume x: "x \<in> F" then have in_carrier: "x \<in> carrier R"
+    using subringE[OF assms(2)] by auto
+  obtain n where n: "dimension n K F"
+    using assms(3) by auto
+  have set_Us: "set (?Us n) \<subseteq> F"
+    using x subringE(3,6)[OF assms(2)] by (induct n) (auto)
+  hence "set (?Us n) \<subseteq> carrier R"
+    using subringE(1)[OF assms(2)] by auto
+  moreover have "dependent K (?Us n)"
+    using independent_length_le_dimension[OF assms(1) n _ set_Us] by auto
+  ultimately
+  obtain Ks where Ks: "length Ks = Suc n" "combine Ks (?Us n) = \<zero>" "set Ks \<subseteq> K" "set Ks \<noteq> { \<zero> }"
+    using dependent_imp_non_trivial_combine[OF assms(1), of "?Us n"] by auto
+  have "set Ks \<subseteq> carrier R"
+    using subring_props(1)[OF assms(1)] Ks(3) by auto 
+  hence "eval (normalize Ks) x = \<zero>"
+    using combine_eq_eval[of Ks] eval_normalize[OF _ in_carrier] Ks(1-2) by simp
+  moreover have "normalize Ks = [] \<Longrightarrow> set Ks \<subseteq> { \<zero> }"
+    by (induct Ks) (auto, meson list.discI,
+                    metis all_not_in_conv list.discI list.sel(3) singletonD subset_singletonD)
+  hence "normalize Ks \<noteq> []"
+    using Ks(1,4) by (metis list.size(3) nat.distinct(1) set_empty subset_singleton_iff)
+  moreover have "normalize Ks \<in> carrier (K[X])"
+    using normalize_gives_polynomial[OF Ks(3)] unfolding univ_poly_def by auto
+  ultimately show ?thesis
+    using algebraicI by auto
+qed
+
+lemma (in domain) dimension_simple_extension:
+  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
+  shows "dimension (degree (Irr K x)) K (simple_extension K x)"
+  using dimension_independent[OF exp_base_independent[OF assms]] Span_exp_base[OF assms] by simp
+
+corollary (in domain) simple_extension_dim:
+  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
+  shows "(dim over K) (simple_extension K x) = degree (Irr K x)"
+  using dimI[OF assms(1) dimension_simple_extension[OF assms]] .
+
+corollary (in domain) finite_dimension_simple_extension:
+  assumes "subfield K R" "x \<in> carrier R"
+  shows "finite_dimension K (simple_extension K x) \<longleftrightarrow> (algebraic over K) x"
+  using finite_dimensionI[OF dimension_simple_extension[OF assms]]
+        finite_dimension_imp_algebraic[OF _ simple_extension_is_subring[OF subfieldE(1)]]
+        simple_extension_mem[OF subfieldE(1)] assms
+  by auto
 
 
 subsection \<open>Finite Extensions\<close>
@@ -478,6 +650,92 @@ corollary (in domain) finite_extension_same_set:
   shows "finite_extension K xs = finite_extension K ys"
   using finite_extension_minimal[OF assms(1)] assms(2-3) by auto
 
+text \<open>The reciprocal is also true, but it is more subtle.\<close>
+proposition (in domain) finite_extension_is_subfield:
+  assumes "subfield K R" "set xs \<subseteq> carrier R"
+  shows "(\<And>x. x \<in> set xs \<Longrightarrow> (algebraic over K) x) \<Longrightarrow> subfield (finite_extension K xs) R"
+  using simple_extension_is_subfield algebraic_mono assms
+  by (induct xs) (auto, metis finite_extension.simps finite_extension_incl subring_props(1))
+
+proposition (in domain) finite_extension_finite_dimension:
+  assumes "subfield K R" "set xs \<subseteq> carrier R"
+  shows "(\<And>x. x \<in> set xs \<Longrightarrow> (algebraic over K) x) \<Longrightarrow> finite_dimension K (finite_extension K xs)"
+    and "finite_dimension K (finite_extension K xs) \<Longrightarrow> (\<And>x. x \<in> set xs \<Longrightarrow> (algebraic over K) x)"
+proof -
+  show "finite_dimension K (finite_extension K xs) \<Longrightarrow> (\<And>x. x \<in> set xs \<Longrightarrow> (algebraic over K) x)"
+    using finite_dimension_imp_algebraic[OF assms(1)
+          finite_extension_is_subring[OF subfieldE(1)[OF assms(1)] assms(2)]]
+          finite_extension_mem[OF subfieldE(1)[OF assms(1)] assms(2)] by auto
+next
+  show "(\<And>x. x \<in> set xs \<Longrightarrow> (algebraic over K) x) \<Longrightarrow> finite_dimension K (finite_extension K xs)"
+    using assms(2)
+  proof (induct xs, simp add: finite_dimensionI[OF dimension_one[OF assms(1)]])
+    case (Cons x xs)
+    hence "finite_dimension K (finite_extension K xs)"
+      by auto
+    moreover have "(algebraic over (finite_extension K xs)) x"
+      using algebraic_mono[OF finite_extension_incl[OF subfieldE(3)[OF assms(1)]]] Cons(2-3) by auto
+    moreover have "subfield (finite_extension K xs) R"
+      using finite_extension_is_subfield[OF assms(1)] Cons(2-3) by auto
+    ultimately show ?case
+      using telescopic_base_dim(1)[OF assms(1) _ _ 
+            finite_dimensionI[OF dimension_simple_extension, of _ x]] Cons(3) by auto
+  qed
+qed
+
+corollary (in domain) finite_extesion_mem_imp_algebraic:
+  assumes "subfield K R" "set xs \<subseteq> carrier R" and "\<And>x. x \<in> set xs \<Longrightarrow> (algebraic over K) x"
+  shows "y \<in> finite_extension K xs \<Longrightarrow> (algebraic over K) y"
+  using finite_dimension_imp_algebraic[OF assms(1)
+        finite_extension_is_subring[OF subfieldE(1)[OF assms(1)] assms(2)]]
+        finite_extension_finite_dimension(1)[OF assms(1-2)] assms(3) by auto
+
+corollary (in domain) simple_extesion_mem_imp_algebraic:
+  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
+  shows "y \<in> simple_extension K x \<Longrightarrow> (algebraic over K) y"
+  using finite_extesion_mem_imp_algebraic[OF assms(1), of "[ x ]"] assms(2-3) by auto
+
+
+subsection \<open>Arithmetic of algebraic numbers\<close>
+
+text \<open>We show that the set of algebraic numbers of a field
+      over a subfield K is a subfield itself.\<close>
+
+lemma (in field) subfield_of_algebraics:
+  assumes "subfield K R" shows "subfield { x \<in> carrier R. (algebraic over K) x } R"
+proof -
+  let ?set_of_algebraics = "{ x \<in> carrier R. (algebraic over K) x }"
+
+  show ?thesis
+  proof (rule subfieldI'[OF subringI])
+    show "?set_of_algebraics \<subseteq> carrier R" and "\<one> \<in> ?set_of_algebraics"
+      using algebraic_self[OF _ subringE(3)] subfieldE(1)[OF assms(1)] by auto
+  next
+    fix x y assume x: "x \<in> ?set_of_algebraics" and y: "y \<in> ?set_of_algebraics"
+    have "\<ominus> x \<in> simple_extension K x"
+      using subringE(5)[OF simple_extension_is_subring[OF subfieldE(1)]]
+            simple_extension_mem[OF subfieldE(1)] assms(1) x by auto
+    thus "\<ominus> x \<in> ?set_of_algebraics"
+      using simple_extesion_mem_imp_algebraic[OF assms] x by auto
+
+    have "x \<oplus> y \<in> finite_extension K [ x, y ]" and "x \<otimes> y \<in> finite_extension K [ x, y ]"
+      using subringE(6-7)[OF finite_extension_is_subring[OF subfieldE(1)[OF assms(1)]], of "[ x, y ]"]
+            finite_extension_mem[OF subfieldE(1)[OF assms(1)], of "[ x, y ]"] x y by auto
+    thus "x \<oplus> y \<in> ?set_of_algebraics" and "x \<otimes> y \<in> ?set_of_algebraics"
+      using finite_extesion_mem_imp_algebraic[OF assms, of "[ x, y ]"] x y by auto
+  next
+    fix z assume z: "z \<in> ?set_of_algebraics - { \<zero> }"
+    have "inv z \<in> simple_extension K z"
+      using subfield_m_inv(1)[of "simple_extension K z"]
+            simple_extension_is_subfield[OF assms, of z]
+            simple_extension_mem[OF subfieldE(1)] assms(1) z by auto
+    thus "inv z \<in> ?set_of_algebraics"
+      using simple_extesion_mem_imp_algebraic[OF assms] field_Units z by auto
+  qed
+qed
+
+
+(*
 proposition (in domain) finite_extension_is_subfield:
   assumes "subfield K R" "set xs \<subseteq> carrier R"
   shows "subfield (finite_extension K xs) R \<longleftrightarrow> (algebraic_set over K) (set xs)"
@@ -488,17 +746,26 @@ proof
   thus "(algebraic_set over K) (set xs) \<Longrightarrow> subfield (finite_extension K xs) R"
     unfolding algebraic_set_def over_def by auto
 next
-(*
   { fix x xs
     assume x: "x \<in> carrier R" and xs: "set xs \<subseteq> carrier R"
-      and field: "subfield (finite_extension K (x # xs)) R"
-    hence "(algebraic over K) x"
-*)
+      and is_subfield: "subfield (finite_extension K (x # xs)) R"
+    hence "(algebraic over K) x" sorry }
 
-  assume "subfield (finite_extension K xs) R" show "(algebraic_set over K) (set xs)"
-    sorry
+  assume "subfield (finite_extension K xs) R" thus "(algebraic_set over K) (set xs)"
+    using assms(2)
+  proof (induct xs)
+    case Nil thus ?case
+      unfolding algebraic_set_def over_def by simp
+  next
+    case (Cons x xs)
+    have "(algebraic over K) x"
+      using simple_extension_subfield_imp_algebraic[OF 
+            finite_extension_is_subring[of K xs], of x]
+
+    then show ?case sorry
+  qed
 qed
-
+*)
 
 (*
 lemma (in ring) transcendental_imp_trivial_ker:
