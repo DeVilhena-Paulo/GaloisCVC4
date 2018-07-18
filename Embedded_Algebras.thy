@@ -84,6 +84,14 @@ next
   case Cons thus ?case by (cases Us) (auto)
 qed
 
+lemma combine_prepend_replicate:
+  "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow>
+     combine ((replicate n \<zero>) @ Ks) Us = combine Ks (drop n Us)"
+proof (induct n arbitrary: Us, simp)
+  case (Suc n) thus ?case
+    by (cases Us) (auto, meson combine_in_carrier ring_simprules(8) set_drop_subset subset_trans)
+qed
+
 lemma combine_append_replicate:
   "set Us \<subseteq> carrier R \<Longrightarrow> combine (Ks @ (replicate n \<zero>)) Us = combine Ks Us"
   by (induct n) (auto, metis append.assoc combine_append_zero replicate_append_same)
@@ -298,7 +306,7 @@ text \<open>We show that Span is the set of linear combinations\<close>
 lemma line_extension_of_combine_set:
   assumes "u \<in> carrier R"
   shows "line_extension K u { combine Ks Us | Ks. set Ks \<subseteq> K } = 
-                { combine Ks (u # Us) | Ks. set Ks \<subseteq> K }"
+                      { combine Ks (u # Us) | Ks. set Ks \<subseteq> K }"
   (is "?line_extension = ?combinations")
 proof
   show "?line_extension \<subseteq> ?combinations"
@@ -376,6 +384,28 @@ lemma Span_eq_combine_set_length_version:
 
 subsubsection \<open>Corollaries\<close>
 
+corollary Span_mem_iff_length_version:
+  assumes "set Us \<subseteq> carrier R"
+  shows "a \<in> Span K Us \<longleftrightarrow> (\<exists>Ks. set Ks \<subseteq> K \<and> length Ks = length Us \<and> a = combine Ks Us)"
+  using Span_eq_combine_set_length_version[OF assms] by blast
+
+corollary Span_mem_imp_non_trivial_combine:
+  assumes "set Us \<subseteq> carrier R" and "a \<in> Span K Us"
+  obtains k Ks
+  where "k \<in> K - { \<zero> }" "set Ks \<subseteq> K" "length Ks = length Us" "combine (k # Ks) (a # Us) = \<zero>"
+proof -
+  obtain Ks where Ks: "set Ks \<subseteq> K" "length Ks = length Us" "a = combine Ks Us"
+    using Span_mem_iff_length_version[OF assms(1)] assms(2) by auto
+  hence "((\<ominus> \<one>) \<otimes> a) \<oplus> a = combine ((\<ominus> \<one>) # Ks) (a # Us)"
+    by auto
+  moreover have "((\<ominus> \<one>) \<otimes> a) \<oplus> a = \<zero>"
+    using assms(2) Span_subgroup_props(1)[OF assms(1)] l_minus l_neg by auto  
+  moreover have "\<ominus> \<one> \<noteq> \<zero>"
+    using subfieldE(6)[OF K] l_neg by force 
+  ultimately show ?thesis
+    using that subring_props(3,5) Ks(1-2) by (force simp del: combine.simps)
+qed
+
 corollary Span_mem_iff:
   assumes "set Us \<subseteq> carrier R" and "a \<in> carrier R"
   shows "a \<in> Span K Us \<longleftrightarrow> (\<exists>k \<in> K - { \<zero> }. \<exists>Ks. set Ks \<subseteq> K \<and> combine (k # Ks) (a # Us) = \<zero>)"
@@ -405,11 +435,6 @@ next
   thus "?in_Span"
     using Span_m_inv_simprule[OF assms(1) _ assms(2), of k] k by auto
 qed
-
-corollary Span_mem_iff_length_version:
-  assumes "set Us \<subseteq> carrier R"
-  shows "a \<in> Span K Us \<longleftrightarrow> (\<exists>Ks. set Ks \<subseteq> K \<and> length Ks = length Us \<and> a = combine Ks Us)"
-  using Span_eq_combine_set_length_version[OF assms] by blast
 
 
 subsection \<open>Span as the minimal subgroup that contains @{term"K <#> (set Us)"}\<close>
@@ -1049,6 +1074,14 @@ proof -
     by auto
 qed
 
+lemma dimension_one: "dimension 1 K K"
+proof -
+  have "K = Span K [ \<one> ]"
+    using line_extension_mem_iff[of _ K \<one> "{ \<zero> }"] subfieldE(3)[OF K] by (auto simp add: rev_subsetD)
+  thus ?thesis
+    using dimension.Suc_dim[OF one_closed _ dimension.zero_dim, of K] subfieldE(6)[OF K] by auto 
+qed
+
 lemma dimensionI:
   assumes "independent K Us" "Span K Us = E"
   shows "dimension (length Us) K E"
@@ -1217,9 +1250,10 @@ proof -
   thus ?thesis using dim by simp
 qed
 
-end
+end (* of fixed K context. *)
 
-end
+end (* of ring context. *)
+
 
 lemma (in ring) telescopic_base_aux:
   assumes "subfield K R" "subfield F R"
@@ -1437,8 +1471,161 @@ proof -
   from \<open>dimension (n - m) (h ` K) (h ` (R.Span K Vs))\<close> and this show ?thesis by simp
 qed
 
-end
+end (* of fixed K context. *)
 
-end
+end (* of ring_hom_ring context. *)
+
+
+subsection \<open>Finite Dimension\<close>
+
+definition (in ring) finite_dimension :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool"
+  where "finite_dimension K E \<longleftrightarrow> (\<exists>n. dimension n K E)"
+
+definition (in ring) dim :: "'a set \<Rightarrow> 'a set \<Rightarrow> nat"
+  where "dim K E = (THE n. dimension n K E)"
+
+locale subalgebra = subgroup V "add_monoid R" for K and V and R (structure) +
+  assumes smult_closed: "\<lbrakk> k \<in> K; v \<in> V \<rbrakk> \<Longrightarrow> k \<otimes> v \<in> V"
+
+
+subsubsection \<open>Basic Properties\<close>
+
+lemma (in ring) unique_dimension:
+  assumes "subfield K R" and "finite_dimension K E" shows "\<exists>!n. dimension n K E"
+  using assms(2) dimension_is_inj[OF assms(1)] unfolding finite_dimension_def by auto
+
+lemma (in ring) finite_dimensionI:
+  assumes "dimension n K E" shows "finite_dimension K E"
+  using assms unfolding finite_dimension_def by auto
+
+lemma (in ring) finite_dimensionE:
+  assumes "subfield K R" and "finite_dimension K E" shows "dimension ((dim over K) E) K E"
+  using theI'[OF unique_dimension[OF assms]] unfolding over_def dim_def by simp
+
+lemma (in ring) dimI:
+  assumes "subfield K R" and "dimension n K E" shows "(dim over K) E = n"
+  using finite_dimensionE[OF assms(1) finite_dimensionI] dimension_is_inj[OF assms(1)] assms(2)
+  unfolding over_def dim_def by auto
+
+lemma (in ring) finite_dimensionE' [elim]:
+  assumes "finite_dimension K E" and "\<And>n. dimension n K E \<Longrightarrow> P" shows P
+  using assms unfolding finite_dimension_def by auto
+
+lemma (in ring) subalgebra_in_carrier:
+  assumes "subalgebra K V R" shows "V \<subseteq> carrier R"
+  using subgroup.subset[OF subalgebra.axioms(1)[OF assms]] by simp
+
+lemma (in ring) subalgebra_inter:
+  assumes "subalgebra K V R" and "subalgebra K V' R" shows "subalgebra K (V \<inter> V') R"
+  using add.subgroups_Inter_pair assms unfolding subalgebra_def subalgebra_axioms_def by auto
+
+lemma (in ring) ideal_is_subalgebra:
+  assumes "K \<subseteq> carrier R" "ideal I R" shows "subalgebra K I R"
+  using ideal.axioms(1)[OF assms(2)] ideal.I_l_closed[OF assms(2)] assms(1)
+  unfolding subalgebra_def subalgebra_axioms_def additive_subgroup_def by auto
+
+lemma (in ring) Span_is_subalgebra:
+  assumes "subfield K R" "set Us \<subseteq> carrier R" shows "subalgebra K (Span K Us) R"
+  using Span_smult_closed[OF assms] Span_is_add_subgroup[OF assms]
+  unfolding subalgebra_def subalgebra_axioms_def by auto
+
+lemma (in ring) finite_dimension_imp_subalgebra:
+  assumes "subfield K R" "finite_dimension K E" shows "subalgebra K E R"
+  using exists_base[OF assms(1) finite_dimensionE[OF assms]] Span_is_subalgebra[OF assms(1)] by auto
+
+lemma (in ring) subalgebra_Span_incl:
+  assumes "subfield K R" and "subalgebra K V R" "set Us \<subseteq> V" shows "Span K Us \<subseteq> V"
+proof -
+  have "K <#> (set Us) \<subseteq> V"
+    using subalgebra.smult_closed[OF assms(2)] assms(3) unfolding set_mult_def by blast
+  moreover have "set Us \<subseteq> carrier R"
+    using subalgebra_in_carrier[OF assms(2)] assms(3) by auto
+  ultimately show ?thesis
+    using subalgebra.axioms(1)[OF assms(2)] Span_min[OF assms(1)] by blast
+qed
+
+lemma (in ring) Span_subalgebra_minimal:
+  assumes "subfield K R" "set Us \<subseteq> carrier R"
+  shows "Span K Us = \<Inter> { V. subalgebra K V R \<and> set Us \<subseteq> V }"
+  using Span_is_subalgebra[OF assms] Span_base_incl[OF assms] subalgebra_Span_incl[OF assms(1)]
+  by blast
+
+lemma (in ring) Span_subalgebraI:
+  assumes "subfield K R"
+    and "subalgebra K E R" "set Us \<subseteq> E"
+    and "\<And>V. \<lbrakk> subalgebra K V R; set Us \<subseteq> V \<rbrakk> \<Longrightarrow> E \<subseteq> V"
+  shows "E = Span K Us"
+proof -
+  have "\<Inter> { V. subalgebra K V R \<and> set Us \<subseteq> V } = E"
+    using assms(2-4) by auto
+  thus "E = Span K Us"
+    using Span_subalgebra_minimal subalgebra_in_carrier[of K E] assms by auto
+qed
+
+lemma (in ring) subalbegra_incl_imp_finite_dimension:
+  assumes "subfield K R" and "finite_dimension K E"
+  and "subalgebra K V R" "V \<subseteq> E" shows "finite_dimension K V"
+proof -
+  obtain n where n: "dimension n K E"
+    using assms(2) by auto
+
+  define S where "S = { Us. set Us \<subseteq> V \<and> independent K Us }"
+  have "length ` S \<subseteq> {..n}"
+    unfolding S_def using independent_length_le_dimension[OF assms(1) n] assms(4) by auto
+  moreover have "[] \<in> S"
+    unfolding S_def by simp
+  hence "length ` S \<noteq> {}" by blast
+  ultimately obtain m where m: "m \<in> length ` S" and greatest: "\<And>k. k \<in> length ` S \<Longrightarrow> k \<le> m"
+    by (meson Max_ge Max_in finite_atMost rev_finite_subset)
+  then obtain Us where Us: "set Us \<subseteq> V" "independent K Us" "m = length Us"
+      unfolding S_def by auto
+  have "Span K Us = V"
+  proof (rule ccontr)
+    assume "\<not> Span K Us = V" then have "Span K Us \<subset> V"
+      using subalgebra_Span_incl[OF assms(1,3) Us(1)] by blast
+    then obtain v where v:"v \<in> V" "v \<notin> Span K Us"
+      by blast
+    hence "independent K (v # Us)"
+      using independent.li_Cons[OF _ _ Us(2)] subalgebra_in_carrier[OF assms(3)] by auto
+    hence "(v # Us) \<in> S"
+      unfolding S_def using Us(1) v(1) by auto
+    hence "length (v # Us) \<le> m"
+      using greatest by blast
+    moreover have "length (v # Us) = Suc m"
+      using Us(3) by auto
+    ultimately show False by simp
+  qed
+  thus ?thesis
+    using finite_dimensionI[OF dimension_independent[OF Us(2)]] by simp
+qed
+
+
+subsubsection \<open>Reformulation of some lemmas in this new language.\<close>
+
+lemma (in ring) sum_space_dim:
+  assumes "subfield K R" "finite_dimension K E" "finite_dimension K F"
+  shows "finite_dimension K (E <+>\<^bsub>R\<^esub> F)"
+    and "((dim over K) (E <+>\<^bsub>R\<^esub> F)) = ((dim over K) E) + ((dim over K) F) - ((dim over K) (E \<inter> F))"
+proof -
+  obtain n m k where n: "dimension n K E" and m: "dimension m K F" and k: "dimension k K (E \<inter> F)"
+    using assms(2-3) subalbegra_incl_imp_finite_dimension[OF assms(1-2)
+          subalgebra_inter[OF assms(2-3)[THEN finite_dimension_imp_subalgebra[OF assms(1)]]]]
+    by (meson inf_le1 finite_dimension_def)
+  hence "dimension (n + m - k) K (E <+>\<^bsub>R\<^esub> F)"
+    using dimension_sum_space[OF assms(1)] by simp
+  thus "finite_dimension K (E <+>\<^bsub>R\<^esub> F)"
+   and "((dim over K) (E <+>\<^bsub>R\<^esub> F)) = ((dim over K) E) + ((dim over K) F) - ((dim over K) (E \<inter> F))"
+    using finite_dimensionI dimI[OF assms(1)] n m k by auto
+qed
+
+lemma (in ring) telescopic_base_dim:
+  assumes "subfield K R" "subfield F R" and "finite_dimension K F" and "finite_dimension F E"
+  shows "finite_dimension K E" and "(dim over K) E = ((dim over K) F) * ((dim over F) E)"
+  using telescopic_base[OF assms(1-2)
+        finite_dimensionE[OF assms(1,3)]
+        finite_dimensionE[OF assms(2,4)]]
+        dimI[OF assms(1)] finite_dimensionI
+  by auto
+
 
 end
