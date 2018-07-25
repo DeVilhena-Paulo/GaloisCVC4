@@ -74,11 +74,25 @@ lemma (in ring) IrrE' :
 
 
 definition (in ring) multiplicity :: "'a set \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow>'a list \<Rightarrow> bool"
-  where "multiplicity K x n p \<equiv> ([ \<one>, \<ominus> x ][^]\<^bsub>K[X]\<^esub> n) pdivides p
-                            \<and>\<not>(([ \<one>, \<ominus> x ][^]\<^bsub>K[X]\<^esub> (Suc n)) pdivides p)"
+  where "multiplicity K x n p \<equiv> ([ \<one>, \<ominus> x ][^]\<^bsub>K[X]\<^esub> n) divides\<^bsub>(univ_poly R K)\<^esub> p
+                            \<and>\<not>(([ \<one>, \<ominus> x ][^]\<^bsub>K[X]\<^esub> (Suc n)) divides\<^bsub>(univ_poly R K)\<^esub> p)"
 
 definition (in ring) roots :: "'a set \<Rightarrow> 'a list \<Rightarrow> 'a multiset"
   where "roots K p \<equiv> Abs_multiset (\<lambda>x \<in> K. (THE n. multiplicity K x n p))"
+
+lemma (in field) roots_well_defined :
+  assumes "subfield K R"
+    and "polynomial K p"
+    and "p \<noteq> []"
+  shows "\<And>x. x \<in> K \<Longrightarrow> \<exists>! n. multiplicity K x n p""(\<lambda>y \<in> K. (THE n. multiplicity K y n p)) \<in> multiset"
+  sorry
+
+lemma (in ring) multiplicity_consistent :
+  assumes "subring k R"
+    and "set p \<subseteq> k"
+    and "polynomial k p"
+  shows "multiplicity k x n p = ring.multiplicity (R\<lparr>carrier := k\<rparr>) k x n p"
+  sorry
 
 lemma (in ring) roots_number_inf_degree :
   assumes "subfield K R"
@@ -102,7 +116,7 @@ lemma (in field) simple_extension_incl :
 proof
   fix y assume hyp : "y \<in> k"
   thus "y \<in>simple_extension k x"
-    using lin[OF subringE(2)[OF subfieldE(1)[OF assms(1)]] hyp,of x]l_null subfieldE(3) assms
+    using lin[OF zero hyp,of x]l_null subfieldE(3) assms
     by fastforce
 qed
 
@@ -192,6 +206,27 @@ lemma (in field) split_Irr_incl_trans :
     and "(algebraic over k) x"
     and "k \<subseteq> K"
   shows "split K (Irr K x)  \<longleftrightarrow> split K (Irr k x)"
+  sorry
+
+lemma (in field) roots_incl :
+  assumes "k \<subseteq> K" "K \<subseteq> carrier R"
+    and "polynomial k p"
+  shows "roots k p \<subseteq># roots K p"
+  sorry
+
+lemma (in field) roots_Irr_incl :
+  assumes "k \<subseteq> K" "K \<subseteq> carrier R"
+    and "x \<in> carrier R"
+    and "(algebraic over k) x"
+  shows "roots (carrier R) (Irr K x) \<subseteq># roots (carrier R) (Irr k x)"
+  sorry
+
+lemma (in field) roots_incl_imp_split :
+  assumes "polynomial (carrier R) p"
+    and "split (carrier R) p"
+    and "subfield K R"
+    and "roots (carrier R) p \<subseteq># roots K p"
+  shows "split K p"
   sorry
 
 end
