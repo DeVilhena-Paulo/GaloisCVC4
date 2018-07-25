@@ -19,6 +19,18 @@ inductive_set
 
 subsection\<open>Basic Properties of Generated Rings - First Part\<close>
 
+(* REPLACED ========================================================================== *)
+lemma (in field) subgroup_mult_of:
+  assumes "subfield K R"
+  shows "subgroup (K - {\<zero>}) (mult_of R)"
+proof (intro group.group_incl_imp_subgroup[OF field_mult_group])
+  show "K - {\<zero>} \<subseteq> carrier (mult_of R)"
+    by (simp add: Diff_mono assms  subfieldE(3))
+  show "group ((mult_of R) \<lparr> carrier := K - {\<zero>} \<rparr>)"
+    using field.field_mult_group[OF subfield_iff(2)[OF assms]]
+    unfolding mult_of_def by simp
+qed
+
 lemma (in field) generate_field_in_carrier:
   assumes "H \<subseteq> carrier R"
   shows "h \<in> generate_field R H \<Longrightarrow> h \<in> carrier R"

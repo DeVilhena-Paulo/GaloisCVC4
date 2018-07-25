@@ -3,7 +3,7 @@
 *)
 
 theory Polynomials
-  imports Ring Ring_Divisibility Embedded_Algebras
+  imports Ring Ring_Divisibility Subrings
 
 begin
 

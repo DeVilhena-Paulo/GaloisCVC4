@@ -3,9 +3,26 @@
 *)
 
 theory Ring_Divisibility
-imports Ideal Divisibility QuotRing Multiplicative_Group HOL.Zorn
+imports Ideal Divisibility QuotRing HOL.Zorn
 
 begin
+
+(* TEMPORARY ====================================================================== *)
+definition mult_of :: "('a, 'b) ring_scheme \<Rightarrow> 'a monoid" where
+  "mult_of R \<equiv> \<lparr> carrier = carrier R - {\<zero>\<^bsub>R\<^esub>}, mult = mult R, one = \<one>\<^bsub>R\<^esub>\<rparr>"
+
+lemma carrier_mult_of [simp]: "carrier (mult_of R) = carrier R - {\<zero>\<^bsub>R\<^esub>}"
+  by (simp add: mult_of_def)
+
+lemma mult_mult_of [simp]: "mult (mult_of R) = mult R"
+ by (simp add: mult_of_def)
+
+lemma nat_pow_mult_of: "([^]\<^bsub>mult_of R\<^esub>) = (([^]\<^bsub>R\<^esub>) :: _ \<Rightarrow> nat \<Rightarrow> _)"
+  by (simp add: mult_of_def fun_eq_iff nat_pow_def)
+
+lemma one_mult_of [simp]: "\<one>\<^bsub>mult_of R\<^esub> = \<one>\<^bsub>R\<^esub>"
+  by (simp add: mult_of_def)
+(* ================================================================================ *)
 
 section \<open>The Arithmetic of Rings\<close>
 

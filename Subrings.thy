@@ -3,7 +3,7 @@
 *)
 
 theory Subrings
-  imports Ring RingHom QuotRing Multiplicative_Group
+  imports Ring RingHom QuotRing
 begin
 
 section \<open>Subrings\<close>
@@ -379,24 +379,13 @@ next
     using cring.cring_fieldI[OF cring] subfield.subfield_Units[OF A] by simp
 qed
 
-lemma (in field) subgroup_mult_of:
-  assumes "subfield K R"
-  shows "subgroup (K - {\<zero>}) (mult_of R)"
-proof (intro group.group_incl_imp_subgroup[OF field_mult_group])
-  show "K - {\<zero>} \<subseteq> carrier (mult_of R)"
-    by (simp add: Diff_mono assms carrier_mult_of subfieldE(3))
-  show "group ((mult_of R) \<lparr> carrier := K - {\<zero>} \<rparr>)"
-    using field.field_mult_group[OF subfield_iff(2)[OF assms]]
-    unfolding mult_of_def by simp
-qed
-
 
 subsection \<open>Subring Homomorphisms\<close>
 
 (* PROOF ====================== *)
 lemma (in ring) hom_imp_img_subring:
   assumes "h \<in> ring_hom R S" and "subring K R"
-  shows "ring (S \<lparr> carrier := h ` K, one := h \<one>, zero := h \<zero> \<rparr>)"
+  shows "ring (S \<lparr> carrier := h ` K, zero := h \<zero> \<rparr>)"
 proof -
   have "ring (R \<lparr> carrier := K \<rparr>)"
     using subring_is_ring[OF assms(2)] by simp
