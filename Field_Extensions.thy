@@ -12,7 +12,7 @@ locale field_extension =
   field for K and k and p and Sx (structure)
  + assumes K : "subfield K R"
      and k : "subfield k R"
-     and Sx : "Sx \<subseteq> carrier R""\<And>x. x \<in> Sx \<Longrightarrow> (algebraic over k) x"
+     and Sx : "Sx \<subseteq> carrier R" "\<And>x. x \<in> Sx \<Longrightarrow> (algebraic over k) x"
               "\<And> x. x \<in> Sx \<Longrightarrow> split (carrier R) (Irr k x)"
 
 definition (in ring) galoisian :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool"
@@ -127,7 +127,8 @@ qed
 lemma (in field_extension) galoisian_finite_extension :
   assumes "K = finite_extension k xs"
     and "set xs \<subseteq> Sx"
-  shows "galoisian K k" using assms(1,2) K
+    and "\<And> x. x \<in> set xs \<Longrightarrow>  set_mset (roots (carrier R) (Irr k x)) \<subseteq> set xs"
+  shows "galoisian K k" using assms(1,2,3) K
 proof(induction xs arbitrary : K)
   case Nil
   then have "K = k"
@@ -137,6 +138,7 @@ next
   case (Cons a xs)
   hence "K = simple_extension (finite_extension k xs) a"
     by simp
+  moreover have "a \<in> Sx" using Cons(3) by auto
   moreover have "galoisian (finite_extension k xs) k"
     using Cons finite_extension_field[OF k, of xs] Sx(1,2)
     by (smt insert_subset list.simps(15) set_mp subset_code(1))
@@ -145,7 +147,7 @@ next
     apply (auto simp del : finite_extension.simps simp add :field_axioms Cons(4) Sx(1))
   proof-
     show sub : "subfield (finite_extension k xs) R"
-      using calculation(2) galoisian_def by auto
+      using calculation(3) galoisian_def by auto
     fix x assume hyp : "x \<in> Sx"
     show alg : "(algebraic over finite_extension k xs) x"
       using algebraic_finite_extension_trans[OF k, of xs x] hyp Cons(3) Sx(1,2)
@@ -156,9 +158,27 @@ next
     thus "split (carrier R) (Irr (finite_extension k xs) x)"
       using split_Irr_incl_trans[OF carrier_is_subfield,of x] hyp Sx Cons(3) alg sub by auto
   qed
+  note aux = calculation this
+  ultimately have "galoisian K (finite_extension k xs)"
+    apply (intro field_extension.galoisian_simple_extension[of R K "finite_extension k xs" Sx a])
+    using Cons(3) aux(4) apply (metis (no_types))+
+  proof-
+    have "split K (Irr (finite_extension k xs) a) = split K (Irr K a)"
+      using split_Irr_incl_trans[OF Cons(4), of a "finite_extension k xs"] Sx(1) Cons(2-4)
+            algebraic_finite_extension_trans k simple_extension_incl
+      by (metis (no_types, lifting) aux(1-3) galoisian_def simple_extension_is_subfield subsetCE)
+    moreover have "split K (Irr k a) = split K (Irr K a)"
+      using split_Irr_incl_trans[OF Cons(4), of a k] Sx(1,2) Cons(2,3) aux(2) k
+      by (meson finite_extension_incl subfieldE(3) subsetCE subset_code(1))
+    ultimately show "split K (Irr (finite_extension k xs) a)" using Cons
+    qed
+  moreover have "field_extension R K k Sx"
+    unfolding field_extension_def field_extension_axioms_def
+    by (auto simp del : finite_extension.simps simp add :field_axioms Cons(4) Sx k)
   ultimately show "galoisian K k"
-    using field_extension.galoisian_simple_extension[of R K "finite_extension k xs" Sx a] Cons
-          galoisian_trans[of "finite_extension k xs"]
+    using field_extension.galoisian_simple_extension[of R K "finite_extension k xs" Sx a] 
+          field_extension.galoisian_trans[of R K k Sx "finite_extension k xs"] Cons(3) Sx
+    
     
     
   then show ?case sorry

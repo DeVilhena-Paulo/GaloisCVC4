@@ -208,6 +208,25 @@ lemma (in field) split_Irr_incl_trans :
   shows "split K (Irr K x)  \<longleftrightarrow> split K (Irr k x)"
   sorry
 
+lemma (in field) roots_incl :
+  assumes "k \<subseteq> K" "K \<subseteq> carrier R"
+    and "polynomial k p"
+  shows "roots k p \<subseteq># roots K p"
+  sorry
 
+lemma (in field) roots_Irr_incl :
+  assumes "k \<subseteq> K" "K \<subseteq> carrier R"
+    and "x \<in> carrier R"
+    and "(algebraic over k) x"
+  shows "roots (carrier R) (Irr K x) \<subseteq># roots (carrier R) (Irr k x)"
+  sorry
+
+lemma (in field) roots_incl_imp_split :
+  assumes "polynomial (carrier R) p"
+    and "split (carrier R) p"
+    and "subfield K R"
+    and "roots (carrier R) p \<subseteq># roots K p"
+  shows "split K p"
+  sorry
 
 end
