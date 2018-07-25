@@ -209,6 +209,13 @@ lemma (in ring_hom_ring) nat_pow_hom:
   by (induct n) (auto)
 (* ============================================================================= *)
 
+(* REPLACED ==================================================================== *)
+lemma (in ring_hom_ring) hom_finsum [simp]:
+  "f \<in> A \<rightarrow> carrier R \<Longrightarrow>
+  h (finsum R f A) = finsum S (h \<circ> f) A"
+  by (induct A rule: infinite_finite_induct, auto simp: Pi_def)
+(* ============================================================================= *)
+
 (*contributed by Paulo Emílio de Vilhena*)
 lemma (in ring_hom_ring) inj_on_domain:
   assumes "inj_on h (carrier R)"
