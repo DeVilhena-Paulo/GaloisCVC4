@@ -524,6 +524,11 @@ proof (auto)
     using r by auto
 qed
 
+corollary (in domain) dimension_simple_extension:
+  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
+  shows "dimension (degree (Irr K x)) K (simple_extension K x)"
+  using dimension_independent[OF exp_base_independent[OF assms]] Span_exp_base[OF assms] by simp
+
 lemma (in ring) finite_dimension_imp_algebraic:
   assumes "subfield K R" "subring F R" and "finite_dimension K F"
   shows "x \<in> F \<Longrightarrow> (algebraic over K) x"
@@ -557,11 +562,6 @@ proof -
   ultimately show ?thesis
     using algebraicI by auto
 qed
-
-lemma (in domain) dimension_simple_extension:
-  assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
-  shows "dimension (degree (Irr K x)) K (simple_extension K x)"
-  using dimension_independent[OF exp_base_independent[OF assms]] Span_exp_base[OF assms] by simp
 
 corollary (in domain) simple_extension_dim:
   assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
