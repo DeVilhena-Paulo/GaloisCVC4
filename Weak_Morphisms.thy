@@ -1,3 +1,7 @@
+(*  Title:      HOL/Algebra/Weak_Morphisms.thy
+    Author:     Paulo Emílio de Vilhena
+*)
+
 theory Weak_Morphisms
   imports QuotRing
 
@@ -363,9 +367,9 @@ lemma (in ring) inj_imp_image_ring_is_ring:
 section \<open>Examples\<close>
 
 text \<open>In a lot of different contexts, the lack of dependent types make some definitions quite
-      complex. The tools developed in this theory give us a way to change the type of a
+      complicated. The tools developed in this theory give us a way to change the type of a
       scheme and preserve all of its algebraic properties. We show, in this section, how to
-      make use of this feature in order to solve this problem. \<close>
+      make use of this feature in order to solve the problem mentioned above. \<close>
 
 
 subsection \<open>Direct Product\<close>
@@ -452,6 +456,10 @@ lemma DirProd_list_iso:
 
 subsection \<open>Multivariate Polynomials\<close>
 
+(*
+definition f :: "((nat list) \<Rightarrow> 'a) ring \<Rightarrow> ((nat list) \<Rightarrow> 'a) list \<Rightarrow> (nat list) \<Rightarrow> 'a"
+  where "f R p = (\<lambda>l. case l of [] \<Rightarrow> \<zero>\<^bsub>R\<^esub> l | j # js \<Rightarrow> ((ring.coeff R) p j) js)"
+*)
 (*
 definition f :: "'a set \<Rightarrow> ((nat list) \<Rightarrow> 'a) ring \<Rightarrow> (((nat list) \<Rightarrow> 'a) list) ring \<Rightarrow> ((nat list) \<Rightarrow> 'a) ring"
   where "f K R P = \<lparr> carrier = (\<lambda>p. (\<lambda>l. case l of [] \<Rightarrow> \<zero>\<^bsub>P\<^esub> | j # js \<Rightarrow> ((ring.coeff R) p j) js)) ` (carrier P),

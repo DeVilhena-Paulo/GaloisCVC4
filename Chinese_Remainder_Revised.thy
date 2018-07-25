@@ -1,3 +1,7 @@
+(*  Title:      HOL/Algebra/Chinese_Remainder_Revised.thy
+    Author:     Paulo Emílio de Vilhena
+*)
+
 theory Chinese_Remainder_Revised
   imports Weak_Morphisms Ideal_Product
     
@@ -5,8 +9,6 @@ begin
 
 
 section \<open>Direct Product of Rings\<close>
-
-text \<open>\<close>
 
 subsection \<open>Definitions\<close>
 
@@ -212,8 +214,6 @@ qed
 
 
 section \<open>Chinese Remainder Theorem\<close>
-
-text \<open>\<close>
 
 subsection \<open>Definitions\<close>
 
@@ -537,43 +537,5 @@ theorem (in cring) chinese_remainder:
   using ring_hom_ring.FactRing_iso[OF canonical_proj_ext_ring_hom, of n I]
         canonical_proj_ext_is_surj[of n I] canonical_proj_ext_ker[of n I] assms
   by auto
-
-(*
-theorem (in cring) (* another proof *)
-  assumes "\<And>i. i \<le> n \<Longrightarrow> ideal (I i) R" and "\<And>i j. \<lbrakk> i \<le> n; j \<le> n \<rbrakk> \<Longrightarrow> i \<noteq> j \<Longrightarrow> I i <+> I j = carrier R"
-  shows "R Quot (\<Inter>i \<le> n. I i) \<simeq> RDirProd_list (map (\<lambda>i. R Quot (I i)) [0..< Suc n])"
-  using assms
-proof (induct n arbitrary: I)
-  case 0 thus ?case
-    using RDirProd_list_iso3[of "R Quot (I 0)"] by (auto simp add: is_ring_iso_def)
-next
-  let ?map_Quot = "\<lambda>I n. map (\<lambda>i. R Quot (I i)) [0..< Suc n]"
-
-  case (Suc n)
-  interpret I: ideal "I 0" R + Inter: ideal "\<Inter>i \<in> {Suc 0.. Suc n}. I i" R
-    using Suc.prems(1) i_Intersect[of "I ` {Suc 0.. Suc n}"] atMost_Suc atLeast1_atMost_eq_remove0 by auto
-  have "(\<Inter>i \<in> {Suc 0.. Suc n}. I i) <+> (I 0) = carrier R"
-    using inter_plus_ideal_eq_carrier_arbitrary[of n I 0]
-    by (simp add: Suc(2-3) atLeast1_atMost_eq_remove0)
-  hence eq_carrier: "(I 0) <+> (\<Inter>i \<in> {Suc 0.. Suc n}. I i) = carrier R"
-    using set_add_comm[OF I.a_subset Inter.a_subset] by simp
-  have "R Quot (\<Inter> i \<le> Suc n. I i) \<simeq> RDirProd (R Quot (I 0)) (R Quot (\<Inter>i \<in> {Suc 0.. Suc n}. I i))"
-    using chinese_remainder_simple[OF I.ideal_axioms Inter.ideal_axioms eq_carrier]
-    using atMost_Suc_eq_insert_0 atMost_atLeast0 by auto
-  moreover
-  have "R Quot (\<Inter>i \<in> {Suc 0.. Suc n}. I i) \<simeq> RDirProd_list (?map_Quot (\<lambda>i. I (Suc i)) n)"
-    using Suc(1)[of "\<lambda>i. I (Suc i)"] Suc(2-3) by (auto simp add: INT_extend_simps(10) atMost_atLeast0)
-  hence "RDirProd (R Quot (I 0)) (R Quot (\<Inter>i \<in> {Suc 0.. Suc n}. I i)) \<simeq>
-         RDirProd (R Quot (I 0)) (RDirProd_list (?map_Quot (\<lambda>i. I (Suc i)) n))"
-    using RDirProd_iso5 unfolding is_ring_iso_def by blast
-  ultimately have
-    "R Quot (\<Inter> i \<le> Suc n. I i) \<simeq> RDirProd_list ((R Quot (I 0)) # (?map_Quot (\<lambda>i. I (Suc i)) n))"
-    using ring_iso_trans RDirProd_list_iso1 unfolding is_ring_iso_def by (simp, blast)
-  moreover have "(R Quot (I 0)) # (?map_Quot (\<lambda>i. I (Suc i)) n) = ?map_Quot I (Suc n)"
-    by (induct n) (auto)
-  moreover show ?case
-    using calculation(1) unfolding calculation(2) .
-qed
-*)
 
 end
