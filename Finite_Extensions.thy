@@ -256,7 +256,7 @@ qed
 
 lemma (in ring) simple_extension_in_carrier:
   assumes "K \<subseteq> carrier R" and "x \<in> carrier R" shows "simple_extension K x \<subseteq> carrier R"
-  using mono_simple_extension[OF assms(1)] simple_extension_carrier[OF assms(2)] by auto
+  using mono_simple_extension[OF assms(1), of x] simple_extension_carrier[OF assms(2)] by auto 
 
 lemma (in ring) simple_extension_subring_incl:
   assumes "subring K' R" and "K \<subseteq> K'" "x \<in> K'" shows "simple_extension K x \<subseteq> K'"
