@@ -870,14 +870,10 @@ proof -
   qed
 qed
 
+(* PROOF ==================================================================== *)
 lemma ring_iso_same_card: "R \<simeq> S \<Longrightarrow> card (carrier R) = card (carrier S)"
-proof -
-  assume "R \<simeq> S"
-  then obtain h where "bij_betw h (carrier R) (carrier S)"
-    unfolding is_ring_iso_def ring_iso_def by auto
-  thus "card (carrier R) = card (carrier S)"
-    using bij_betw_same_card[of h "carrier R" "carrier S"] by simp
-qed
+  using bij_betw_same_card unfolding is_ring_iso_def ring_iso_def by auto 
+(* ========================================================================== *)
 
 lemma ring_iso_set_refl: "id \<in> ring_iso R R"
   by (rule ring_iso_memI) (auto)
