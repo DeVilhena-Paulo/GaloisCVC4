@@ -860,6 +860,12 @@ by (auto simp add: iso_def hom_compose bij_betw_compose)
 corollary (in group) iso_trans: "\<lbrakk>G \<cong> H ; H \<cong> I\<rbrakk> \<Longrightarrow> G \<cong> I"
   using iso_set_trans unfolding is_iso_def by blast
 
+(* NEW ====================================================================== *)
+lemma iso_same_card: "G \<cong> H \<Longrightarrow> card (carrier G) = card (carrier H)"
+  using bij_betw_same_card  unfolding is_iso_def iso_def by auto
+(* ========================================================================== *)
+
+
 (* Next four lemmas contributed by Paulo. *)
 
 lemma (in monoid) hom_imp_img_monoid:

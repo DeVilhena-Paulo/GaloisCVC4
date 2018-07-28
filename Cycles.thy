@@ -21,25 +21,27 @@ subsection\<open>Cycles as Rotations\<close>
 
 text\<open>We start proving that the function derived from a cycle rotates its support list.\<close>
 
+(* PROOF =================================================================== *)
 lemma id_outside_supp:
-  assumes "cycle cs" and "x \<notin> set cs"
-  shows "(cycle_of_list cs) x = x" using assms
+  assumes "x \<notin> set cs" shows "(cycle_of_list cs) x = x"
+  using assms
 proof (induction cs rule: cycle_of_list.induct)
   case (1 i j cs)
   have "cycle_of_list (i # j # cs) x = (Fun.swap i j id) (cycle_of_list (j # cs) x)" by simp
   also have " ... = (Fun.swap i j id) x"
-    using "1.IH" "1.prems"(1) "1.prems"(2) by auto
-  also have " ... = x" using 1(3) by simp
+    using "1.IH" "1.prems"(1) by auto
+  also have " ... = x"
+    by (metis "1.prems" in_set_member member_rec(1) swap_id_eq) 
   finally show ?case .
 next
   case "2_1" thus ?case by simp
 next
   case "2_2" thus ?case by simp
 qed
+(* ========================================================================== *)
 
-lemma cycle_permutes:
-  assumes "cycle cs"
-  shows "permutation (cycle_of_list cs)"
+(* RENAME =================================================================== *)
+lemma permutation_of_cycle: "permutation (cycle_of_list cs)"
 proof (induction rule: cycle_of_list.induct)
   case (1 i j cs) thus ?case
     by (metis cycle_of_list.simps(1) permutation_compose permutation_swap_id)
@@ -48,6 +50,13 @@ next
 next
   case "2_2" thus ?case by simp
 qed
+(* ========================================================================== *)
+
+(* NEW ====================================================================== *)
+lemma cycle_permutes: "(cycle_of_list cs) permutes (set cs)"
+  using permutation_bijective[OF permutation_of_cycle] id_outside_supp[of _ cs]
+  by (simp add: bij_iff permutes_def)
+(* ========================================================================== *)
 
 theorem cyclic_rotation:
   assumes "cycle cs"
@@ -100,6 +109,7 @@ corollary cycle_is_surj:
   shows "(cycle_of_list cs) ` (set cs) = (set cs)"
   using cyclic_rotation[OF assms, of 1] by (simp add: image_set)
 
+(* PROOF =================================================================== *)
 corollary cycle_is_id_root:
   assumes "cycle cs"
   shows "(cycle_of_list cs) ^^ (length cs) = id"
@@ -114,13 +124,14 @@ proof -
     proof (induction n)
       case 0 thus ?case by simp
     next
-      case (Suc n) thus ?case using id_outside_supp[OF assms] by simp
+      case (Suc n) thus ?case using id_outside_supp by simp
     qed
   qed
   hence "\<And>x. x \<notin> (set cs) \<Longrightarrow> ((cycle_of_list cs) ^^ (length cs)) x = x" by simp
   ultimately show ?thesis
     by (meson eq_id_iff)
 qed
+(* ========================================================================== *)
 
 corollary
   assumes "cycle cs"
@@ -189,6 +200,7 @@ qed
 
 subsection\<open>When Cycles Commute\<close>
 
+(* PROOF ==================================================================== *)
 lemma cycles_commute:
   assumes "cycle \<sigma>1" "cycle \<sigma>2" and "set \<sigma>1 \<inter> set \<sigma>2 = {}"
   shows "(cycle_of_list \<sigma>1) \<circ> (cycle_of_list \<sigma>2) = (cycle_of_list \<sigma>2) \<circ> (cycle_of_list \<sigma>1)"
@@ -199,9 +211,9 @@ proof -
           ((cycle_of_list \<pi>2) \<circ> (cycle_of_list \<pi>1)) x"
     proof -
       have "((cycle_of_list \<pi>1) \<circ> (cycle_of_list \<pi>2)) x = (cycle_of_list \<pi>1) x"
-        using id_outside_supp[OF A(2) A(5)] by simp
+        using id_outside_supp[OF A(5)] by simp
       also have " ... = ((cycle_of_list \<pi>2) \<circ> (cycle_of_list \<pi>1)) x"
-        using id_outside_supp[OF A(2), of "(cycle_of_list \<pi>1) x"]
+        using id_outside_supp[of "(cycle_of_list \<pi>1) x"]
               cycle_is_surj[OF A(1)] A(3) A(4) by fastforce
       finally show ?thesis .
     qed }
@@ -231,6 +243,7 @@ proof -
     qed
   qed
 qed
+(* ========================================================================== *)
 
 
 subsection\<open>Cycles from Permutations\<close>
@@ -721,14 +734,14 @@ proof(induct arbitrary: S p rule: less_induct)
           hence "q y \<notin> set (support p x)"
             using S' by blast
           hence "(cycle_of_list (support p x)) (q y) = (q y)"
-            by (metis cycle_of_permutation id_outside_supp less.prems(1-2) permutation_permutes)
+            by (metis id_outside_supp)
           thus ?thesis by (simp add: \<open>y \<in> S'\<close> q)
         next
           assume "y \<notin> S'" hence "y \<notin> S" using y S' by blast
           hence "(cycle_of_list (support p x) \<circ> q) y = (cycle_of_list (support p x)) y"
             by (simp add: \<open>y \<notin> S'\<close> q)
           also have " ... = y"
-            by (metis cycle_of_permutation id_outside_supp less.prems(1-2) permutation_permutes y)
+            by (metis id_outside_supp y)
           also have " ... = p y"
             by (metis \<open>y \<notin> S\<close> less.prems(1) permutes_def)
           finally show ?thesis by simp
