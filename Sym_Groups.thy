@@ -17,9 +17,8 @@ definition sign_img :: "int monoid"
 
 
 lemma sym_group_is_group: "group (sym_group n)"
-  apply (rule groupI)
-  apply (simp_all add: sym_group_def permutes_compose permutes_id comp_assoc)
-  using permutes_inv permutes_inv_o(2) by blast
+  using permutes_inv permutes_inv_o(2)
+  by (auto intro!: groupI simp add: sym_group_def permutes_compose permutes_id comp_assoc, blast)
 
 lemma sym_group_inv_closed:
   assumes "p \<in> carrier (sym_group n)"
@@ -334,15 +333,10 @@ abbreviation three_cycles :: "nat \<Rightarrow> (nat \<Rightarrow> nat) set"
 
 
 lemma stupid_lemma:
-  assumes "length cs = 3"
-  shows "cs = [(cs ! 0), (cs ! 1), (cs ! 2)]"
-proof (intro nth_equalityI)
-  show "length cs = length [(cs ! 0), (cs ! 1), (cs ! 2)]"
-    using assms by simp
-  show "\<forall> ia < length cs. cs ! ia = [(cs ! 0), (cs ! 1), (cs ! 2)] ! ia"
-    by (metis Suc_1 Suc_eq_plus1 add.left_neutral assms less_antisym
-        less_one nth_Cons' nth_Cons_Suc numeral_3_eq_3)
-qed
+  assumes "length cs = 3" shows "cs = [(cs ! 0), (cs ! 1), (cs ! 2)]"
+  using assms by (auto intro!: nth_equalityI)
+    (metis Suc_lessI less_2_cases not_less_eq nth_Cons_0
+           nth_Cons_Suc numeral_2_eq_2 numeral_3_eq_3)
 
 lemma alt_group_as_three_cycles:
   "carrier (alt_group n) = generate (alt_group n) (three_cycles n)"
@@ -363,10 +357,8 @@ proof
           by (metis cs(1) distinct_length_2_or_more evenperm_comp
                     evenperm_swap permutation_swap_id stupid_lemma[OF cs(2)])
 
-        moreover have "permutation p" using p cs(1) cycle_permutes by simp
-        hence "p permutes {1..n}"
-          using id_outside_supp[OF cs(1)] p cs permutation_permutes unfolding permutes_def
-          using permutation_permutes permutes_def subsetCE by metis
+        moreover have "p permutes {1..n}"
+          using p permutes_subset[OF cycle_permutes cs(3)] by simp
 
         ultimately show ?thesis by (simp add: alt_group_def)
       qed } note aux_lemma = this
@@ -541,7 +533,7 @@ next
           assume "l \<notin> {i, j, k}"
           hence "l \<notin> set cs \<and> l \<notin> set [i, k, j]" using ijk by auto
           thus ?thesis
-            using id_outside_supp[of cs l] id_outside_supp[of "[i, j, k]" l] p o_apply
+            using id_outside_supp[of cs] id_outside_supp[of "[i, j, k]"] p o_apply
             by (simp add: ijk numeral_2_eq_2)
         next
           assume "\<not> l \<notin> {i, j, k}" hence "l \<in> {i, j, k}" by simp
@@ -589,8 +581,8 @@ next
         by (metis final_step One_nat_def Suc_1 comp_id funpow.simps(2) funpow_simps_right(1) ijk p)
       hence "(p \<circ> p) \<circ> (inv' p) = q \<circ> p \<circ> (inv' q) \<circ> (inv' p)" by simp
       hence 1: "p = q \<circ> p \<circ> (inv' q) \<circ> (inv' p)"
-        using p cycle_permutes[OF cs(1)] o_assoc[of p p "inv' p"]
-        by (simp add: permutation_inverse_works(2))
+        using p cycle_permutes[of cs]  o_assoc[of p p "inv' p"]
+        by (metis comp_id permutes_inv_o(1))
 
       have "(Fun.swap j k id) \<circ> (Fun.swap g h id) permutes {1..n}"
         by (metis cs(3) gh_simps ijk insert_subset list.simps(15) permutes_compose permutes_swap_id)
