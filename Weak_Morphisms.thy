@@ -334,7 +334,7 @@ corollary (in ring) weak_ring_morphism_ring_hom:
 subsection \<open>Injective Functions\<close>
 
 text \<open>If the fuction is injective, we don't need to impose any algebraic restriction to the input
-      scheme in order to state a isomorphism.\<close>
+      scheme in order to state an isomorphism.\<close>
 
 lemma inj_imp_image_group_iso:
   assumes "inj_on f (carrier G)" shows "f \<in> iso G (image_group f G)"
