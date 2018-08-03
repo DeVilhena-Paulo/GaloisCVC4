@@ -3,13 +3,16 @@
 *)
 
 theory Polynomial_Divisibility
-  imports Polynomials
+  imports Polynomials "HOL-Library.Multiset"
     
 begin
 
 section \<open>Divisibility of Polynomials\<close>
 
 subsection \<open>Definitions\<close>
+
+abbreviation poly_ring :: "_ \<Rightarrow> ('a  list) ring"
+  where "poly_ring R \<equiv> univ_poly R (carrier R)"
 
 abbreviation pirreducible :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a list \<Rightarrow> bool" ("pirreducible\<index>")
   where "pirreducible\<^bsub>R\<^esub> K p \<equiv> ring_irreducible\<^bsub>(univ_poly R K)\<^esub> p"
@@ -537,5 +540,39 @@ proof -
     using UP.ring_associated_iff[OF in_carrier assms(2)] r(2) UP.associated_sym
     unfolding UP.m_comm[OF assms(2) r(1)] by auto
 qed
+
+(*
+
+subsection \<open>Roots and Multiplicity\<close>
+
+definition (in ring) roots :: "'a set \<Rightarrow> 'a list \<Rightarrow> 'a set"
+  where "roots K p = { x \<in> K. eval p x = \<zero> }"
+
+inductive (in ring) pdecomposition :: "'a set \<Rightarrow> 'a multiset \<Rightarrow> 'a list \<Rightarrow> bool"
+  where
+    const: "a \<in> K - { \<zero> } \<Longrightarrow> pdecomposition K {#} [ a ]"
+  | root:  "a \<in> K \<Longrightarrow> pdecomposition K fs p \<Longrightarrow> pdecomposition K (add_mset a fs) ([ \<one>, \<ominus> a ] \<otimes>\<^bsub>K[X]\<^esub> p)"
+  | irr:  "\<lbrakk> q \<in> carrier (K[X]); pirreducible K q; lead_coeff q = \<one>; degree q \<ge> 2 \<rbrakk> \<Longrightarrow>
+             pdecomposition K fs p \<Longrightarrow> pdecomposition K fs (q \<otimes>\<^bsub>K[X]\<^esub> p)"
+
+
+
+definition (in ring) long_division :: "'a list \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> 'a list)"
+  where "long_division p q = (THE t. t \<in> carrier ((carrier R)[X]) \<times> carrier ((carrier R)[X]) \<and>
+                                     p = poly_add (poly_mult q (fst t)) (snd t) \<and>
+                                    (snd t = [] \<or> degree (snd t) < degree q))"
+
+definition (in ring) pdiv :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" (infixl "pdiv" 65)
+  where "p pdiv q = fst (long_division p q)"
+
+definition (in ring) pmod :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" (infixl "pmod" 65)
+  where "p pmod q = snd (long_division p q)"
+
+lemma (in domain)
+  assumes "subfield K R" and "p \<in> carrier (K[X])" and "p \<noteq> []"
+    and "polynomial (carrier R) q1" "polynomial (carrier R) r1" and "r1 = [] \<or> degree r1 < degree p)"
+    and "polynomial (carrier R) q2" "polynomial (carrier R) r2" and "r2 = [] \<or> degree r2 < degree p)"
+    and "(p \<otimes>\<^bsub>K[X]\<^esub> q1) \<oplus>\<^bsub>K[X]\<^esub> r1 = (p \<otimes>\<^bsub>K[X]\<^esub> q1) \<oplus>\<^bsub>K[X]\<^esub> r1"
+*)
 
 end
