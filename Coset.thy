@@ -1088,7 +1088,7 @@ next
 qed
 
 (* NEW ========================================================================== *)
-lemma (in group_hom) induced_group_hom:
+lemma (in group_hom) induced_group_hom':
   assumes "subgroup I G" shows "group_hom (G \<lparr> carrier := I \<rparr>) H h"
 proof -
   have "h \<in> hom (G \<lparr> carrier := I \<rparr>) H"
@@ -1102,7 +1102,7 @@ qed
 lemma (in group_hom) inj_on_subgroup_iff_trivial_ker:
   assumes "subgroup I G"
   shows "inj_on h I \<longleftrightarrow> kernel (G \<lparr> carrier := I \<rparr>) H h = { \<one> }"
-  using group_hom.inj_iff_trivial_ker[OF induced_group_hom[OF assms]] by simp
+  using group_hom.inj_iff_trivial_ker[OF induced_group_hom'[OF assms]] by simp
 
 (* NEW ========================================================================== *)
 lemma set_mult_hom:
