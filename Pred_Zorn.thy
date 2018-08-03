@@ -1,5 +1,5 @@
 theory Pred_Zorn
-  imports Weak_Morphisms HOL.Zorn
+  imports HOL.Zorn
 
 begin
 
@@ -22,10 +22,10 @@ proof -
     using assms unfolding partial_order_on_def preorder_on_def by auto
   hence "refl_on A ?r'"
     unfolding refl_on_def by auto
-  moreover from transD[OF \<open>trans ?r\<close>] have "trans ?r'"
-    by (auto intro!: transI)
-  moreover from antisymD[OF \<open>antisym ?r\<close>] have "antisym ?r'"
-    by (auto intro!: antisymI)
+  moreover from \<open>trans ?r\<close> have "trans ?r'"
+    by (auto intro: transI dest: transD)
+  moreover from \<open>antisym ?r\<close> have "antisym ?r'"
+    by (auto intro: antisymI dest: antisymD)
   ultimately show ?thesis
     unfolding Field_alt_def'[OF \<open>refl_on A ?r\<close>]
     by (simp add: partial_order_on_def preorder_on_def)
@@ -44,6 +44,5 @@ proof -
     using Zorns_po_lemma[OF Partial_order_on[OF assms(1)]] assms(2)
     unfolding Field_alt_def'[OF refl] Chains_alt_def'[OF refl] by auto
 qed
-
 
 end
