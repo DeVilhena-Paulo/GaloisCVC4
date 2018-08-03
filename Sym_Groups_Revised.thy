@@ -534,7 +534,7 @@ proof (rule ccontr)
   have ge_2: "n \<ge> 2"
     using assms by simp
   have "2 = fact n"
-    using alt_group_card_carrier[OF ge_2] assms unfolding card_eq_1
+    using alt_group_card_carrier[OF ge_2] unfolding card_eq_1
     by (metis fact_2 mult.right_neutral of_nat_fact)
   hence "n = 2"
     by (smt fact_ge_self ge_2 le_antisym)

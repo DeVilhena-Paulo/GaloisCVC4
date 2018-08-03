@@ -15,7 +15,7 @@ text \<open>The definition of ring isomorphism, as well as the definition of gro
       certain algebraic constraints, it's sufficient to prove those for a scheme A and show
       the existence of an isomorphism between A and B. In this section, we explore this idea
       in a different way: given a scheme A and a function f, we build a scheme B with an
-      algebraic structure of same strength of A and f is an homomorphism from A to B.\<close>
+      algebraic structure of same strength as A where f is an homomorphism from A to B.\<close>
 
 
 subsection \<open>Definitions\<close>
