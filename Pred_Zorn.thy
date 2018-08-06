@@ -3,46 +3,49 @@ theory Pred_Zorn
 
 begin
 
-lemma Chains_alt_def':
-  assumes "refl_on A { (a, b). P a b }"
-  shows "Chains { (a, b) \<in> A \<times> A. P a b } = { C. pred_on.chain A P C }"
-  using assms unfolding Chains_def pred_on.chain_def refl_on_def by force 
+(* ========== *)
+lemma partial_order_onE:
+  assumes "partial_order_on A r" shows "refl_on A r" and "trans r" and "antisym r"
+  using assms unfolding partial_order_on_def preorder_on_def by auto
+(* ========== *)
 
-lemma Field_alt_def':
-  assumes "refl_on A { (a, b). P a b }" shows "Field { (a, b) \<in> A \<times> A. P a b } = A"
+abbreviation rel_of :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> ('a \<times> 'a) set"
+  where "rel_of P A \<equiv> { (a, b) \<in> A \<times> A. P a b }"
+
+lemma Field_rel_of:
+  assumes "refl_on A (rel_of P A)" shows "Field (rel_of P A) = A"
   using assms unfolding refl_on_def Field_def by auto
 
-lemma Partial_order_on:
-  assumes "partial_order_on A { (a, b). P a b }"
-  shows "Partial_order { (a, b) \<in> A \<times> A. P a b }"
+lemma partial_order_on_rel_ofI:
+  assumes refl: "\<And>a. a \<in> A \<Longrightarrow> P a a"
+    and trans: "\<And>a b c. \<lbrakk> a \<in> A; b \<in> A; c \<in> A \<rbrakk> \<Longrightarrow> P a b \<Longrightarrow> P b c \<Longrightarrow> P a c"
+    and antisym: "\<And>a b. \<lbrakk> a \<in> A; b \<in> A \<rbrakk> \<Longrightarrow> P a b \<Longrightarrow> P b a \<Longrightarrow> a = b"
+  shows "partial_order_on A (rel_of P A)"
 proof -
-  let ?r = "{ (a, b). P a b }" and ?r' = "{ (a, b) \<in> A \<times> A. P a b }"
-
-  have "trans ?r" and "antisym ?r" and "refl_on A ?r"
-    using assms unfolding partial_order_on_def preorder_on_def by auto
-  hence "refl_on A ?r'"
+  from refl have "refl_on A (rel_of P A)"
     unfolding refl_on_def by auto
-  moreover from \<open>trans ?r\<close> have "trans ?r'"
-    by (auto intro: transI dest: transD)
-  moreover from \<open>antisym ?r\<close> have "antisym ?r'"
-    by (auto intro: antisymI dest: antisymD)
+  moreover have "trans (rel_of P A)" and "antisym (rel_of P A)"
+    by (auto intro: transI dest: trans, auto intro: antisymI dest: antisym)
   ultimately show ?thesis
-    unfolding Field_alt_def'[OF \<open>refl_on A ?r\<close>]
-    by (simp add: partial_order_on_def preorder_on_def)
+    unfolding partial_order_on_def preorder_on_def by simp
 qed
 
-lemma Zorns_pred_lemma:
-  assumes "partial_order_on A { (a, b). P a b }"
-    and "\<And>C. pred_on.chain A P C \<Longrightarrow> \<exists>u \<in> A. \<forall>a \<in> C. P a u"
+lemma Partial_order_rel_ofI:
+  assumes "partial_order_on A (rel_of P A)" shows "Partial_order (rel_of P A)"
+  using Field_rel_of assms partial_order_on_def preorder_on_def by fastforce
+
+lemma predicate_Zorn:
+  assumes "partial_order_on A (rel_of P A)"
+    and "\<forall>C \<in> Chains (rel_of P A). \<exists>u \<in> A. \<forall>a \<in> C. P a u"
   shows "\<exists>m \<in> A. \<forall>a \<in> A. P m a \<longrightarrow> a = m"
 proof -
-  have refl: "refl_on A { (a, b). P a b }"
-    using assms unfolding partial_order_on_def preorder_on_def by simp
-  have "\<And>c C. pred_on.chain A P C \<Longrightarrow> c \<in> C \<Longrightarrow> c \<in> A"
-    unfolding pred_on.chain_def by auto
-  thus ?thesis
-    using Zorns_po_lemma[OF Partial_order_on[OF assms(1)]] assms(2)
-    unfolding Field_alt_def'[OF refl] Chains_alt_def'[OF refl] by auto
+  have "a \<in> A" if "a \<in> C" and "C \<in> Chains (rel_of P A)" for C a
+    using that unfolding Chains_def by auto
+  moreover have "(a, u) \<in> rel_of P A" if "a \<in> A" and "u \<in> A" and "P a u" for a u
+    using that by auto
+  ultimately show ?thesis
+    using Zorns_po_lemma[OF Partial_order_rel_ofI[OF assms(1)]] assms(2)
+    unfolding Field_rel_of[OF partial_order_onE(1)[OF assms(1)]] by auto
 qed
 
 end
