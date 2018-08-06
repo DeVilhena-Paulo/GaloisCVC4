@@ -49,6 +49,12 @@ lemma image_group_truncate:
 lemma image_ring_truncate: "monoid.truncate (image_ring f R) = image_group f R"
   by (simp add: image_ring_def monoid.defs)
 
+lemma image_group_carrier: "carrier (image_group f G) = f ` (carrier G)"
+  unfolding image_group_def by simp
+
+lemma image_ring_carrier: "carrier (image_ring f G) = f ` (carrier G)"
+  unfolding image_ring_def image_group_def by (simp add: monoid.defs)
+
 lemma (in ring) ideal_is_normal:
   assumes "ideal I R" shows "I \<lhd> (add_monoid R)"
   using abelian_subgroup.a_normal[OF abelian_subgroupI3[OF ideal.axioms(1)]]
@@ -361,6 +367,16 @@ lemma (in group) inj_imp_image_group_is_group:
 lemma (in ring) inj_imp_image_ring_is_ring:
   assumes "inj_on f (carrier R)" shows "ring (image_ring f R)"
   using ring_iso_imp_img_ring[OF inj_imp_image_ring_iso[OF assms]]
+  by (simp add: image_ring_def image_group_def monoid.defs)
+
+lemma (in domain) inj_imp_image_ring_is_domain:
+  assumes "inj_on f (carrier R)" shows "domain (image_ring f R)"
+  using ring_iso_imp_img_domain[OF inj_imp_image_ring_iso[OF assms]]
+  by (simp add: image_ring_def image_group_def monoid.defs)
+
+lemma (in field) inj_imp_image_ring_is_field:
+  assumes "inj_on f (carrier R)" shows "field (image_ring f R)"
+  using ring_iso_imp_img_field[OF inj_imp_image_ring_iso[OF assms]]
   by (simp add: image_ring_def image_group_def monoid.defs)
 
 
