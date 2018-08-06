@@ -1374,6 +1374,10 @@ lemma univ_poly_zero: "zero (K[X]\<^bsub>R\<^esub>) = []"
 lemma univ_poly_add: "add (K[X]\<^bsub>R\<^esub>) = ring.poly_add R"
   unfolding univ_poly_def by simp
 
+(* NEW  ========== *)
+lemma univ_poly_zero_closed [intro]: "[] \<in> carrier (K[X]\<^bsub>R\<^esub>)"
+  unfolding sym[OF univ_poly_carrier] polynomial_def by simp
+
 
 context domain
 begin
@@ -1567,8 +1571,7 @@ qed
 declare poly_add.simps[simp]
 
 lemma univ_poly_a_inv_def':
-  assumes "p \<in> carrier (K[X])"
-  shows "\<ominus>\<^bsub>K[X]\<^esub> p = map (\<lambda>a. \<ominus> a) p"
+  assumes "p \<in> carrier (K[X])" shows "\<ominus>\<^bsub>K[X]\<^esub> p = map (\<lambda>a. \<ominus> a) p"
 proof -
   have aux_lemma:
     "\<And>p. p \<in> carrier (K[X]) \<Longrightarrow> p \<oplus>\<^bsub>K[X]\<^esub> (map (\<lambda>a. \<ominus> a) p) = []"
@@ -1610,6 +1613,16 @@ proof -
   thus ?thesis
     using assms by simp
 qed
+
+(* NEW ========== *)
+corollary univ_poly_a_inv_length:
+  assumes "p \<in> carrier (K[X])" shows "length (\<ominus>\<^bsub>K[X]\<^esub> p) = length p"
+  unfolding univ_poly_a_inv_def'[OF assms] by simp
+
+(* NEW ========== *)
+corollary univ_poly_a_inv_degree:
+  assumes "p \<in> carrier (K[X])" shows "degree (\<ominus>\<^bsub>K[X]\<^esub> p) = degree p"
+  using univ_poly_a_inv_length[OF assms] by simp
 
 
 subsection \<open>Long Division Theorem\<close>
@@ -1704,7 +1717,8 @@ end (* of fixed K context. *)
 
 end (* of domain context. *)
 
-lemma (in field) field_long_division_theorem:
+(* PROOF ========== *)
+lemma (in domain) field_long_division_theorem:
   assumes "subfield K R" "polynomial K p" and "polynomial K b" "b \<noteq> []"
   shows "\<exists>q r. polynomial K q \<and> polynomial K r \<and>
                p = (b \<otimes>\<^bsub>K[X]\<^esub> q) \<oplus>\<^bsub>K[X]\<^esub> r \<and> (r = [] \<or> degree r < degree b)"
@@ -1712,8 +1726,9 @@ lemma (in field) field_long_division_theorem:
         subfield.subfield_Units[OF assms(1)] lead_coeff_not_zero[of K "hd b" "tl b"]
   by simp
 
+(* PROOF ========== *)
 text \<open>The same theorem as above, but now, everything is in a shell. \<close>
-lemma (in field) field_long_division_theorem_shell:
+lemma (in domain) field_long_division_theorem_shell:
   assumes "subfield K R" "p \<in> carrier (K[X])" and "b \<in> carrier (K[X])" "b \<noteq> \<zero>\<^bsub>K[X]\<^esub>"
   shows "\<exists>q r. q \<in> carrier (K[X]) \<and> r \<in> carrier (K[X]) \<and>
                p = (b \<otimes>\<^bsub>K[X]\<^esub> q) \<oplus>\<^bsub>K[X]\<^esub> r \<and> (r = \<zero>\<^bsub>K[X]\<^esub> \<or> degree r < degree b)"
@@ -1799,13 +1814,14 @@ lemma (in ring) univ_poly_consistent:
 
 subsubsection \<open>Corollaries\<close>
 
+(* PROOF ========== *)
 corollary (in ring) subfield_long_division_theorem_shell:
   assumes "subfield K R" "p \<in> carrier (K[X])" and "b \<in> carrier (K[X])" "b \<noteq> \<zero>\<^bsub>K[X]\<^esub>"
   shows "\<exists>q r. q \<in> carrier (K[X]) \<and> r \<in> carrier (K[X]) \<and>
                p = (b \<otimes>\<^bsub>K[X]\<^esub> q) \<oplus>\<^bsub>K[X]\<^esub> r \<and> (r = \<zero>\<^bsub>K[X]\<^esub> \<or> degree r < degree b)"
-  using field.field_long_division_theorem_shell[OF subfield_iff(2)[OF assms(1)]
-        field.carrier_is_subfield[OF subfield_iff(2)[OF assms(1)]]]
-        univ_poly_consistent[OF subfieldE(1)[OF assms(1)]] assms(2-4)
+  using domain.field_long_division_theorem_shell[OF subdomain_is_domain[OF subfield.axioms(1)]
+        field.carrier_is_subfield[OF subfield_iff(2)[OF assms(1)]]] assms(1-4)
+  unfolding univ_poly_consistent[OF subfieldE(1)[OF assms(1)]]
   by auto
 
 corollary (in domain) univ_poly_is_euclidean:
