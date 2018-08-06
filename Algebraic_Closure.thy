@@ -70,6 +70,18 @@ proof -
   ultimately show ?thesis by simp
 qed
 
+lemma law_restrict_hom: "h \<in> ring_hom A B \<longleftrightarrow> h \<in> ring_hom (law_restrict A) (law_restrict B)"
+proof
+  assume "h \<in> ring_hom A B" thus "h \<in> ring_hom (law_restrict A) (law_restrict B)"
+    by (auto intro!: ring_hom_memI dest: ring_hom_memE simp: law_restrict_def ring.defs)
+next
+  assume h: "h \<in> ring_hom (law_restrict A) (law_restrict B)" show "h \<in> ring_hom A B"
+    using ring_hom_memE[OF h] by (auto intro!: ring_hom_memI simp: law_restrict_def ring.defs)
+qed
+
+lemma iso_incl_hom: "A \<lesssim> B \<longleftrightarrow> (law_restrict A) \<lesssim> (law_restrict B)"
+  using law_restrict_hom iso_incl.simps by blast
+
 
 subsection \<open>Partial Order\<close>
 
@@ -144,8 +156,12 @@ qed
 
 subsection \<open>Chains\<close>
 
-(* Definition (and proof) of the partial order *)
-
-(* Inductive set proof: field (\<Union>R \<in> Chain) + ... *)
+definition union_ring :: "(('a, 'c) ring_scheme) set \<Rightarrow> 'a ring"
+  where "union_ring C = 
+           \<lparr> carrier = (\<Union>(carrier ` C)),
+         monoid.mult = (\<lambda>a b. (monoid.mult (SOME R. R \<in> C \<and> a \<in> carrier R \<and> b \<in> carrier R) a b)),
+                 one = one (SOME R. R \<in> C),
+                zero = zero (SOME R. R \<in> C),
+                 add = (\<lambda>a b. (add (SOME R. R \<in> C \<and> a \<in> carrier R \<and> b \<in> carrier R) a b)) \<rparr>"
 
 end
