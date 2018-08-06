@@ -1,5 +1,5 @@
 theory Indexed_Polynomials
-  imports Weak_Morphisms "HOL-Library.Multiset" (* Polynomials *)
+  imports Weak_Morphisms "HOL-Library.Multiset" Polynomial_Divisibility
     
 begin
 
@@ -139,7 +139,7 @@ proof (induct Ps arbitrary: m, simp add: indexed_zero_def)
     hence "P m = \<zero>"
       using Cons(3) unfolding index_free_def by simp
     moreover have "(indexed_eval_aux Ps i) m \<in> carrier R"
-      using indexed_eval_aux_in_carrier Cons(2) carrier_coeffE by simp
+      using carrier_coeffE[OF indexed_eval_aux_in_carrier[of Ps i]] Cons(2) by simp 
     ultimately have "((indexed_eval_aux Ps i) \<Otimes> i) m \<noteq> \<zero>"
       using Cons(4) by (auto simp add: indexed_padd_def)
     with \<open>count m i \<noteq> 0\<close> have "(indexed_eval_aux Ps i) (m - {# i #}) \<noteq> \<zero>"
@@ -225,6 +225,30 @@ proof -
     using indexed_eval_aux_is_inj[of "Ps @ [ P ]" i "Qs @ [ Q ]"] assms(1-6,8-9,11) by auto
 qed
 
+lemma (in ring) exists_indexed_eval_monomial:
+  assumes "carrier_coeff P" and "list_all carrier_coeff Qs"
+    and "P n \<noteq> \<zero>" and "list_all (\<lambda>Q. index_free Q i) Qs"
+  obtains m where "count m i = length Qs + (count n i)" and "(indexed_eval (P # Qs) i) m \<noteq> \<zero>"
+  using exists_indexed_eval_aux_monomial[OF assms(1) _ _ assms(3), of "rev Qs"] assms(2,4) by auto
+
+corollary (in ring) exists_indexed_eval_monomial':
+  assumes "carrier_coeff P" and "list_all carrier_coeff Qs"
+    and "P \<noteq> indexed_const \<zero>" and "list_all (\<lambda>Q. index_free Q i) Qs"
+  obtains m where "count m i \<ge> length Qs" and "(indexed_eval (P # Qs) i) m \<noteq> \<zero>"
+proof -
+  from \<open>P \<noteq> indexed_const \<zero>\<close> obtain n where "P n \<noteq> \<zero>"
+    unfolding indexed_const_def by auto
+  then obtain m where "count m i = length Qs + (count n i)" and "(indexed_eval (P # Qs) i) m \<noteq> \<zero>"
+    using exists_indexed_eval_monomial[OF assms(1-2) _ assms(4)] by auto
+  thus thesis
+    using that by force
+qed
+
+lemma (in ring) indexed_eval_monomial_degree_le:
+  assumes "list_all carrier_coeff Ps" and "list_all (\<lambda>P. index_free P i) Ps"
+    and "(indexed_eval Ps i) m \<noteq> \<zero>" shows "count m i \<le> length Ps - 1"
+  using indexed_eval_aux_monomial_degree_le[of "rev Ps"] assms by auto
+
 lemma (in ring) indexed_eval_is_inj:
   assumes "list_all carrier_coeff Ps" and "list_all (\<lambda>P. index_free P i) Ps"
       and "list_all carrier_coeff Qs" and "list_all (\<lambda>Q. index_free Q i) Qs"
@@ -240,6 +264,62 @@ proof -
   show "Ps = Qs" and "P = Q"
     using indexed_eval_aux_is_inj'[OF rev_cond assms(5-10)] assms(11) by auto
 qed
+
+lemma (in ring) indexed_eval_inj_on_carrier:
+  assumes "\<And>P. P \<in> carrier L \<Longrightarrow> carrier_coeff P" and "\<And>P. P \<in> carrier L \<Longrightarrow> index_free P i" and "\<zero>\<^bsub>L\<^esub> = indexed_const \<zero>"
+  shows "inj_on (\<lambda>Ps. indexed_eval Ps i) (carrier (poly_ring L))"
+proof -
+  { fix Ps
+    assume "Ps \<in> carrier (poly_ring L)" and "indexed_eval Ps i = indexed_const \<zero>"
+    have "Ps = []"
+    proof (rule ccontr)
+      assume "Ps \<noteq> []"
+      then obtain P' Ps' where Ps: "Ps = P' # Ps'"
+        using list.exhaust by blast
+      with \<open>Ps \<in> carrier (poly_ring L)\<close>
+      have "P' \<noteq> indexed_const \<zero>" and "list_all carrier_coeff Ps" and "list_all (\<lambda>P. index_free P i) Ps"
+        using assms unfolding sym[OF univ_poly_carrier[of L "carrier L"]] polynomial_def
+        by (simp add: list.pred_set subset_code(1))+
+      then obtain m where "(indexed_eval Ps i) m \<noteq> \<zero>"
+        using exists_indexed_eval_monomial'[of P' Ps'] unfolding Ps by auto
+      hence "indexed_eval Ps i \<noteq> indexed_const \<zero>"
+        unfolding indexed_const_def by auto
+      with \<open>indexed_eval Ps i = indexed_const \<zero>\<close> show False by simp
+    qed } note aux_lemma = this
+
+  show ?thesis
+  proof (rule inj_onI)
+    fix Ps Qs
+    assume "Ps \<in> carrier (poly_ring L)" and "Qs \<in> carrier (poly_ring L)"
+    show "indexed_eval Ps i = indexed_eval Qs i \<Longrightarrow> Ps = Qs"
+    proof (cases)
+      assume "Qs = []" and "indexed_eval Ps i = indexed_eval Qs i"
+      with \<open>Ps \<in> carrier (poly_ring L)\<close> show "Ps = Qs"
+        using aux_lemma by simp
+    next
+      assume "Qs \<noteq> []" and eq: "indexed_eval Ps i = indexed_eval Qs i"
+      with \<open>Qs \<in> carrier (poly_ring L)\<close> have "Ps \<noteq> []"
+        using aux_lemma by auto
+      from \<open>Ps \<noteq> []\<close> and \<open>Qs \<noteq> []\<close> obtain P' Ps' Q' Qs' where Ps: "Ps = P' # Ps'" and Qs: "Qs = Q' # Qs'"
+        using list.exhaust by metis
+
+      from \<open>Ps \<in> carrier (poly_ring L)\<close> and \<open>Ps = P' # Ps'\<close>
+      have "carrier_coeff P'" and "index_free P' i" "P' \<noteq> indexed_const \<zero>"
+       and "list_all carrier_coeff Ps'" and "list_all (\<lambda>P. index_free P i) Ps'"
+        using assms unfolding sym[OF univ_poly_carrier[of L "carrier L"]] polynomial_def
+        by (simp add: list.pred_set subset_code(1))+
+      moreover 
+      from \<open>Qs \<in> carrier (poly_ring L)\<close> and \<open>Qs = Q' # Qs'\<close>
+      have "carrier_coeff Q'" and "index_free Q' i" "Q' \<noteq> indexed_const \<zero>"
+       and "list_all carrier_coeff Qs'" and "list_all (\<lambda>P. index_free P i) Qs'"
+        using assms unfolding sym[OF univ_poly_carrier[of L "carrier L"]] polynomial_def
+        by (simp add: list.pred_set subset_code(1))+
+      ultimately show ?thesis
+        using indexed_eval_is_inj[of Ps' i Qs' P' Q'] eq unfolding Ps Qs by auto
+    qed
+  qed
+qed
+
 
 (*lemma (in ring) indexed_pset_empty:
   shows "K[\<X>\<^bsub>{}\<^esub>] = (\<Union>k \<in> K. { indexed_const k })"
