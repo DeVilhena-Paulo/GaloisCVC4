@@ -1,5 +1,5 @@
 theory Algebraic_Closure
-  imports Indexed_Polynomials Polynomial_Divisibility
+  imports Indexed_Polynomials Polynomial_Divisibility Pred_Zorn
 
 begin
 
@@ -8,7 +8,7 @@ section \<open>Algebraic Closure\<close>
 subsection \<open>Definitions\<close>
 
 inductive iso_incl :: "'a ring \<Rightarrow> 'a ring \<Rightarrow> bool" (infixl "\<lesssim>" 65) for A B
-  where "id \<in> ring_hom A B \<Longrightarrow> iso_incl A B"
+  where iso_inclI [intro]: "id \<in> ring_hom A B \<Longrightarrow> iso_incl A B"
 
 definition law_restrict :: "('a, 'b) ring_scheme \<Rightarrow> 'a ring"
   where "law_restrict R \<equiv> (ring.truncate R)
@@ -70,11 +70,14 @@ proof -
   ultimately show ?thesis by simp
 qed
 
+
+subsection \<open>Partial Order\<close>
+
 lemma iso_incl_backwards:
   assumes "A \<lesssim> B" shows "id \<in> ring_hom A B"
   using assms by cases
 
-lemma iso_incl_antisym:
+lemma iso_incl_antisym_aux:
   assumes "A \<lesssim> B" and "B \<lesssim> A" shows "id \<in> ring_iso A B"
 proof -
   have hom: "id \<in> ring_hom A B" "id \<in> ring_hom B A"
@@ -83,15 +86,25 @@ proof -
     using hom[THEN ring_hom_memE(1)] by (auto simp add: ring_iso_def bij_betw_def inj_on_def)
 qed
 
-lemma (in ring) iso_incl_antisym_on:
+lemma iso_incl_refl: "A \<lesssim> A"
+  by (rule iso_inclI[OF ring_hom_memI], auto)
+
+lemma iso_incl_trans:
+  assumes "A \<lesssim> B" and "B \<lesssim> C" shows "A \<lesssim> C"
+  using ring_hom_trans[OF assms[THEN iso_incl_backwards]] by auto
+
+lemma (in ring) iso_incl_antisym:
   assumes "A \<in> \<S>" "B \<in> \<S>" and "A \<lesssim> B" "B \<lesssim> A" shows "A = B"
 proof -
   obtain A' B' :: "('a list multiset \<Rightarrow> 'a) ring"
     where A: "A = law_restrict A'" "ring A'" and B: "B = law_restrict B'" "ring B'"
     using assms(1-2) cring.axioms(1)[OF fieldE(1)] by (auto simp add: range_extensions_def)
   thus ?thesis
-    using law_restrict_iso_imp_eq iso_incl_antisym[OF assms(3-4)] by simp
+    using law_restrict_iso_imp_eq iso_incl_antisym_aux[OF assms(3-4)] by simp
 qed
+
+lemma (in ring) iso_incl_partial_order: "partial_order_on \<S> (rel_of (\<lesssim>) \<S>)"
+  using iso_incl_refl iso_incl_trans iso_incl_antisym by (rule partial_order_on_rel_ofI)
 
 
 subsection \<open>Extensions Non Empty\<close>
@@ -99,12 +112,35 @@ subsection \<open>Extensions Non Empty\<close>
 lemma (in ring) indexed_const_is_inj: "inj indexed_const"
   unfolding indexed_const_def by (rule inj_onI, metis)
 
-(*
-lemma (in field) extensions_non_empty: "\<S> \<noteq> {}"
-  sorry
-*)
+lemma (in ring) indexed_const_inj_on: "inj_on indexed_const (carrier R)"
+  unfolding indexed_const_def by (rule inj_onI, metis)
 
-subsection \<open>Partial Order\<close>
+lemma (in field) extensions_non_empty: "\<S> \<noteq> {}"
+proof -
+  have "image_ring indexed_const R \<in> extensions"
+  proof (auto)
+    show "field (image_ring indexed_const R)"
+      using inj_imp_image_ring_is_field[OF indexed_const_inj_on] .
+  next
+    show "indexed_const \<in> ring_hom R (image_ring indexed_const R)"
+      using inj_imp_image_ring_iso[OF indexed_const_inj_on] unfolding ring_iso_def by auto
+  next
+    fix \<P> :: "('a list multiset) \<Rightarrow> 'a" and P
+    assume "\<P> \<in> carrier (image_ring indexed_const R)"
+    then obtain k where "k \<in> carrier R" and "\<P> = indexed_const k"
+      unfolding image_ring_carrier by blast
+    hence "index_free \<P> P" for P
+      unfolding index_free_def indexed_const_def by auto
+    thus "\<not> index_free \<P> P \<Longrightarrow> \<X>\<^bsub>P\<^esub> \<in> carrier (image_ring indexed_const R)"
+     and "\<not> index_free \<P> P \<Longrightarrow> ring.eval (image_ring indexed_const R) (\<sigma> P) \<X>\<^bsub>P\<^esub> = \<zero>\<^bsub>image_ring indexed_const R\<^esub>"
+      by auto
+    from \<open>k \<in> carrier R\<close> and \<open>\<P> = indexed_const k\<close> show "carrier_coeff \<P>"
+      unfolding indexed_const_def carrier_coeff_def by auto
+  qed
+  thus ?thesis
+    unfolding range_extensions_def by blast
+qed
+
 
 subsection \<open>Chains\<close>
 
