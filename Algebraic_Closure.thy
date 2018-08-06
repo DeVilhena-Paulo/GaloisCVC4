@@ -164,4 +164,43 @@ definition union_ring :: "(('a, 'c) ring_scheme) set \<Rightarrow> 'a ring"
                 zero = zero (SOME R. R \<in> C),
                  add = (\<lambda>a b. (add (SOME R. R \<in> C \<and> a \<in> carrier R \<and> b \<in> carrier R) a b)) \<rparr>"
 
+lemma union_ring_laws_well_defined :
+  assumes "\<forall> R \<in> C. field R"
+    and "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
+    and "x \<in> carrier (union_ring C)" 
+    and "y \<in> carrier (union_ring C)" 
+  shows "\<exists> R. R \<in> C \<and> x \<in> carrier R \<and> y \<in> carrier R"
+proof-
+  from assms(3) obtain R1 where R1 : "R1 \<in> C \<and> x \<in> carrier R1"
+    unfolding union_ring_def by auto
+  from assms(4) obtain R2 where R2 : "R2 \<in> C \<and> y \<in> carrier R2"
+    unfolding union_ring_def by auto
+  show ?thesis
+  proof (cases "R1 \<lesssim> R2")
+    case True
+    then have "carrier R1 \<subseteq> carrier R2"
+      using ring_hom_memE(1)[OF iso_incl_backwards]
+      by fastforce
+    then show ?thesis using R1 R2
+      by blast
+  next
+    case False
+    then have "R2 \<lesssim> R1" using assms(2) R1 R2 by blast
+    then have "carrier R2 \<subseteq> carrier R1"
+      using ring_hom_memE(1)[OF iso_incl_backwards]
+      by fastforce
+    then show ?thesis using R1 R2
+      by blast
+  qed
+qed
+
+lemma union_ring_group :
+  assumes "\<forall> R \<in> C. field R"
+    and "C \<noteq> {}"
+    and "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
+    and "x \<in> carrier (union_ring C)" 
+    and "y \<in> carrier (union_ring C)" 
+  shows "group (union_ring C)"
+
+
 end
