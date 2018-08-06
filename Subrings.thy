@@ -223,10 +223,14 @@ next
     unfolding subdomain_axioms_def by auto
 qed
 
-(* NEW ====================== *)
 lemma (in domain) subring_is_domain:
   assumes "subring H R" shows "domain (R \<lparr> carrier := H \<rparr>)"
   using subdomainI'[OF assms] unfolding subdomain_iff[OF subringE(1)[OF assms]] .
+
+(* NEW ====================== *)
+lemma (in ring) subdomain_is_domain:
+  assumes "subdomain H R" shows "domain (R \<lparr> carrier := H \<rparr>)"
+  using assms unfolding subdomain_iff[OF subdomainE(1)[OF assms]] .
 
 
 subsubsection \<open>Subfields\<close>
