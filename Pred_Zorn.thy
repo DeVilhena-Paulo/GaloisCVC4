@@ -32,7 +32,7 @@ qed
 
 lemma Partial_order_rel_ofI:
   assumes "partial_order_on A (rel_of P A)" shows "Partial_order (rel_of P A)"
-  using Field_rel_of assms partial_order_on_def preorder_on_def by fastforce
+  using assms unfolding Field_rel_of[OF partial_order_onE(1)[OF assms]] .
 
 lemma predicate_Zorn:
   assumes "partial_order_on A (rel_of P A)"
