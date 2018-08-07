@@ -164,7 +164,7 @@ definition union_ring :: "(('a, 'c) ring_scheme) set \<Rightarrow> 'a ring"
                 zero = zero (SOME R. R \<in> C),
                  add = (\<lambda>a b. (add (SOME R. R \<in> C \<and> a \<in> carrier R \<and> b \<in> carrier R) a b)) \<rparr>"
 
-lemma union_ring_laws_well_defined :
+lemma union_ring_laws_well_defined1 :
   assumes "\<forall> R \<in> C. field R"
     and "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
     and "x \<in> carrier (union_ring C)" 
@@ -194,13 +194,134 @@ proof-
   qed
 qed
 
+lemma union_ring_laws_well_defined2 :
+  assumes "\<forall> R \<in> C. field R"
+    and "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
+    and "x \<in> carrier (union_ring C)" 
+    and "y \<in> carrier (union_ring C)"
+  shows "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<Longrightarrow> x \<in> carrier R1 \<Longrightarrow> y \<in> carrier R1 
+    \<Longrightarrow> monoid.mult R1 x y = monoid.mult R2 x y \<and> add R1 x y = add R2 x y"
+proof-
+  fix R1 R2 assume hyp : "R1 \<in> C" "R2 \<in> C" "R1 \<lesssim> R2""x \<in> carrier R1" "y \<in> carrier R1"
+  hence "id \<in> ring_hom R1 R2"
+    using iso_incl.cases by blast
+  thus "x \<otimes>\<^bsub>R1\<^esub> y = x \<otimes>\<^bsub>R2\<^esub> y \<and> x \<oplus>\<^bsub>R1\<^esub> y = x \<oplus>\<^bsub>R2\<^esub> y"
+    using hyp ring_hom_memE by fastforce
+qed
+
+lemma union_ring_someI :
+  assumes "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
+    and "x \<in> carrier (union_ring C)"
+    and "y \<in> carrier (union_ring C)"
+  shows "\<exists>R \<in> C.  x \<in> carrier R \<and> y \<in> carrier R"
+proof-
+  from assms obtain R1 R2 where hyp : "R1 \<in> C" "R2 \<in> C" "x \<in> carrier R1" "y \<in> carrier R2"
+    unfolding union_ring_def by auto
+  show ?thesis
+  proof (cases " R1 \<lesssim> R2")
+    case True
+    hence "id \<in> ring_hom R1 R2"
+      using iso_incl.cases by blast
+    hence "x \<in> carrier R2" using ring_hom_memE(1) hyp(3) by fastforce
+    then show ?thesis using hyp by auto
+  next
+    case False
+    hence "R2 \<lesssim> R1" using hyp(1,2) assms(1) by auto
+    hence "id \<in> ring_hom R2 R1"
+      using iso_incl.cases by blast
+    hence "y \<in> carrier R1" using ring_hom_memE(1) hyp(4) by fastforce
+    then show ?thesis using hyp by auto
+  qed
+qed
+
+
+corollary union_ring_same_laws :
+  assumes "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
+    and "R1 \<in> C"
+  shows "\<And> x y.  x \<in> carrier R1 \<Longrightarrow> y \<in> carrier R1 
+     \<Longrightarrow> x \<otimes>\<^bsub>R1\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y \<and> x \<oplus>\<^bsub>R1\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
+proof-
+  fix x y assume hyp : "x \<in> carrier R1" "y \<in> carrier R1"
+  obtain R2 where R2 : "R2 \<in> C""x \<in> carrier R2" "y \<in> carrier R2" "x \<oplus>\<^bsub>R2\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
+    using someI hyp assms(2) unfolding union_ring_def
+    by (metis (full_types, lifting) ring_record_simps(12))
+  obtain R3 where R3 : "R3 \<in> C" "x \<in> carrier R3" "y \<in> carrier R3" "x \<otimes>\<^bsub>R3\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y"
+    using someI_ex[of "\<lambda>R. R\<in>C \<and> x \<in> carrier R \<and> y \<in> carrier R"] union_ring_someI[OF assms(1)]
+         hyp assms(2) unfolding union_ring_def by auto
+  have "x \<oplus>\<^bsub>R1\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
+  proof (cases "R1 \<lesssim> R2")
+    case True
+    hence "id \<in> ring_hom R1 R2"
+      using iso_incl.cases by blast
+    then show ?thesis using hyp ring_hom_memE R2 by fastforce
+  next
+    case False
+    hence "R2 \<lesssim> R1" using R2 assms(1,2) by auto
+    hence "id \<in> ring_hom R2 R1"
+      using iso_incl.cases by blast
+    then show ?thesis using hyp R2 ring_hom_memE by fastforce
+  qed
+  moreover have "x \<otimes>\<^bsub>R1\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y"
+  proof  (cases "R1 \<lesssim> R3")
+    case True
+    hence "id \<in> ring_hom R1 R3"
+      using iso_incl.cases by blast
+    then show ?thesis using hyp ring_hom_memE R3 by fastforce
+  next
+    case False
+    hence "R3 \<lesssim> R1" using R3 assms(1,2) by auto
+    hence "id \<in> ring_hom R3 R1"
+      using iso_incl.cases by blast
+    then show ?thesis using hyp R3 ring_hom_memE by fastforce
+  qed
+  ultimately show "x \<otimes>\<^bsub>R1\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y \<and> x \<oplus>\<^bsub>R1\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
+    by auto
+qed
+
+
 lemma union_ring_group :
   assumes "\<forall> R \<in> C. field R"
     and "C \<noteq> {}"
     and "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
-    and "x \<in> carrier (union_ring C)" 
-    and "y \<in> carrier (union_ring C)" 
-  shows "group (union_ring C)"
+  shows "field (union_ring C)" apply (unfold_locales,simp_all)
+proof-
+  fix x y z assume hyp :  "x \<in> carrier (union_ring C)"
+                          "y \<in> carrier (union_ring C)"
+                          "z \<in> carrier (union_ring C)"
+  have "\<exists>R \<in> C. x \<in> carrier R \<and> y \<in> carrier R \<and> z \<in> carrier R"
+  proof-
+    obtain R1 R2 where R1R2 :  "R1 \<in> C" "R2 \<in> C""x \<in> carrier R1" "y \<in> carrier R1" "z \<in> carrier R2"
+      using union_ring_someI[OF assms(3) hyp(1,2)] hyp(3) unfolding union_ring_def by auto
+    show ?thesis
+    proof (cases "R1 \<lesssim> R2")
+      case True
+      hence "id \<in> ring_hom R1 R2"
+        using iso_incl.cases by blast
+      then show ?thesis using ring_hom_memE(1)[OF _ R1R2(3)] ring_hom_memE(1)[OF _ R1R2(4)] R1R2
+        by fastforce
+    next
+      case False
+      hence "R2 \<lesssim> R1" using R1R2 assms(3) by auto
+      hence "id \<in> ring_hom R2 R1"
+        using iso_incl.cases by blast
+      then show ?thesis using hyp R1R2 ring_hom_memE by fastforce
+    qed
+  qed
+  from this obtain R where R : "R \<in> C" "x \<in> carrier R" "y \<in> carrier R" "z \<in> carrier R"
+    by auto
+  have laws : "x \<otimes>\<^bsub>R\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y \<and> x \<oplus>\<^bsub>R\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
+    using union_ring_same_laws[OF assms(3) R(1-3)] by auto 
+  hence "x \<otimes>\<^bsub>union_ring C\<^esub> y \<in> carrier (R)"
+    using assms(1) R(1-3) cring.cring_simprules(5) fieldE(1) by fastforce
+  thus "x \<otimes>\<^bsub>union_ring C\<^esub> y \<in> carrier (union_ring C)" 
+    using R(1) unfolding union_ring_def by auto
+  have "field R" using assms R by auto
+  thus "x \<oplus>\<^bsub>union_ring C\<^esub> y \<in> carrier (union_ring C)"
+    using R(1-3)cring.cring_simprules(1) fieldE(1) laws unfolding union_ring_def by fastforce
+  have laws2 : "x \<otimes>\<^bsub>R\<^esub> y \<otimes>\<^bsub>R\<^esub> z = x \<otimes>\<^bsub>union_ring C\<^esub> y \<otimes>\<^bsub>union_ring C\<^esub> z"
+
+  have "\<exists>! a. x \<oplus>\<^bsub>(union_ring C)\<^esub> a = \<zero>\<^bsub>(union_ring C)\<^esub> \<and> a \<oplus>\<^bsub>(union_ring C)\<^esub> x = \<zero>\<^bsub>(union_ring C)\<^esub>"
+  proof
 
 
 end
