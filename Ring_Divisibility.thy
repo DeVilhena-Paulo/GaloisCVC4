@@ -679,6 +679,26 @@ proof (rule ccontr)
     using C unfolding pred_on.maxchain_def by blast
 qed
 
+lemma (in noetherian_domain) exists_irreducible_divisor:
+  assumes "a \<in> carrier R - { \<zero> }" and "a \<notin> Units R"
+  obtains b where "b \<in> carrier R" and "ring_irreducible b" and "b divides a"
+proof -
+  obtain fs where set_fs: "set fs \<subseteq> carrier (mult_of R)" and "wfactors (mult_of R) fs a"
+    using factorization_property[OF assms] by blast
+  hence "a \<in> Units R" if "fs = []"
+    using that assms(1) Units_cong assoc_iff_assoc_mult unfolding wfactors_def by (simp, blast)
+  hence "fs \<noteq> []"
+    using assms(2) by auto
+  then obtain f' fs' where fs: "fs = f' # fs'"
+    using list.exhaust by blast
+  from \<open>wfactors (mult_of R) fs a\<close> have "f' divides a"
+    using mult_of.wfactors_dividesI[OF _ set_fs] assms(1) unfolding fs by auto
+  moreover from \<open>wfactors (mult_of R) fs a\<close> have "ring_irreducible f'" and "f' \<in> carrier R"
+    using set_fs ring_irreducibleI'[of f'] unfolding wfactors_def fs by auto
+  ultimately show thesis
+    using that by blast
+qed
+
 
 subsection \<open>Principal Domains\<close>
 
