@@ -56,6 +56,9 @@ lemma (in ring) carrier_coeffE:
 lemma (in ring) indexed_zero_def: "indexed_const \<zero> = (\<lambda>_. \<zero>)"
   unfolding indexed_const_def by simp
 
+lemma (in ring) indexed_const_index_free: "index_free (indexed_const k) i"
+  unfolding index_free_def indexed_const_def by auto
+
 lemma (in ring) indexed_pmult_zero [simp]:
   shows "indexed_pmult (indexed_const \<zero>) i = indexed_const \<zero>"
   unfolding indexed_zero_def indexed_pmult_def by auto
@@ -321,139 +324,123 @@ proof -
 qed
 
 
-(*lemma (in ring) indexed_pset_empty:
-  shows "K[\<X>\<^bsub>{}\<^esub>] = (\<Union>k \<in> K. { indexed_const k })"
-  using indexed_pset.simps *)
+subsection \<open>Link with Weak_Morphisms\<close>
 
-(*
-subsection \<open>Definitions\<close>
+text \<open>We study some elements of the contradiction needed in the algebraic closure existence proof. \<close>
 
-definition (in ring) indexed_const :: "'a \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a)" 
-  where "indexed_const k = (\<lambda>m. if m = (\<lambda>_. 0) then k else \<zero>)"
+context ring
+begin
 
-definition indexed_pmult :: "(('b \<Rightarrow> nat) \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a)"
-  where "indexed_pmult P i = (\<lambda>m. P (\<lambda>j. if i = j then (m i) - 1 else (m j)))"
+lemma (in ring) indexed_padd_index_free:
+  assumes "index_free P i" and "index_free Q i" shows "index_free (P \<Oplus> Q) i"
+  using assms unfolding indexed_padd_def index_free_def by auto
 
-definition (in ring) indexed_padd :: "(('b \<Rightarrow> nat) \<Rightarrow> 'a) \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a) \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a)"
-  where "indexed_padd P Q = (\<lambda>m. (P m) \<oplus> (Q m))"
+lemma (in ring) indexed_pmult_index_free:
+  assumes "index_free P j" and "i \<noteq> j" shows "index_free (P \<Otimes> i) j"
+  using assms unfolding index_free_def indexed_pmult_def
+  by (metis insert_DiffM insert_noteq_member)
 
-definition (in ring) index_free :: "(('b \<Rightarrow> nat) \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> bool"
-  where "index_free P i \<longleftrightarrow> (\<forall>m. m i > 0 \<longrightarrow> P m = \<zero>)"
-
-(*
-definition (in ring) index_free_list :: "(('b \<Rightarrow> nat) \<Rightarrow> 'a) list \<Rightarrow> 'b \<Rightarrow> bool"
-  where "index_free_list Ps i \<longleftrightarrow> (\<forall>P \<in> set Ps. index_free P i)"
-*)
-
-inductive_set (in ring) indexed_pset :: "'a set \<Rightarrow> 'b set \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a) set"
-  for K and I where
-    indexed_zero: "indexed_const \<zero> \<in> indexed_pset K I"
-  | indexed_padd: "\<lbrakk> P \<in> indexed_pset K I; i \<in> I; k \<in> K \<rbrakk> \<Longrightarrow>
-                 indexed_padd (indexed_pmult P i) (indexed_const k) \<in> indexed_pset K I"
-
-fun (in ring) indexed_eval_aux :: "(('b \<Rightarrow> nat) \<Rightarrow> 'a) list \<Rightarrow> 'b \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a)"
-  where "indexed_eval_aux Ps i = foldr (\<lambda>k Q. indexed_padd (indexed_pmult Q i) k) Ps (indexed_const \<zero>)"
-
-fun (in ring) indexed_eval :: "(('b \<Rightarrow> nat) \<Rightarrow> 'a) list \<Rightarrow> 'b \<Rightarrow> (('b \<Rightarrow> nat) \<Rightarrow> 'a)"
-  where "indexed_eval Ps i = indexed_eval_aux (rev Ps) i"
-
-
-subsection \<open>Basic Properties\<close>
-
-lemma (in ring) indexed_zero_def: "indexed_const \<zero> = (\<lambda>_. \<zero>)"
-  unfolding indexed_const_def by simp
-
-lemma (in ring) indexed_pmult_zero [simp]:
-  shows "indexed_pmult (indexed_const \<zero>) i = indexed_const \<zero>"
-  unfolding indexed_zero_def indexed_pmult_def ..
-
-lemma (in ring) indexed_padd_zero:
-  assumes "\<And>m. P m \<in> carrier R" shows "indexed_padd P (indexed_const \<zero>) = P" and "indexed_padd (indexed_const \<zero>) P = P"
-  using assms unfolding indexed_zero_def indexed_padd_def by auto
-
-lemma (in ring) indexed_const_in_carrier:
-  assumes "K \<subseteq> carrier R" and "k \<in> K" shows "\<And>m. (indexed_const k) m \<in> carrier R"
-  using assms unfolding indexed_const_def by auto
-
-lemma (in ring) indexed_padd_in_carrier:
-  assumes "\<And>m. P m \<in> carrier R" and "\<And>m. Q m \<in> carrier R" shows "\<And>m. (indexed_padd P Q) m \<in> carrier R"
-  using assms unfolding indexed_padd_def by simp
-
-lemma (in ring) indexed_pmult_in_carrier:
-  assumes "\<And>m. P m \<in> carrier R" shows "\<And>m. (indexed_pmult P i) m \<in> carrier R"
-  using assms unfolding indexed_pmult_def by simp
-
-lemma (in ring) indexed_eval_aux_in_carrier:
-  assumes "\<And>m P. P \<in> set Ps \<Longrightarrow> P m \<in> carrier R" shows "\<And>m. (indexed_eval_aux Ps i) m \<in> carrier R"
-  using assms by (induct Ps) (auto simp add: indexed_zero_def indexed_padd_def indexed_pmult_def)
-
-lemma (in ring) indexed_eval_in_carrier:
-  assumes "\<And>m P. P \<in> set Ps \<Longrightarrow> P m \<in> carrier R" shows "\<And>m. (indexed_eval Ps i) m \<in> carrier R"
-  using assms indexed_eval_aux_in_carrier[of "rev Ps"] by auto
-
-lemma (in ring) indexed_pset_in_carrier:
-  assumes "K \<subseteq> carrier R" and "P \<in> indexed_pset K I" shows "\<And>m. P m \<in> carrier R"
-  using assms(2,1) indexed_const_in_carrier
-  by (induction) (auto simp add: indexed_zero_def indexed_padd_def indexed_pmult_def)
-
-lemma (in ring) indexed_pset_empty:
-  shows "indexed_pset K {} = { indexed_const \<zero> }"
-  using indexed_pset.simps by auto
-
-lemma (in ring) indexed_const_incl:
-  assumes "K \<subseteq> carrier R" and "k \<in> K" and "I \<noteq> {}" shows "indexed_const k \<in> indexed_pset K I"
+lemma (in ring) indexed_eval_index_free:
+  assumes "list_all (\<lambda>P. index_free P j) Ps" and "i \<noteq> j" shows "index_free (indexed_eval Ps i) j"
 proof -
-  from \<open>I \<noteq> {}\<close> obtain i where "i \<in> I"
-    by blast
-  hence "indexed_padd (indexed_const \<zero>) (indexed_const k) \<in> indexed_pset K I"
-    using indexed_padd[OF indexed_zero _ assms(2)] by simp
+  { fix Ps assume "list_all (\<lambda>P. index_free P j) Ps" hence "index_free (indexed_eval_aux Ps i) j"
+      using indexed_padd_index_free[OF indexed_pmult_index_free[OF _ assms(2)]]
+      by (induct Ps) (auto simp add: indexed_zero_def index_free_def) }
   thus ?thesis
-    using indexed_padd_zero(2)[OF indexed_const_in_carrier[OF assms(1-2)]] by simp
+    using assms(1) by auto
 qed
 
-lemma (in ring)
-  assumes "\<And>m. P m \<in> carrier R" and "\<And>m Q. Q \<in> set Qs \<Longrightarrow> Q m \<in> carrier R"
-    and "n i = k" and "P n \<noteq> \<zero>" and "\<And>Q. Q \<in> set Qs \<Longrightarrow> index_free Q i"
-  obtains m where "m i = length Qs + k" and "(indexed_eval_aux (Qs @ [ P ]) i) m \<noteq> \<zero>"
+context
+  fixes L :: "(('c multiset) \<Rightarrow>'a) ring" and i :: 'c
+  assumes hyps:
+    \<comment> \<open>i\<close>   "field L"
+    \<comment> \<open>ii\<close>  "\<And>P. P \<in> carrier L \<Longrightarrow> carrier_coeff P"
+    \<comment> \<open>iii\<close> "\<And>P. P \<in> carrier L \<Longrightarrow> index_free P i"
+    \<comment> \<open>iv\<close>  "\<zero>\<^bsub>L\<^esub> = indexed_const \<zero>"
+begin
+
+interpretation L: field L
+  using \<open>field L\<close> .
+
+interpretation UP: principal_domain "poly_ring L"
+  using L.univ_poly_is_principal[OF L.carrier_is_subfield] .
+
+
+abbreviation eval_pmod
+  where "eval_pmod q \<equiv> (\<lambda>p. indexed_eval (L.pmod p q) i)"
+
+abbreviation image_poly
+  where "image_poly q \<equiv> image_ring (eval_pmod q) (poly_ring L)"
+
+
+lemma indexed_eval_is_weak_ring_morphism:
+  assumes "q \<in> carrier (poly_ring L)" shows "weak_ring_morphism (eval_pmod q) (PIdl\<^bsub>poly_ring L\<^esub> q) (poly_ring L)"
+proof (rule weak_ring_morphismI)
+  show "ideal (PIdl\<^bsub>poly_ring L\<^esub> q) (poly_ring L)"
+    using UP.cgenideal_ideal[OF assms] .
+next
+  fix a b assume in_carrier: "a \<in> carrier (poly_ring L)" "b \<in> carrier (poly_ring L)"
+  note ldiv_closed = in_carrier[THEN L.long_division_closed(2)[OF L.carrier_is_subfield _ assms]]
+
+  have "(eval_pmod q) a = (eval_pmod q) b \<longleftrightarrow> L.pmod a q = L.pmod b q"
+    using inj_onD[OF indexed_eval_inj_on_carrier[OF hyps(2-4)] _ ldiv_closed] by fastforce
+  also have " ... \<longleftrightarrow> q pdivides\<^bsub>L\<^esub> (a \<ominus>\<^bsub>poly_ring L\<^esub> b)"
+    unfolding L.same_pmod_iff_pdivides[OF L.carrier_is_subfield in_carrier assms] ..
+  also have " ... \<longleftrightarrow> PIdl\<^bsub>poly_ring L\<^esub> (a \<ominus>\<^bsub>poly_ring L\<^esub> b) \<subseteq> PIdl\<^bsub>poly_ring L\<^esub> q"
+    unfolding UP.to_contain_is_to_divide[OF assms UP.minus_closed[OF in_carrier]] pdivides_def ..
+  also have " ... \<longleftrightarrow> a \<ominus>\<^bsub>poly_ring L\<^esub> b \<in> PIdl\<^bsub>poly_ring L\<^esub> q"
+    unfolding UP.cgenideal_eq_genideal[OF assms] UP.cgenideal_eq_genideal[OF UP.minus_closed[OF in_carrier]]
+              UP.Idl_subset_ideal'[OF UP.minus_closed[OF in_carrier] assms] ..
+  finally show "(eval_pmod q) a = (eval_pmod q) b \<longleftrightarrow> a \<ominus>\<^bsub>poly_ring L\<^esub> b \<in> PIdl\<^bsub>poly_ring L\<^esub> q" .
+qed
+
+lemma image_poly_iso_incl:
+  assumes "q \<in> carrier (poly_ring L)" and "degree q > 0" shows "id \<in> ring_hom L (image_poly q)"
 proof -
-  from assms(2,5) have "\<exists>m. m i = length Qs + k \<and> (indexed_eval_aux (Qs @ [ P ]) i) m \<noteq> \<zero>"
-  proof (induct Qs)
-    case Nil thus ?case
-      using indexed_padd_zero(2)[OF assms(1)] assms(3-4) by auto
+  have "(eval_pmod q) \<circ> (\<lambda>a. (ring.normalize L) [ a ]) \<in> ring_hom L (image_poly q)"
+    using ring_hom_trans[OF L.canonical_embedding_is_hom[OF L.carrier_is_subring]
+          UP.weak_ring_morphism_is_hom[OF indexed_eval_is_weak_ring_morphism[OF assms(1)]]]
+    by simp
+  moreover have "((eval_pmod q) \<circ> (\<lambda>a. (ring.normalize L) [ a ])) a = id a" if "a \<in> carrier L" for a
+  proof (cases)
+    assume "a = \<zero>\<^bsub>L\<^esub>" thus ?thesis
+      using L.long_division_zero(2)[OF L.carrier_is_subfield assms(1)] hyps(4) by auto
   next
-    case (Cons Q Qs)
-    then obtain m where m: "m i = length Qs + k" "indexed_eval_aux (Qs @ [ P ]) i m \<noteq> \<zero>"
+    assume "a \<noteq> \<zero>\<^bsub>L\<^esub>" then have in_carrier: "[ a ] \<in> carrier (poly_ring L)"
+      using that unfolding sym[OF univ_poly_carrier[of L "carrier L"]] polynomial_def by simp
+    from \<open>a \<noteq> \<zero>\<^bsub>L\<^esub>\<close> show ?thesis
+      using L.pmod_const(2)[OF L.carrier_is_subfield in_carrier assms(1)] assms(2)
+            indexed_padd_zero(2)[OF hyps(2)[OF that]]
       by auto
-    define m' where "m' = (\<lambda>j. if j = i then Suc (length Qs + k) else m j)"
-    hence "m = (\<lambda>j. if i = j then m' i - 1 else m' j)"
-      using m(1) by auto
-    moreover have "indexed_eval_aux (Qs @ [ P ]) i m \<in> carrier R"
-      using indexed_eval_aux_in_carrier[of "Qs @ [ P ]" i m] Cons(2) assms(1) by auto
-    ultimately have "(indexed_pmult (indexed_eval_aux (Qs @ [ P ]) i) i) m' \<in> carrier R - { \<zero> }"
-      using m unfolding indexed_pmult_def by simp
-    moreover have "Q m' = \<zero>"
-      using Cons(3) unfolding index_free_def m'_def by auto
-    ultimately have "indexed_eval_aux (Q # (Qs @ [ P ])) i m' \<noteq> \<zero>"
-      by (auto simp add: indexed_padd_def)
-    moreover from \<open>m i = length Qs + k\<close> have "m' i = length (Q # Qs) + k"
-      unfolding m'_def by simp
-    ultimately show ?case by auto
   qed
-  thus thesis
-    using that by blast
+  ultimately show ?thesis
+    using L.ring_hom_restrict[of _ "image_poly q" id] by auto
 qed
 
-lemma (in ring) indexed_eval_aux_is_inj:
-  assumes "\<And>P. P \<in> set Ps \<Longrightarrow> index_free P i" and "\<And>Q. Q \<in> set Qs \<Longrightarrow> index_free Q i"
-    and "indexed_eval_aux Ps i = indexed_eval_aux Qs i" and "length Ps \<ge> length Qs"
-  shows "Ps = (replicate (length Ps - length Qs) (indexed_const \<zero>)) @ Qs"
-  using assms
-proof (induct Ps arbitrary: Qs, simp)
-  case (Cons P Ps)
-  then show ?case 
+lemma image_poly_is_field:
+  assumes "q \<in> carrier (poly_ring L)" and "pirreducible\<^bsub>L\<^esub> (carrier L) q" shows "field (image_poly q)"
+  using UP.image_ring_is_field[OF indexed_eval_is_weak_ring_morphism[OF assms(1)]] assms(2)
+  unfolding sym[OF L.rupture_is_field_iff_pirreducible[OF L.carrier_is_subfield assms(1)]] rupture_def
+  by simp
+
+lemma image_poly_index_free:
+  assumes "q \<in> carrier (poly_ring L)" and "P \<in> carrier (image_poly q)" and "\<not> index_free P j" "i \<noteq> j"
+  obtains Q where "Q \<in> carrier L" and "\<not> index_free Q j"
+proof -
+  from \<open>P \<in> carrier (image_poly q)\<close> obtain p where p: "p \<in> carrier (poly_ring L)" and P: "P = (eval_pmod q) p"
+    unfolding image_ring_carrier by blast
+  from \<open>\<not> index_free P j\<close> have "\<not> list_all (\<lambda>P. index_free P j) (L.pmod p q)"
+    using indexed_eval_index_free[OF _ assms(4), of "L.pmod p q"] unfolding sym[OF P] by auto
+  then obtain Q where "Q \<in> set (L.pmod p q)" and "\<not> index_free Q j"
+    unfolding list_all_iff by auto
+  thus ?thesis
+    using L.long_division_closed(2)[OF L.carrier_is_subfield p assms(1)] that
+    unfolding sym[OF univ_poly_carrier[of L "carrier L"]] polynomial_def
+    by auto
 qed
 
+end (* of fixed L context. *)
 
-*)
+end (* of ring context. *)
 
 end
