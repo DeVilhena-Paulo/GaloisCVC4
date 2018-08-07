@@ -2315,12 +2315,21 @@ qed
 
 subsection \<open>The Canonical Embedding of K in K[X]\<close>
 
+lemma (in domain) canonical_embedding_is_hom:
+  assumes "subring K R" shows "(\<lambda>k. normalize [ k ]) \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (K[X])"
+  using subringE(1)[OF assms] unfolding subset_iff
+  by (auto intro!: ring_hom_memI simp add: univ_poly_def)
+
+lemma (in domain) canonical_embedding_ring_hom:
+  assumes "subring K R" shows "ring_hom_ring (R \<lparr> carrier := K \<rparr>) (K[X]) (\<lambda>k. normalize [ k ])"
+  using canonical_embedding_is_hom[OF assms] unfolding symmetric[OF ring_hom_ring_axioms_def]
+  by (rule ring_hom_ring.intro[OF subring_is_ring[OF assms] univ_poly_is_ring[OF assms]])
+
 lemma (in field) univ_poly_carrier_subfield_of_consts:
   "subfield { p \<in> carrier ((carrier R)[X]). degree p = 0 } ((carrier R)[X])"
 proof -
   have ring_hom: "ring_hom_ring R ((carrier R)[X]) (\<lambda>k. normalize [ k ])"
-    by (rule ring_hom_ringI[OF ring_axioms univ_poly_is_ring[OF carrier_is_subring]])
-       (auto simp add: univ_poly_def)
+    using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
   have subfield: "subfield ((\<lambda>k. normalize [ k ]) ` (carrier R)) ((carrier R)[X])"
     using ring_hom_ring.img_is_subfield(2)[OF ring_hom carrier_is_subfield]
     unfolding univ_poly_def by auto
