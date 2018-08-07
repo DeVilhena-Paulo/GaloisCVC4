@@ -41,6 +41,17 @@ definition image_ring :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a, 'c) ring_sche
 
 subsection \<open>Weak Group Morphisms\<close>
 
+lemma image_group_carrier: "carrier (image_group f G) = f ` (carrier G)"
+  unfolding image_group_def by simp
+
+lemma image_group_one: "one (image_group f G) = f \<one>\<^bsub>G\<^esub>"
+  unfolding image_group_def by simp
+
+lemma weak_group_morphismsI:
+  assumes "H \<lhd> G" and "\<And>a b. \<lbrakk> a \<in> carrier G; b \<in> carrier G \<rbrakk> \<Longrightarrow> f a = f b \<longleftrightarrow> a \<otimes>\<^bsub>G\<^esub> (inv\<^bsub>G\<^esub> b) \<in> H"
+  shows "weak_group_morphism f H G"
+  using assms unfolding weak_group_morphism_def weak_group_morphism_axioms_def by auto
+
 lemma image_group_truncate:
   fixes R :: "('a, 'b) monoid_scheme"
   shows "monoid.truncate (image_group f R) = image_group f (monoid.truncate R)"
@@ -48,12 +59,6 @@ lemma image_group_truncate:
 
 lemma image_ring_truncate: "monoid.truncate (image_ring f R) = image_group f R"
   by (simp add: image_ring_def monoid.defs)
-
-lemma image_group_carrier: "carrier (image_group f G) = f ` (carrier G)"
-  unfolding image_group_def by simp
-
-lemma image_ring_carrier: "carrier (image_ring f G) = f ` (carrier G)"
-  unfolding image_ring_def image_group_def by (simp add: monoid.defs)
 
 lemma (in ring) ideal_is_normal:
   assumes "ideal I R" shows "I \<lhd> (add_monoid R)"
@@ -236,6 +241,20 @@ corollary (in group) weak_group_morphism_group_hom:
 
 subsection \<open>Weak Ring Morphisms\<close>
 
+lemma image_ring_carrier: "carrier (image_ring f R) = f ` (carrier R)"
+  unfolding image_ring_def image_group_def by (simp add: monoid.defs)
+
+lemma image_ring_one: "one (image_ring f R) = f \<one>\<^bsub>R\<^esub>"
+  unfolding image_ring_def image_group_def by (simp add: monoid.defs)
+
+lemma image_ring_zero: "zero (image_ring f R) = f \<zero>\<^bsub>R\<^esub>"
+  unfolding image_ring_def image_group_def by (simp add: monoid.defs)
+
+lemma weak_ring_morphismI:
+  assumes "ideal I R" and "\<And>a b. \<lbrakk> a \<in> carrier R; b \<in> carrier R \<rbrakk> \<Longrightarrow> f a = f b \<longleftrightarrow> a \<ominus>\<^bsub>R\<^esub> b \<in> I"
+  shows "weak_ring_morphism f I R"
+  using assms unfolding weak_ring_morphism_def weak_ring_morphism_axioms_def by auto
+
 lemma (in ring) weak_ring_morphism_range:
   assumes "weak_ring_morphism f I R" and "a \<in> carrier R" shows "f ` (I +> a) = { f a }"
   using add.weak_group_morphism_range[OF weak_add_group_morphism[OF assms(1)] assms(2)]
@@ -300,6 +319,18 @@ next
   qed
 qed
 
+corollary (in ring) image_ring_zero':
+  assumes "weak_ring_morphism f I R" shows "the_elem (f ` \<zero>\<^bsub>R Quot I\<^esub>) = \<zero>\<^bsub>image_ring f R\<^esub>"
+proof -
+  interpret I: ideal I R
+    using weak_ring_morphism.axioms(1)[OF assms] .
+
+  have "\<zero>\<^bsub>R Quot I\<^esub> = I +> \<zero>"
+    unfolding FactRing_def a_r_coset_def' by force
+  thus ?thesis
+    using weak_ring_morphism_range[OF assms zero_closed] unfolding image_ring_zero by simp
+qed
+
 corollary (in ring) image_ring_is_ring:
   assumes "weak_ring_morphism f I R" shows "ring (image_ring f R)"
 proof -
@@ -308,12 +339,14 @@ proof -
 
   have "ring ((image_ring f R) \<lparr> zero := the_elem (f ` \<zero>\<^bsub>R Quot I\<^esub>) \<rparr>)"
     using ring.ring_iso_imp_img_ring[OF I.quotient_is_ring weak_ring_morphism_is_iso[OF assms]] by simp
-  moreover have "\<zero>\<^bsub>R Quot I\<^esub> = I +> \<zero>"
-    unfolding FactRing_def a_r_coset_def' using I.Icarr by force
-  hence "the_elem (f ` \<zero>\<^bsub>R Quot I\<^esub>) = f \<zero>"
-    using weak_ring_morphism_range[OF assms zero_closed] by simp
-  ultimately show ?thesis by (simp add: image_ring_def image_group_def monoid.defs)
+  thus ?thesis
+    unfolding image_ring_zero'[OF assms] by simp
 qed
+
+corollary (in ring) image_ring_is_field:
+  assumes "weak_ring_morphism f I R" and "field (R Quot I)" shows "field (image_ring f R)"
+  using field.ring_iso_imp_img_field[OF assms(2) weak_ring_morphism_is_iso[OF assms(1)]]
+  unfolding image_ring_zero'[OF assms(1)] by simp
 
 corollary (in ring) weak_ring_morphism_is_hom:
   assumes "weak_ring_morphism f I R" shows "f \<in> ring_hom R (image_ring f R)"
