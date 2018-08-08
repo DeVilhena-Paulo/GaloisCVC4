@@ -68,6 +68,46 @@ proof -
       (rule is_ideal, rule generate)
 qed
 
+(* NEW ====== *)
+lemma (in ideal) rcos_const_imp_mem:
+  assumes "i \<in> carrier R" and "I +> i = I" shows "i \<in> I"
+  using additive_subgroup.zero_closed[OF ideal.axioms(1)[OF ideal_axioms]] assms
+  by (force simp add: a_r_coset_def')
+(* ========== *)
+
+(* NEW ====== *)
+lemma (in ring) a_rcos_zero:
+  assumes "ideal I R" "i \<in> I" shows "I +> i = I"
+  using abelian_subgroupI3[OF ideal.axioms(1) is_abelian_group]
+  by (simp add: abelian_subgroup.a_rcos_const assms)
+(* ========== *)
+
+(* NEW ====== *)
+lemma (in ring) ideal_is_normal:
+  assumes "ideal I R" shows "I \<lhd> (add_monoid R)"
+  using abelian_subgroup.a_normal[OF abelian_subgroupI3[OF ideal.axioms(1)]]
+        abelian_group_axioms assms
+  by auto 
+(* ========== *)
+
+(* NEW ====== *)
+lemma (in ideal) a_rcos_sum:
+  assumes "a \<in> carrier R" and "b \<in> carrier R" shows "(I +> a) <+> (I +> b) = I +> (a \<oplus> b)"
+  using normal.rcos_sum[OF ideal_is_normal[OF ideal_axioms]] assms
+  unfolding set_add_def a_r_coset_def by simp
+(* ========== *)
+
+(* NEW ====== *)
+lemma (in ring) set_add_comm:
+  assumes "I \<subseteq> carrier R" "J \<subseteq> carrier R" shows "I <+> J = J <+> I"
+proof -
+  { fix I J assume "I \<subseteq> carrier R" "J \<subseteq> carrier R" hence "I <+> J \<subseteq> J <+> I"
+      using a_comm unfolding set_add_def' by (auto, blast) }
+  thus ?thesis
+    using assms by auto
+qed
+(* ========== *)
+
 
 subsubsection \<open>Maximal Ideals\<close>
 

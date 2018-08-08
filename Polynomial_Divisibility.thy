@@ -21,10 +21,13 @@ abbreviation pprime :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a list \<Rightarro
   where "pprime\<^bsub>R\<^esub> K p \<equiv> ring_prime\<^bsub>(univ_poly R K)\<^esub> p"
 
 definition pdivides :: "_ \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" (infix "pdivides\<index>" 65)
-  where "p pdivides\<^bsub>R\<^esub> q \<equiv> p divides\<^bsub>(univ_poly R (carrier R))\<^esub> q"
+  where "p pdivides\<^bsub>R\<^esub> q = p divides\<^bsub>(univ_poly R (carrier R))\<^esub> q"
 
 definition rupture :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a list \<Rightarrow> (('a list) set) ring" ("Rupt\<index>")
   where "Rupt\<^bsub>R\<^esub> K p = (K[X]\<^bsub>R\<^esub>) Quot (PIdl\<^bsub>K[X]\<^bsub>R\<^esub>\<^esub> p)"
+
+abbreviation (in ring) rupture_surj :: "'a set \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> ('a list) set"
+  where "rupture_surj K p \<equiv> (\<lambda>q. (PIdl\<^bsub>K[X]\<^esub> p) +>\<^bsub>K[X]\<^esub> q)"
 
 
 subsection \<open>Basic Properties\<close>
@@ -146,7 +149,7 @@ proof -
 qed
 
 lemma (in domain) rupture_is_field_iff_pirreducible:
-  assumes "subfield K R" "p \<in> carrier (K[X])"
+  assumes "subfield K R" and "p \<in> carrier (K[X])"
   shows "field (Rupt K p) \<longleftrightarrow> pirreducible K p"
 proof
   assume "pirreducible K p" thus "field (Rupt K p)"
@@ -181,6 +184,90 @@ next
   thus "pirreducible K p"
     using UP.field_iff_prime pprime_iff_pirreducible[OF assms] assms(2) field
     by (simp add: univ_poly_zero rupture_def)
+qed
+
+lemma (in domain) rupture_surj_hom:
+  assumes "subring K R" and "p \<in> carrier (K[X])"
+  shows "(rupture_surj K p) \<in> ring_hom (K[X]) (Rupt K p)"
+    and "ring_hom_ring (K[X]) (Rupt K p) (rupture_surj K p)"
+proof -
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] .
+  interpret I: ideal "PIdl\<^bsub>K[X]\<^esub> p" "K[X]"
+    using UP.cgenideal_ideal[OF assms(2)] .
+  show "(rupture_surj K p) \<in> ring_hom (K[X]) (Rupt K p)"
+   and "ring_hom_ring (K[X]) (Rupt K p) (rupture_surj K p)"
+    using ring_hom_ring.intro[OF UP.ring_axioms I.quotient_is_ring] I.rcos_ring_hom
+    unfolding symmetric[OF ring_hom_ring_axioms_def] rupture_def by auto
+qed
+
+corollary (in domain) rupture_surj_norm_is_hom:
+  assumes "subring K R" and "p \<in> carrier (K[X])"
+  shows "((rupture_surj K p) \<circ> (\<lambda>a. normalize [ a ])) \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (Rupt K p)"
+  using ring_hom_trans[OF canonical_embedding_is_hom[OF assms(1)] rupture_surj_hom(1)[OF assms]] .
+
+lemma (in domain) norm_map_in_poly_ring_carrier:
+  assumes "p \<in> carrier (poly_ring R)" and "\<And>a. a \<in> carrier R \<Longrightarrow> f a \<in> carrier (poly_ring R)"
+  shows "ring.normalize (poly_ring R) (map f p) \<in> carrier (poly_ring (poly_ring R))"
+proof -
+  have "set p \<subseteq> carrier R"
+    using assms(1) unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+  hence "set (map f p) \<subseteq> carrier (poly_ring R)"
+    using assms(2) by auto
+  thus ?thesis
+    using ring.normalize_gives_polynomial[OF univ_poly_is_ring[OF carrier_is_subring]]
+    unfolding univ_poly_carrier by simp
+qed
+
+lemma (in domain) map_in_poly_ring_carrier:
+  assumes "p \<in> carrier (poly_ring R)" and "\<And>a. a \<in> carrier R \<Longrightarrow> f a \<in> carrier (poly_ring R)"
+    and "\<And>a. a \<noteq> \<zero> \<Longrightarrow> f a \<noteq> []"
+  shows "map f p \<in> carrier (poly_ring (poly_ring R))"
+proof -
+  interpret UP: ring "poly_ring R"
+    using univ_poly_is_ring[OF carrier_is_subring] .
+  have "lead_coeff p \<noteq> \<zero>" if "p \<noteq> []"
+    using that assms(1) unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+  hence "ring.normalize (poly_ring R) (map f p) = map f p"
+    by (cases p) (simp_all add: assms(3) univ_poly_zero)
+  thus ?thesis
+    using norm_map_in_poly_ring_carrier[of p f] assms(1-2) by simp
+qed
+
+lemma (in domain) map_norm_in_poly_ring_carrier:
+  assumes "subring K R" and "p \<in> carrier (K[X])"
+  shows "map (\<lambda>a. normalize [ a ]) p \<in> carrier (poly_ring (K[X]))"
+  using domain.map_in_poly_ring_carrier[OF subring_is_domain[OF assms(1)]]
+proof -
+  have "\<And>a. a \<in> K \<Longrightarrow> normalize [ a ] \<in> carrier (K[X])"
+   and "\<And>a. a \<noteq> \<zero> \<Longrightarrow> normalize [ a ] \<noteq> []"
+    using ring_hom_memE(1)[OF canonical_embedding_is_hom[OF assms(1)]] by auto
+  thus ?thesis
+    using domain.map_in_poly_ring_carrier[OF subring_is_domain[OF assms(1)]] assms(2)
+    unfolding univ_poly_consistent[OF assms(1)] by simp
+qed
+
+lemma (in domain) polynomial_rupture:
+  assumes "subring K R" and "p \<in> carrier (K[X])"
+  shows "(ring.eval (Rupt K p)) (map ((rupture_surj K p) \<circ> (\<lambda>a. normalize [ a ])) p) (rupture_surj K p X) = \<zero>\<^bsub>Rupt K p\<^esub>"
+proof -
+  let ?norm = "\<lambda>a. normalize [ a ]"
+  let ?surj = "rupture_surj K p"
+
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] .
+  interpret Hom: ring_hom_ring "K[X]" "Rupt K p" ?surj
+    using rupture_surj_hom(2)[OF assms] .
+
+  have "(Hom.S.eval) (map (?surj \<circ> ?norm) p) (?surj X) = ?surj ((UP.eval) (map ?norm p) X)"
+    using Hom.eval_hom[OF UP.carrier_is_subring var_closed(1)[OF assms(1)]
+          map_norm_in_poly_ring_carrier[OF assms]] by simp
+  also have " ... = ?surj p"
+    unfolding sym[OF eval_rewrite[OF assms]] ..
+  also have " ... = \<zero>\<^bsub>Rupt K p\<^esub>"
+    using UP.a_rcos_zero[OF UP.cgenideal_ideal[OF assms(2)] UP.cgenideal_self[OF assms(2)]]
+    unfolding rupture_def FactRing_def by simp
+  finally show ?thesis .
 qed
 
 
