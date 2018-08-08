@@ -164,7 +164,6 @@ definition union_ring :: "(('a, 'c) ring_scheme) set \<Rightarrow> 'a ring"
                 zero = zero (SOME R. R \<in> C),
                  add = (\<lambda>a b. (add (SOME R. R \<in> C \<and> a \<in> carrier R \<and> b \<in> carrier R) a b)) \<rparr>"
 
-
 lemma union_ring_someI :
   assumes "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
     and "x \<in> carrier (union_ring C)"
@@ -190,7 +189,6 @@ proof-
   qed
 qed
 
-
 corollary union_ring_same_laws :
   assumes "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
     and "R1 \<in> C"
@@ -204,34 +202,32 @@ proof-
   obtain R3 where R3 : "R3 \<in> C" "x \<in> carrier R3" "y \<in> carrier R3" "x \<otimes>\<^bsub>R3\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y"
     using someI_ex[of "\<lambda>R. R\<in>C \<and> x \<in> carrier R \<and> y \<in> carrier R"] union_ring_someI[OF assms(1)]
          hyp assms(2) unfolding union_ring_def by auto
+  note aux = hyp iso_incl.cases assms(1)[OF assms(2)] id_apply
   have "x \<oplus>\<^bsub>R1\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
-  proof (cases "R1 \<lesssim> R2")
-    case True
-    hence "id \<in> ring_hom R1 R2"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp ring_hom_memE R2 by fastforce
-  next
-    case False
-    hence "R2 \<lesssim> R1" using R2 assms(1,2) by auto
-    hence "id \<in> ring_hom R2 R1"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp R2 ring_hom_memE by fastforce
-  qed
+    apply (cases "R1 \<lesssim> R2") by (metis aux R2 ring_hom_memE(3))+ 
   moreover have "x \<otimes>\<^bsub>R1\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y"
-  proof  (cases "R1 \<lesssim> R3")
-    case True
-    hence "id \<in> ring_hom R1 R3"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp ring_hom_memE R3 by fastforce
-  next
-    case False
-    hence "R3 \<lesssim> R1" using R3 assms(1,2) by auto
-    hence "id \<in> ring_hom R3 R1"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp R3 ring_hom_memE by fastforce
-  qed
+    apply (cases "R1 \<lesssim> R3") by (metis aux R3 ring_hom_memE(2))+ 
   ultimately show "x \<otimes>\<^bsub>R1\<^esub> y = x \<otimes>\<^bsub>union_ring C\<^esub> y \<and> x \<oplus>\<^bsub>R1\<^esub> y = x \<oplus>\<^bsub>union_ring C\<^esub> y"
     by auto
+qed
+
+lemma union_ring_zero_one :
+  assumes "\<forall> R \<in> C. field R"
+    and "\<And> R1 R2. R1 \<in> C \<Longrightarrow> R2 \<in> C \<Longrightarrow> R1 \<lesssim> R2 \<or> R2 \<lesssim> R1"
+    and "C \<noteq> {}"
+    and "R \<in> C"
+  shows "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R\<^esub> \<and> \<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R\<^esub>"
+proof-
+  from assms(3) have "\<exists> R. R \<in> C" by auto
+  from this obtain Rzero Rone
+      where hyp : "Rzero \<in> C""Rone \<in> C" "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>Rone\<^esub>" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>Rzero\<^esub>"
+    using someI_ex[of "\<lambda>x. x \<in> C"] unfolding union_ring_def by auto
+  note aux =  iso_incl.cases assms(1,2,4) eq_id_iff ring_hom_one
+  obtain R01 where R01 : "R01 \<in> C" "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R01\<^esub>" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R01\<^esub>"
+    apply (cases "Rzero \<lesssim> Rone") by (metis aux hyp)+
+  have "\<one>\<^bsub>R01\<^esub> = \<one>\<^bsub>R\<^esub> \<and> \<zero>\<^bsub>R01\<^esub> = \<zero>\<^bsub>R\<^esub>"
+    apply (cases "R01 \<lesssim> R") by (metis R01(1) aux cring_def fieldE(1) ring_hom_zero)+
+  thus ?thesis using R01 by auto
 qed
 
 lemma union_ring_member_contains_all :
@@ -241,65 +237,16 @@ lemma union_ring_member_contains_all :
     and "x \<in> carrier (union_ring C)"
     and "y \<in> carrier (union_ring C)"
     and "z \<in> carrier (union_ring C)"
-  shows "\<exists> R \<in> C. x \<in> carrier R \<and> y \<in> carrier R \<and> z \<in> carrier R 
-      \<and> \<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R\<^esub>  \<and> \<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R\<^esub>"
+  shows "\<exists> R \<in> C. x \<in> carrier R \<and> y \<in> carrier R \<and> z \<in> carrier R"
 proof-
   from assms(3) have "\<exists> R. R \<in> C" by auto
-  from this obtain Rzero Rone
-      where hyp1 : "Rzero \<in> C""Rone \<in> C" "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>Rone\<^esub>" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>Rzero\<^esub>"
-    using someI_ex[of "\<lambda>x. x \<in> C"] unfolding union_ring_def by auto
-  hence "\<exists> R01 \<in> C. \<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R01\<^esub> \<and> \<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R01\<^esub>"
-  proof (cases "Rzero \<lesssim> Rone ")
-    case True
-    hence "id \<in> ring_hom Rzero Rone"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp1 
-      by (metis eq_id_iff ring_hom_one)
-  next
-    case False
-    hence "Rone \<lesssim> Rzero" using hyp1 assms(1,2) by auto
-    hence "id \<in> ring_hom Rone Rzero"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp1 ring_hom_memE by fastforce
-  qed
-  from this obtain R01 where R01 : "R01 \<in> C" "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R01\<^esub>" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R01\<^esub>"
-    by auto
   from union_ring_someI[OF assms(2,4,5)] union_ring_someI[OF assms(2,5,6)] obtain R1 R2 
     where hyp2 :"R1 \<in> C""R2 \<in> C""x \<in> carrier R1""y \<in> carrier R1""y \<in> carrier R2""z \<in> carrier R2"
     by auto
-  have "\<exists> Rxyz \<in> C. x \<in> carrier Rxyz \<and> y \<in> carrier Rxyz \<and> z \<in> carrier Rxyz"
-  proof (cases "R1 \<lesssim> R2 ")
-    case True
-    hence "id \<in> ring_hom R1 R2"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp2 ring_hom_memE(1) by fastforce
-  next
-    case False
-    hence "R2 \<lesssim> R1" using hyp2(1,2) assms(2) by auto
-    hence "id \<in> ring_hom R2 R1"
-      using iso_incl.cases by blast
-    then show ?thesis using hyp2 ring_hom_memE(1) by fastforce
-  qed
-  from this obtain Rxyz
-    where Rxyz : "Rxyz \<in> C" "x \<in> carrier Rxyz" "y \<in> carrier Rxyz" "z \<in> carrier Rxyz" by auto
+  note aux =  iso_incl.cases assms(2) id_apply hyp2
   show ?thesis
-  proof (cases "R01 \<lesssim> Rxyz ")
-    case True
-    hence "id \<in> ring_hom R01 Rxyz"
-      using iso_incl.cases by blast
-    then show ?thesis using R01 Rxyz ring_hom_one ring_hom_zero assms(1)
-      by (metis cring_def fieldE(1) id_apply) 
-  next
-    case False
-    hence "Rxyz \<lesssim> R01" using Rxyz(1) R01(1) assms(2) by auto
-    hence "id \<in> ring_hom Rxyz R01"
-      using iso_incl.cases by blast
-    then show ?thesis using R01 Rxyz ring_hom_memE(1)
-      by (metis id_apply)
-  qed
+    apply (cases "R1 \<lesssim> R2") by (metis aux ring_hom_memE(1))+
 qed
-
-
 
 lemma union_ring_is_ab_group :
   assumes "\<forall> R \<in> C. field R"
@@ -307,36 +254,31 @@ lemma union_ring_is_ab_group :
     and "C \<noteq> {}"
   shows "abelian_group (union_ring C)" 
 proof (intro abelian_groupI)
-  obtain R0 where R0 : "R0 \<in> C" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R0\<^esub>"
-    using someI_ex[of "\<lambda>x. x \<in> C"] assms(3) unfolding union_ring_def by auto
-  thus "\<zero>\<^bsub>union_ring C\<^esub> \<in> carrier (union_ring C)"
-    using fieldE(1) assms(1)cring.cring_simprules(2) unfolding union_ring_def by (simp,blast)
+  show "\<zero>\<^bsub>union_ring C\<^esub> \<in> carrier (union_ring C)"
+    using assms(1,3) union_ring_zero_one fieldE(1) cring.cring_simprules(2) some_in_eq
+    unfolding union_ring_def by (simp,blast)
   fix x y z assume hyp :  "x \<in> carrier (union_ring C)"
                           "y \<in> carrier (union_ring C)"
                           "z \<in> carrier (union_ring C)"
-  from union_ring_member_contains_all[OF assms hyp] obtain R
-    where R : "R \<in> C" "x \<in> carrier R" "y \<in> carrier R" "z \<in> carrier R""\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R\<^esub>"
-    by auto
-  {fix a b assume hyp : "a \<in> carrier R" "b \<in> carrier R"
-    have "a \<oplus>\<^bsub> R\<^esub> b = a \<oplus>\<^bsub>(union_ring C)\<^esub> b"
-      using union_ring_same_laws[OF assms(2) R(1) hyp] by auto
-  }
-   note laws = this
-  hence "x \<oplus>\<^bsub>(union_ring C)\<^esub> y \<in> carrier (R)"
+  from union_ring_member_contains_all[OF assms hyp]obtain R
+    where R : "R \<in> C" "x \<in> carrier R" "y \<in> carrier R" "z \<in> carrier R" by auto
+  have R01 : "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R\<^esub>" using union_ring_zero_one[OF assms(1,2,3)R(1)] by auto
+  from union_ring_same_laws[OF assms(2) R(1)] have "x \<oplus>\<^bsub>(union_ring C)\<^esub> y \<in> carrier (R)"
     using assms(1) R(1-3) cring.cring_simprules(1) fieldE(1) by fastforce
   thus "x \<oplus>\<^bsub>(union_ring C)\<^esub> y \<in> carrier (union_ring C)" 
     using R(1) unfolding union_ring_def by auto
-  from laws[OF R(3,2)] laws[OF R(2,3)] show "x \<oplus>\<^bsub>union_ring C\<^esub> y = y \<oplus>\<^bsub>union_ring C\<^esub> x"
+  from union_ring_same_laws[OF assms(2) R(1,3,2)] union_ring_same_laws[OF assms(2) R(1,2,3)]
+  show "x \<oplus>\<^bsub>union_ring C\<^esub> y = y \<oplus>\<^bsub>union_ring C\<^esub> x"
     using cring.cring_simprules(10) R(1-3) fieldE(1) assms(1) by fastforce
-  from R laws[of "\<zero>\<^bsub>R\<^esub>", OF _ R(2)] show "\<zero>\<^bsub>union_ring C\<^esub> \<oplus>\<^bsub>union_ring C\<^esub> x = x"
-    using assms(1) by (simp add: cring.cring_simprules(2,8) fieldE(1))
-  from laws[OF _ R(2)] have "\<exists>y\<in>carrier R. y \<oplus>\<^bsub>union_ring C\<^esub> x = \<zero>\<^bsub>union_ring C\<^esub>"
-    using fieldE(1) assms(1) by (smt R(1,2,5) cring.cring_simprules(3,9))
+  from R union_ring_same_laws[OF assms(2) R(1),of "\<zero>\<^bsub>R\<^esub>"] show "\<zero>\<^bsub>union_ring C\<^esub> \<oplus>\<^bsub>union_ring C\<^esub> x = x"
+    using assms(1) by (simp add: cring.cring_simprules(2,8) fieldE(1) R01)
+  from fieldE(1) assms(1) have "\<exists>y\<in>carrier R. y \<oplus>\<^bsub>union_ring C\<^esub> x = \<zero>\<^bsub>union_ring C\<^esub>"
+    using union_ring_same_laws[OF assms(2) R(1)_R(2)] by (smt R(1,2) R01 cring.cring_simprules(3,9))
   thus "\<exists>y\<in>carrier (union_ring C). y \<oplus>\<^bsub>union_ring C\<^esub> x = \<zero>\<^bsub>union_ring C\<^esub>"
-    using laws[OF _ R(2)] R(1) unfolding union_ring_def by (simp,blast)
+    using union_ring_same_laws[OF assms(2) R(1)_R(2)] R(1) unfolding union_ring_def by (simp,blast)
   show "x \<oplus>\<^bsub>union_ring C\<^esub> y \<oplus>\<^bsub>union_ring C\<^esub> z = x \<oplus>\<^bsub>union_ring C\<^esub> (y \<oplus>\<^bsub>union_ring C\<^esub> z)"
     using cring.cring_simprules(1,7) R assms(1)
-    by (metis fieldE(1) laws)
+    by (metis fieldE(1) union_ring_same_laws[OF assms(2) R(1)])
 qed
 
 lemma union_ring_is_comm_monoid :
@@ -345,31 +287,27 @@ lemma union_ring_is_comm_monoid :
     and "C \<noteq> {}"
   shows "comm_monoid (union_ring C)"
 proof(intro comm_monoidI)
-  obtain R0 where R0 : "R0 \<in> C" "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R0\<^esub>"
-    using someI_ex[of "\<lambda>x. x \<in> C"] assms(3) unfolding union_ring_def by auto
-  thus "\<one>\<^bsub>union_ring C\<^esub> \<in> carrier (union_ring C)"
-    using fieldE(1) assms(1)cring.cring_simprules(6) unfolding union_ring_def by (simp,blast)
+  show "\<one>\<^bsub>union_ring C\<^esub> \<in> carrier (union_ring C)"
+    using assms(1,3) union_ring_zero_one fieldE(1) cring.cring_simprules(6) some_in_eq
+    unfolding union_ring_def by (simp,blast)
   fix x y z assume hyp :  "x \<in> carrier (union_ring C)"
                           "y \<in> carrier (union_ring C)"
                           "z \<in> carrier (union_ring C)"
-  from union_ring_member_contains_all[OF assms hyp] obtain R
+  from union_ring_member_contains_all[OF assms hyp] union_ring_zero_one[OF assms] obtain R
     where R : "R \<in> C" "x \<in> carrier R" "y \<in> carrier R" "z \<in> carrier R""\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R\<^esub>"
     by auto
-  {fix a b assume hyp : "a \<in> carrier R" "b \<in> carrier R"
-    have "a \<otimes>\<^bsub> R\<^esub> b = a \<otimes>\<^bsub>(union_ring C)\<^esub> b"
-      using union_ring_same_laws[OF assms(2) R(1) hyp] by auto
-  }
-   note laws = this
-  hence "x \<otimes>\<^bsub>(union_ring C)\<^esub> y \<in> carrier (R)"
+  from union_ring_same_laws[OF assms(2) R(1)] have "x \<otimes>\<^bsub>(union_ring C)\<^esub> y \<in> carrier (R)"
     using assms(1) R(1-3) cring.cring_simprules(5) fieldE(1) by fastforce
   thus "x \<otimes>\<^bsub>(union_ring C)\<^esub> y \<in> carrier (union_ring C)" 
     using R(1) unfolding union_ring_def by auto
-  from R laws[of "\<one>\<^bsub>R\<^esub>", OF _ R(2)] show "\<one>\<^bsub>union_ring C\<^esub> \<otimes>\<^bsub>union_ring C\<^esub> x = x"
-    using assms(1) by (simp add : cring.cring_simprules(6,12) fieldE(1))
+  from union_ring_same_laws[OF assms(2) R(1),of "\<one>\<^bsub>R\<^esub>"] show "\<one>\<^bsub>union_ring C\<^esub> \<otimes>\<^bsub>union_ring C\<^esub> x = x"
+    using assms(1) R by (simp add : cring.cring_simprules(6,12) fieldE(1))
   show "x \<otimes>\<^bsub>union_ring C\<^esub> y \<otimes>\<^bsub>union_ring C\<^esub> z = x \<otimes>\<^bsub>union_ring C\<^esub> (y \<otimes>\<^bsub>union_ring C\<^esub> z)"
-    using laws cring.cring_simprules(5,11) fieldE(1) assms(1) R(1-4) by (metis fieldE(1) laws)
+    using union_ring_same_laws[OF assms(2) R(1)] cring.cring_simprules(5,11) assms(1) R(1-4)
+    by (metis fieldE(1))
   show "x \<otimes>\<^bsub>union_ring C\<^esub> y = y \<otimes>\<^bsub>union_ring C\<^esub> x"
-    using cring.cring_simprules(14) fieldE(1) R assms(1) laws by fastforce
+    using cring.cring_simprules(14) fieldE(1) R assms(1) union_ring_same_laws[OF assms(2) R(1)]
+    by fastforce
 qed
 
 lemma union_ring_is_cring :
@@ -384,19 +322,14 @@ proof-
   fix x y z assume hyp :  "x \<in> carrier (union_ring C)"
                           "y \<in> carrier (union_ring C)"
                           "z \<in> carrier (union_ring C)"
-  from union_ring_member_contains_all[OF assms hyp] obtain R
+  from union_ring_member_contains_all[OF assms hyp] union_ring_zero_one[OF assms] obtain R
     where R : "R \<in> C" "x \<in> carrier R" "y \<in> carrier R" "z \<in> carrier R"
               "\<one>\<^bsub>union_ring C\<^esub> = \<one>\<^bsub>R\<^esub>" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R\<^esub>"
     by auto
-  {fix a b assume hyp : "a \<in> carrier R" "b \<in> carrier R"
-    have "a \<otimes>\<^bsub> R\<^esub> b = a \<otimes>\<^bsub>(union_ring C)\<^esub> b" "a \<oplus>\<^bsub> R\<^esub> b = a \<oplus>\<^bsub>(union_ring C)\<^esub> b"
-      using union_ring_same_laws[OF assms(2) R(1) hyp] by auto
-  }
-  note laws = this
   show "(x \<oplus>\<^bsub>union_ring C\<^esub> y) \<otimes>\<^bsub>union_ring C\<^esub> z = x \<otimes>\<^bsub>union_ring C\<^esub> z \<oplus>\<^bsub>union_ring C\<^esub> y \<otimes>\<^bsub>union_ring C\<^esub> z"
-    using R assms(1) fieldE(1) laws by (metis cring.cring_simprules(1,5,13))
+    using R assms(1) fieldE(1) union_ring_same_laws[OF assms(2) R(1)] by (metis cring.cring_simprules(1,5,13))
   show "z \<otimes>\<^bsub>union_ring C\<^esub> (x \<oplus>\<^bsub>union_ring C\<^esub> y) = z \<otimes>\<^bsub>union_ring C\<^esub> x \<oplus>\<^bsub>union_ring C\<^esub> z \<otimes>\<^bsub>union_ring C\<^esub> y"
-    using R assms(1) fieldE(1) laws by (metis cring.cring_simprules(1,5,25))
+    using R assms(1) fieldE(1) union_ring_same_laws[OF assms(2) R(1)] by (metis cring.cring_simprules(1,5,25))
 qed
 
 lemma union_ring_is_field :
@@ -410,32 +343,23 @@ proof (intro cring.cring_fieldI)
     have "x \<in> Units (union_ring C)" unfolding Units_def apply simp
     proof
       show "x \<in> carrier (union_ring C)" using x by auto
-      from union_ring_member_contains_all[OF assms(1-3)this, of "\<one>\<^bsub>union_ring C\<^esub>" "\<one>\<^bsub>union_ring C\<^esub>"]
+      from union_ring_member_contains_all[OF assms(1-3)this] union_ring_zero_one[OF assms]
       obtain R where R : "R \<in> C" "x \<in> carrier R" "\<one>\<^bsub>R\<^esub> = \<one>\<^bsub>union_ring C\<^esub>" "\<zero>\<^bsub>R\<^esub> = \<zero>\<^bsub>union_ring C\<^esub>" 
         using cring.cring_simprules(6)[OF cring] assms x by fastforce
-      {fix a b assume hyp : "a \<in> carrier R" "b \<in> carrier R"
-        have "a \<otimes>\<^bsub> R\<^esub> b = a \<otimes>\<^bsub>(union_ring C)\<^esub> b"
-          using union_ring_same_laws[OF assms(2) R(1) hyp ] by auto
-      }
-      note laws = this
       have "x \<in> carrier R - {\<zero>\<^bsub>R\<^esub>}" using x R by auto
       hence "x \<in> Units R" using fieldE(4) assms(1) R(1) by auto
       hence "\<exists>xa\<in>carrier R. xa \<otimes>\<^bsub>R\<^esub> x = \<one>\<^bsub>R\<^esub> \<and> x \<otimes>\<^bsub>R\<^esub> xa = \<one>\<^bsub>R\<^esub>"
         by (simp add: Units_def)
-      thus "\<exists>xa\<in>carrier (union_ring C). xa \<otimes>\<^bsub>union_ring C\<^esub> x = \<one>\<^bsub>union_ring C\<^esub> \<and> x \<otimes>\<^bsub>union_ring C\<^esub> xa = \<one>\<^bsub>union_ring C\<^esub>"
-        using laws R(1,2,3) fieldE(1) unfolding union_ring_def apply simp
-        by blast
+      thus "\<exists>xa\<in>carrier (union_ring C). xa \<otimes>\<^bsub>union_ring C\<^esub> x = \<one>\<^bsub>union_ring C\<^esub>
+                                      \<and> x \<otimes>\<^bsub>union_ring C\<^esub> xa = \<one>\<^bsub>union_ring C\<^esub>"
+        using union_ring_same_laws[OF assms(2)R(1)] R(1,2,3) fieldE(1) unfolding union_ring_def
+        by (simp,blast)
     qed
   }
   moreover have "\<zero>\<^bsub>union_ring C\<^esub> \<notin> Units (union_ring C)"
-  proof
-    assume hyp : "\<zero>\<^bsub>union_ring C\<^esub> \<in> Units (union_ring C)"
-    obtain R0 where R0 : "R0 \<in> C" "\<zero>\<^bsub>union_ring C\<^esub> = \<zero>\<^bsub>R0\<^esub>"
-      using someI_ex[of "\<lambda>x. x \<in> C"] assms(3) unfolding union_ring_def by auto
-    thus False using fieldE(1,2) assms(1,3) cring hyp unfolding Units_def
-      by (simp,smt cring.cring_simprules(27) monoid.simps(2) one_not_zero ring.simps(1)
-         some_in_eq union_ring_def)
-  qed
+    using fieldE(4) union_ring_zero_one assms(1,3) cring one_not_zero union_ring_def
+    by (smt cring.axioms(1) cring.cring_simprules(2,6,26)monoid.Units_l_cancel
+         monoid.simps(2)  ring.simps(1) ring_def some_in_eq)
   hence "Units (union_ring C) \<subseteq> carrier (union_ring C) - {\<zero>\<^bsub>union_ring C\<^esub>}"
     unfolding Units_def by auto
   ultimately show "Units (union_ring C) = carrier (union_ring C) - {\<zero>\<^bsub>union_ring C\<^esub>}" by auto
