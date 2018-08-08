@@ -60,12 +60,6 @@ lemma image_group_truncate:
 lemma image_ring_truncate: "monoid.truncate (image_ring f R) = image_group f R"
   by (simp add: image_ring_def monoid.defs)
 
-lemma (in ring) ideal_is_normal:
-  assumes "ideal I R" shows "I \<lhd> (add_monoid R)"
-  using abelian_subgroup.a_normal[OF abelian_subgroupI3[OF ideal.axioms(1)]]
-        abelian_group_axioms assms
-  by auto 
-
 lemma (in ring) weak_add_group_morphism:
   assumes "weak_ring_morphism f I R" shows "weak_group_morphism f I (add_monoid R)"
 proof -

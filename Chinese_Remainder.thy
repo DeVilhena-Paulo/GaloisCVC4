@@ -226,20 +226,6 @@ definition (in ring) canonical_proj_ext :: "(nat \<Rightarrow> 'a set) \<Rightar
 
 subsection \<open>Chinese Remainder Simple\<close>
 
-(* ========== *)
-lemma (in ideal) rcos_const_imp_mem:
-  assumes "i \<in> carrier R" and "I +> i = I" shows "i \<in> I"
-  using additive_subgroup.zero_closed[OF ideal.axioms(1)[OF ideal_axioms]] assms
-  by (force simp add: a_r_coset_def')
-(* ========== *)
-
-(* ========== *)
-lemma (in ring) a_rcos_zero:
-  assumes "ideal I R" "i \<in> I" shows "I +> i = I"
-  using abelian_subgroupI3[OF ideal.axioms(1) is_abelian_group]
-  by (simp add: abelian_subgroup.a_rcos_const assms)
-(* ========== *)
-
 lemma (in ring) canonical_proj_is_surj:
   assumes "ideal I R" "ideal J R" and "I <+> J = carrier R"
   shows "(canonical_proj I J) ` carrier R = carrier (RDirProd (R Quot I) (R Quot J))"
@@ -315,13 +301,6 @@ next
   qed
 qed
 
-(* ========== *)
-lemma (in ideal) a_rcos_sum:
-  assumes "a \<in> carrier R" and "b \<in> carrier R" shows "(I +> a) <+> (I +> b) = I +> (a \<oplus> b)"
-  using normal.rcos_sum[OF ideal_is_normal[OF ideal_axioms]] assms
-  unfolding set_add_def a_r_coset_def by simp
-(* ========== *)
-
 lemma (in ring) canonical_proj_is_hom:
   assumes "ideal I R" and "ideal J R"
   shows "(canonical_proj I J) \<in> ring_hom R (RDirProd (R Quot I) (R Quot J))"
@@ -351,17 +330,6 @@ lemma (in ring) canonical_proj_ext_zero [simp]: "(canonical_proj_ext I 0) = (\<l
 lemma (in ring) canonical_proj_ext_tl:
   "(\<lambda>a. canonical_proj_ext I (Suc n) a) = (\<lambda>a. ((I 0) +> a) # (canonical_proj_ext (\<lambda>i. I (Suc i)) n a))"
   unfolding canonical_proj_ext_def by (induct n) (auto, metis (lifting) append.assoc append_Cons append_Nil)
-
-(* ========== *)
-lemma (in ring) set_add_comm:
-  assumes "I \<subseteq> carrier R" "J \<subseteq> carrier R" shows "I <+> J = J <+> I"
-proof -
-  { fix I J assume "I \<subseteq> carrier R" "J \<subseteq> carrier R" hence "I <+> J \<subseteq> J <+> I"
-      using a_comm unfolding set_add_def' by (auto, blast) }
-  thus ?thesis
-    using assms by auto
-qed
-(* ========== *)
 
 lemma (in ring) canonical_proj_ext_is_hom:
   assumes "\<And>i. i \<le> n \<Longrightarrow> ideal (I i) R"

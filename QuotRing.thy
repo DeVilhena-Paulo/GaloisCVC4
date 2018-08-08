@@ -362,6 +362,23 @@ proof -
   thus "inj_on h (carrier R)"
     using trivial_ker_imp_inj by blast
 qed
+lemma "field R \<Longrightarrow> cring R"
+  using fieldE(1) by blast
+
+lemma non_trivial_field_hom_is_inj:
+  assumes "h \<in> ring_hom R S" and "field R" and "field S" shows "inj_on h (carrier R)"
+proof -
+  interpret ring_hom_cring R S h
+    using assms(1) ring_hom_cring.intro[OF assms(2-3)[THEN fieldE(1)]]
+    unfolding symmetric[OF ring_hom_cring_axioms_def] by simp
+
+  have "h \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>" and "\<one>\<^bsub>S\<^esub> \<noteq> \<zero>\<^bsub>S\<^esub>"
+    using domain.one_not_zero[OF field.axioms(1)[OF assms(3)]] by auto 
+  hence "h ` (carrier R) \<noteq> { \<zero>\<^bsub>S\<^esub> }"
+    using ring.kernel_zero ring.trivial_hom_iff by fastforce
+  thus ?thesis
+    using ring.non_trivial_field_hom_imp_inj[OF assms(2)] by simp
+qed    
 
 lemma (in ring_hom_ring) img_is_add_subgroup:
   assumes "subgroup H (add_monoid R)"
