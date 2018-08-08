@@ -324,6 +324,10 @@ next
   qed
 qed
 
+corollary normalize_trick:
+  shows "p = (replicate (length p - length (normalize p)) \<zero>) @ (normalize p)"
+  using normalize_def'(1)[of p] unfolding sym[OF normalize_def'(2)] .
+
 lemma normalize_coeff: "coeff p = coeff (normalize p)"
 proof (induction p)
   case Nil thus ?case by simp
@@ -1374,6 +1378,7 @@ lemma univ_poly_zero: "zero (K[X]\<^bsub>R\<^esub>) = []"
 lemma univ_poly_add: "add (K[X]\<^bsub>R\<^esub>) = ring.poly_add R"
   unfolding univ_poly_def by simp
 
+
 (* NEW  ========== *)
 lemma univ_poly_zero_closed [intro]: "[] \<in> carrier (K[X]\<^bsub>R\<^esub>)"
   unfolding sym[OF univ_poly_carrier] polynomial_def by simp
@@ -2023,6 +2028,17 @@ corollary (in domain) eval_ring_hom:
   using eval_cring_hom[OF assms] ring_hom_ringI2
   unfolding ring_hom_cring_def ring_hom_cring_axioms_def cring_def by auto
 
+lemma (in ring_hom_ring) eval_hom:
+  assumes "subring K R" and "a \<in> carrier R" and "p \<in> carrier (K[X])"
+  shows "h (R.eval p a) = eval (map h p) (h a)"
+proof -
+  have "set p \<subseteq> carrier R"
+    using subringE(1)[OF assms(1)] R.polynomial_incl assms(3)
+    unfolding sym[OF univ_poly_carrier[of R]] by auto
+  with \<open>a \<in> carrier R\<close> show ?thesis
+    by (induct p, auto simp add: R.eval_in_carrier nat_pow_hom)
+qed
+
 
 subsection \<open>The X Variable\<close>
 
@@ -2086,6 +2102,72 @@ proof -
   also have " ... = [ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> n)"
     unfolding unitary_monom_eq_var_pow[OF assms(1)] univ_poly_mult[of R K] by simp
   finally show ?thesis .
+qed
+
+lemma (in domain) eval_rewrite:
+  assumes "subring K R" and "p \<in> carrier (K[X])"
+  shows "p = (ring.eval (K[X])) (map (\<lambda>a. normalize [ a ]) p) X"
+proof -
+  let ?map_norm = "\<lambda>p. map (\<lambda>a. normalize [ a ]) p"
+
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] .
+
+  { fix l assume "set l \<subseteq> K"
+    hence "normalize [ a ] \<in> carrier (K[X])" if "a \<in> set l" for a
+      using that normalize_gives_polynomial[of "[ a ]" K] unfolding univ_poly_carrier by auto
+    hence "set (?map_norm l) \<subseteq> carrier (K[X])"
+      by (auto simp del: normalize.simps) }
+  note aux_lemma1 = this
+
+  { fix q l assume set_l: "set l \<subseteq> K" and q: "q \<in> carrier (K[X])"
+    from set_l have "UP.eval (?map_norm l) q = UP.eval (?map_norm ((replicate n \<zero>) @ l)) q" for n
+    proof (induct n, simp)
+      case (Suc n)
+      from \<open>set l \<subseteq> K\<close> have set_replicate: "set ((replicate n \<zero>) @ l) \<subseteq> K"
+        using subringE(2)[OF assms(1)] by (induct n) (auto)
+      have step: "UP.eval (?map_norm l') q = UP.eval (?map_norm (\<zero> # l')) q" if "set l' \<subseteq> K" for l'
+        using UP.eval_in_carrier[OF aux_lemma1[OF that]] q
+        by (simp, simp add: sym[OF univ_poly_zero[of R K]])
+      have "UP.eval (?map_norm l) q = UP.eval (?map_norm ((replicate n \<zero>) @ l)) q"
+        using Suc by simp
+      also have " ... = UP.eval (map (\<lambda>a. normalize [ a ]) ((replicate (Suc n) \<zero>) @ l)) q"
+        using step[OF set_replicate] by simp
+      finally show ?case .
+    qed }
+  note aux_lemma2 = this
+
+  { fix q l assume "set l \<subseteq> K" and q: "q \<in> carrier (K[X])"
+    from \<open>set l \<subseteq> K\<close> have set_norm: "set (normalize l) \<subseteq> K"
+      by (induct l) (auto)
+    have "UP.eval (?map_norm l) q = UP.eval (?map_norm (normalize l)) q"
+      using aux_lemma2[OF set_norm q, of "length l - length (local.normalize l)"]
+      unfolding sym[OF normalize_trick[of l]] .. }
+  note aux_lemma3 = this
+
+  from \<open>p \<in> carrier (K[X])\<close> show ?thesis
+  proof (induct "length p" arbitrary: p rule: less_induct)
+    case less thus ?case
+    proof (cases p, simp add: univ_poly_zero)
+      case (Cons a l)
+      hence a: "a \<in> carrier R - { \<zero> }" and set_l: "set l \<subseteq> carrier R" "set l \<subseteq> K"
+        using less(2) subringE(1)[OF assms(1)] unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+
+      have "a # l = poly_add (monom a (length l)) l"
+        using poly_add_monom[OF set_l(1) a] ..
+      also have " ... = poly_add (monom a (length l)) (normalize l)"
+        using poly_add_normalize(2)[OF monom_in_carrier[of a] set_l(1)] a by simp
+      also have " ... = poly_add (monom a (length l)) (UP.eval (?map_norm (normalize l)) X)"
+        using less(1)[of "normalize l"] normalize_gives_polynomial[OF set_l(2)] normalize_length_le[of l]
+        by (auto simp add: univ_poly_carrier Cons(1))
+      also have " ... = poly_add ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> (length l))) (UP.eval (?map_norm l) X)"
+        unfolding monom_eq_var_pow[OF assms(1) a] aux_lemma3[OF set_l(2) var_closed(1)[OF assms(1)]] ..
+      also have " ... = UP.eval (?map_norm (a # l)) X"
+        using a unfolding sym[OF univ_poly_add[of R K]] by auto
+      finally show ?thesis
+        unfolding Cons(1) .
+    qed
+  qed   
 qed
 
 lemma (in ring) dense_repr_set_fst:
