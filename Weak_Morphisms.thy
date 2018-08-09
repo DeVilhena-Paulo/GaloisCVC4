@@ -360,8 +360,7 @@ qed
 
 corollary (in ring) weak_ring_morphism_ring_hom:
   assumes "weak_ring_morphism f I R" shows "ring_hom_ring R (image_ring f R) f"
-  using image_ring_is_ring[OF assms] weak_ring_morphism_is_hom[OF assms] ring_axioms
-  unfolding ring_hom_ring_def ring_hom_ring_axioms_def by simp
+  using ring_hom_ringI2[OF ring_axioms image_ring_is_ring[OF assms] weak_ring_morphism_is_hom[OF assms]] .
 
 
 subsection \<open>Injective Functions\<close>
@@ -495,24 +494,5 @@ qed
 lemma DirProd_list_iso:
   "(\<lambda>(g, gs). g # gs) \<in> iso (G \<times>\<times> (DirProd_list Gs)) (DirProd_list (G # Gs))"
   using inj_imp_image_group_iso[OF inj_on_DirProd_carrier] unfolding DirProd_list_def by auto
-
-
-subsection \<open>Multivariate Polynomials\<close>
-
-(*
-definition f :: "((nat list) \<Rightarrow> 'a) ring \<Rightarrow> ((nat list) \<Rightarrow> 'a) list \<Rightarrow> (nat list) \<Rightarrow> 'a"
-  where "f R p = (\<lambda>l. case l of [] \<Rightarrow> \<zero>\<^bsub>R\<^esub> l | j # js \<Rightarrow> ((ring.coeff R) p j) js)"
-*)
-(*
-definition f :: "'a set \<Rightarrow> ((nat list) \<Rightarrow> 'a) ring \<Rightarrow> (((nat list) \<Rightarrow> 'a) list) ring \<Rightarrow> ((nat list) \<Rightarrow> 'a) ring"
-  where "f K R P = \<lparr> carrier = (\<lambda>p. (\<lambda>l. case l of [] \<Rightarrow> \<zero>\<^bsub>P\<^esub> | j # js \<Rightarrow> ((ring.coeff R) p j) js)) ` (carrier P),
-                      mult = (\<lambda>a b. (\<lambda>_. \<zero>\<^bsub>P\<^esub>)),
-                       one = (\<lambda>_. \<zero>\<^bsub>P\<^esub>),
-                      zero = (\<lambda>_. \<zero>\<^bsub>P\<^esub>),
-                       add = (\<lambda>a b. (\<lambda>_. \<zero>\<^bsub>P\<^esub>)) \<rparr>"
-
-definition multi_poly :: "nat \<Rightarrow> 'a set \<Rightarrow> ('a, 'b) ring_scheme"
-  where "multi_poly n K R = rec_nat "
-*)
 
 end

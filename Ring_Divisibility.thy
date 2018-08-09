@@ -68,6 +68,11 @@ sublocale factorial_domain < mult_of: factorial_monoid "mult_of R"
        and "one  (mult_of R) =  one R"
   using factorial_monoid_axioms by auto
 
+lemma (in ring) noetherian_ringI:
+  assumes "\<And>I. ideal I R \<Longrightarrow> \<exists>A \<subseteq> carrier R. finite A \<and> I = Idl A"
+  shows "noetherian_ring R"
+  using assms by unfold_locales auto
+
 lemma (in domain) euclidean_domainI:
   assumes "\<And>a b. \<lbrakk> a \<in> carrier R - { \<zero> }; b \<in> carrier R - { \<zero> } \<rbrakk> \<Longrightarrow>
            \<exists>q r. q \<in> carrier R \<and> r \<in> carrier R \<and> a = (b \<otimes> q) \<oplus> r \<and> ((r = \<zero>) \<or> (\<phi> r < \<phi> b))"
@@ -546,7 +551,7 @@ qed
 lemma (in ring) trivial_ideal_chain_imp_noetherian:
   assumes "\<And>C. \<lbrakk> C \<noteq> {}; subset.chain { I. ideal I R } C \<rbrakk> \<Longrightarrow> \<Union>C \<in> C"
   shows "noetherian_ring R"
-proof (auto simp add: noetherian_ring_def noetherian_ring_axioms_def ring_axioms)
+proof (rule noetherian_ringI)
   fix I assume I: "ideal I R"
   have in_carrier: "I \<subseteq> carrier R" and add_subgroup: "additive_subgroup I R"
     using ideal.axioms(1)[OF I] additive_subgroup.a_subset by auto 

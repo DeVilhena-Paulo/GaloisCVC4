@@ -39,7 +39,7 @@ lemma idealI:
 proof -
   interpret ring R by fact
   show ?thesis  
-    by (auto simp: ideal.intro ideal_axioms.intro additive_subgroupI a_subgroup is_ring I_l_closed I_r_closed)
+    by (auto simp: ideal.intro ideal_axioms.intro additive_subgroupI a_subgroup ring_axioms I_l_closed I_r_closed)
 qed
 
 
@@ -179,10 +179,10 @@ qed
 subsection \<open>Special Ideals\<close>
 
 lemma (in ring) zeroideal: "ideal {\<zero>} R"
-  by (intro idealI subgroup.intro) (simp_all add: is_ring)
+  by (intro idealI subgroup.intro) (simp_all add: ring_axioms)
 
 lemma (in ring) oneideal: "ideal (carrier R) R"
-  by (rule idealI) (auto intro: is_ring add.subgroupI)
+  by (rule idealI) (auto intro: ring_axioms add.subgroupI)
 
 lemma (in "domain") zeroprimeideal: "primeideal {\<zero>} R"
 proof -
@@ -227,7 +227,7 @@ proof -
     by (force simp: a_subset)
   show ?thesis
     apply (intro idealI subgroup.intro)
-    apply (simp_all add: IJ is_ring I_l_closed assms ideal.I_l_closed ideal.I_r_closed flip: a_inv_def)
+    apply (simp_all add: IJ ring_axioms I_l_closed assms ideal.I_l_closed ideal.I_r_closed flip: a_inv_def)
     done
 qed
 
@@ -280,7 +280,7 @@ proof (rule ideal.intro)
   show "additive_subgroup (I <+> J) R"
     by (intro ideal.axioms[OF idealI] ideal.axioms[OF idealJ] add_additive_subgroups)
   show "ring R"
-    by (rule is_ring)
+    by (rule ring_axioms)
   show "ideal_axioms (I <+> J) R"
   proof -
     { fix x i j
@@ -395,7 +395,7 @@ lemma (in cring) cgenideal_ideal:
   assumes acarr: "a \<in> carrier R"
   shows "ideal (PIdl a) R"
   unfolding cgenideal_def
-proof (intro subgroup.intro idealI[OF is_ring], simp_all)
+proof (intro subgroup.intro idealI[OF ring_axioms], simp_all)
   show "{x \<otimes> a |x. x \<in> carrier R} \<subseteq> carrier R"
     by (blast intro: acarr)
   show "\<And>x y. \<lbrakk>\<exists>u. x = u \<otimes> a \<and> u \<in> carrier R; \<exists>x. y = x \<otimes> a \<and> x \<in> carrier R\<rbrakk>
@@ -469,7 +469,7 @@ lemma (in ring) union_genideal:
   shows "Idl (I \<union> J) = I <+> J"
 proof
   show "Idl (I \<union> J) \<subseteq> I <+> J"
-  proof (rule ring.genideal_minimal [OF is_ring])
+  proof (rule ring.genideal_minimal [OF ring_axioms])
     show "ideal (I <+> J) R"
       by (rule add_ideals[OF idealI idealJ])
     have "\<And>x. x \<in> I \<Longrightarrow> \<exists>xa\<in>I. \<exists>xb\<in>J. x = xa \<oplus> xb"

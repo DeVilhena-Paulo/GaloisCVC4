@@ -2028,6 +2028,14 @@ corollary (in domain) eval_ring_hom:
   using eval_cring_hom[OF assms] ring_hom_ringI2
   unfolding ring_hom_cring_def ring_hom_cring_axioms_def cring_def by auto
 
+
+subsection \<open>Homomorphisms\<close>
+
+lemma (in ring_hom_ring) eval_hom':
+  assumes "a \<in> carrier R" and "set p \<subseteq> carrier R"
+  shows "h (R.eval p a) = eval (map h p) (h a)"
+  using assms by (induct p, auto simp add: R.eval_in_carrier nat_pow_hom)
+
 lemma (in ring_hom_ring) eval_hom:
   assumes "subring K R" and "a \<in> carrier R" and "p \<in> carrier (K[X])"
   shows "h (R.eval p a) = eval (map h p) (h a)"
@@ -2035,8 +2043,62 @@ proof -
   have "set p \<subseteq> carrier R"
     using subringE(1)[OF assms(1)] R.polynomial_incl assms(3)
     unfolding sym[OF univ_poly_carrier[of R]] by auto
-  with \<open>a \<in> carrier R\<close> show ?thesis
-    by (induct p, auto simp add: R.eval_in_carrier nat_pow_hom)
+  thus ?thesis
+    using eval_hom'[OF assms(2)] by simp
+qed
+
+lemma (in ring_hom_ring) coeff_hom':
+  assumes "set p \<subseteq> carrier R" shows "h (R.coeff p i) = coeff (map h p) i"
+  using assms by (induct p) (auto)
+
+lemma (in ring_hom_ring) poly_add_hom':
+  assumes "set p \<subseteq> carrier R" and "set q \<subseteq> carrier R"
+  shows "normalize (map h (R.poly_add p q)) = poly_add (map h p) (map h q)"
+proof -
+  have set_map: "set (map h s) \<subseteq> carrier S" if "set s \<subseteq> carrier R" for s
+    using that by auto
+  have "coeff (normalize (map h (R.poly_add p q))) = coeff (map h (R.poly_add p q))"
+    using S.normalize_coeff by auto
+  also have " ... = (\<lambda>i. h ((R.coeff p i) \<oplus> (R.coeff q i)))"
+    using coeff_hom'[OF R.poly_add_in_carrier[OF assms]] R.poly_add_coeff[OF assms] by simp
+  also have " ... = (\<lambda>i. (coeff (map h p) i) \<oplus>\<^bsub>S\<^esub> (coeff (map h q) i))"
+    using assms[THEN R.coeff_in_carrier] assms[THEN coeff_hom'] by simp
+  also have " ... = (\<lambda>i. coeff (poly_add (map h p) (map h q)) i)"
+    using S.poly_add_coeff[OF assms[THEN set_map]] by simp
+  finally have "coeff (normalize (map h (R.poly_add p q))) = (\<lambda>i. coeff (poly_add (map h p) (map h q)) i)" .
+  thus ?thesis
+    unfolding coeff_iff_polynomial_cond[OF
+              normalize_gives_polynomial[OF set_map[OF R.poly_add_in_carrier[OF assms]]]
+              poly_add_is_polynomial[OF carrier_is_subring assms[THEN set_map]]] .
+qed
+
+lemma (in ring_hom_ring) poly_mult_hom':
+  assumes "set p \<subseteq> carrier R" and "set q \<subseteq> carrier R"
+  shows "normalize (map h (R.poly_mult p q)) = poly_mult (map h p) (map h q)"
+  using assms(1)
+proof (induct p, simp)
+  case (Cons a p)
+  have set_map: "set (map h s) \<subseteq> carrier S" if "set s \<subseteq> carrier R" for s
+    using that by auto
+
+  let ?q_a = "(map ((\<otimes>) a) q) @ (replicate (length p) \<zero>)"
+  have set_q_a: "set ?q_a \<subseteq> carrier R"
+    using assms(2) Cons(2) by (induct q) (auto)
+  have q_a_simp: "map h ?q_a = (map ((\<otimes>\<^bsub>S\<^esub>) (h a)) (map h q)) @ (replicate (length (map h p)) \<zero>\<^bsub>S\<^esub>)"
+    using assms(2) Cons(2) by (induct q) (auto)
+
+  have "S.normalize (map h (R.poly_mult (a # p) q)) = 
+        S.normalize (map h (R.poly_add ?q_a (R.poly_mult p q)))"
+    by simp
+  also have " ... = S.poly_add (map h ?q_a) (map h (R.poly_mult p q))"
+    using poly_add_hom'[OF set_q_a R.poly_mult_in_carrier[OF _ assms(2)]] Cons by simp
+  also have " ... = S.poly_add (map h ?q_a) (S.normalize (map h (R.poly_mult p q)))"
+    using poly_add_normalize(2)[OF set_map[OF set_q_a] set_map[OF R.poly_mult_in_carrier[OF _ assms(2)]]] Cons by simp
+  also have " ... = S.poly_add (map h ?q_a) (S.poly_mult (map h p) (map h q))"
+    using Cons by simp
+  also have " ... = S.poly_mult (map h (a # p)) (map h q)"
+    unfolding q_a_simp by simp
+  finally show ?case . 
 qed
 
 

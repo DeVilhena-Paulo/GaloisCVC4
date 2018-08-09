@@ -175,7 +175,7 @@ next
       using field by (simp add: cring_def domain_def field_def) 
     ultimately interpret R: ring_hom_ring "Rupt K p" "K[X]" h
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def ring_iso_def
-      using UP.is_ring by simp
+      using UP.ring_axioms by simp
     have "field (K[X])"
       using field.ring_iso_imp_img_field[OF field h] by simp
     thus False
@@ -861,6 +861,48 @@ proof -
 qed
 
 
+subsection \<open>Roots and Multiplicity\<close>
+
+lemma (in domain) pdivides_imp_root_sharing:
+  assumes "p \<in> carrier (poly_ring R)" "p pdivides q" and "a \<in> carrier R"
+  shows "eval p a = \<zero> \<Longrightarrow> eval q a = \<zero>"
+proof - 
+  from \<open>p pdivides q\<close> obtain r where r: "q = p \<otimes>\<^bsub>poly_ring R\<^esub> r" "r \<in> carrier (poly_ring R)"
+    unfolding pdivides_def factor_def by auto
+  hence "eval q a = (eval p a) \<otimes> (eval r a)"
+    using ring_hom_memE(2)[OF eval_is_hom[OF carrier_is_subring assms(3)] assms(1) r(2)] by simp
+  thus "eval p a = \<zero> \<Longrightarrow> eval q a = \<zero>"
+    using ring_hom_memE(1)[OF eval_is_hom[OF carrier_is_subring assms(3)] r(2)] by auto
+qed
+
+lemma (in domain) degree_one_root:
+  assumes "subfield K R" and "p \<in> carrier (K[X])" and "degree p = 1"
+  shows "eval p (\<ominus> (inv (lead_coeff p) \<otimes> (const_term p))) = \<zero>"
+    and "inv (lead_coeff p) \<otimes> (const_term p) \<in> K" 
+proof -
+  from \<open>degree p = 1\<close> have "length p = Suc (Suc 0)"
+    by simp
+  then obtain a b where p: "p = [ a, b ]"
+    by (metis (no_types, hide_lams) Suc_length_conv length_0_conv)
+  hence "a \<in> K - { \<zero> }" "b \<in> K"  and in_carrier: "a \<in> carrier R" "b \<in> carrier R"
+    using assms(2) subfieldE(3)[OF assms(1)] unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+  hence inv_a: "inv a \<in> carrier R" "a \<otimes> inv a = \<one>" and "inv a \<in> K"
+    using subfield_m_inv(1-2)[OF assms(1), of a] subfieldE(3)[OF assms(1)] by auto 
+  hence "eval p (\<ominus> (inv a \<otimes> b)) = a \<otimes> (\<ominus> (inv a \<otimes> b)) \<oplus> b"
+    using in_carrier unfolding p by simp
+  also have " ... = \<ominus> (a \<otimes> (inv a \<otimes> b)) \<oplus> b"
+    using inv_a in_carrier by (simp add: r_minus)
+  also have " ... = \<zero>"
+    using in_carrier(2) unfolding sym[OF m_assoc[OF in_carrier(1) inv_a(1) in_carrier(2)]] inv_a(2) by algebra
+  finally have "eval p (\<ominus> (inv a \<otimes> b)) = \<zero>" .
+  moreover have ct: "const_term p = b"
+    using in_carrier unfolding p const_term_def by auto
+  ultimately show "eval p (\<ominus> (inv (lead_coeff p) \<otimes> (const_term p))) = \<zero>"
+    unfolding p by simp
+  from \<open>inv a \<in> K\<close> and \<open>b \<in> K\<close>
+  show "inv (lead_coeff p) \<otimes> (const_term p) \<in> K"
+    using p subringE(6)[OF subfieldE(1)[OF assms(1)]] unfolding ct by auto
+qed
 (*
 
 subsection \<open>Roots and Multiplicity\<close>

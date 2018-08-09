@@ -126,7 +126,7 @@ done
 
 lemma (in ideal) rcos_ring_hom_ring: "ring_hom_ring R (R Quot I) ((+>) I)"
 apply (rule ring_hom_ringI)
-     apply (rule is_ring, rule quotient_is_ring)
+     apply (rule ring_axioms, rule quotient_is_ring)
    apply (simp add: FactRing_def a_rcosetsI[OF a_subset])
   apply (simp add: FactRing_def rcoset_mult_add)
  apply (simp add: FactRing_def a_rcos_sum)

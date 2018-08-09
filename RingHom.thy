@@ -63,8 +63,8 @@ proof -
   interpret R: ring R by fact
   interpret S: ring S by fact
   show ?thesis apply (intro ring_hom_ring.intro ring_hom_ring_axioms.intro)
-    apply (rule R.is_ring)
-    apply (rule S.is_ring)
+    apply (rule R.ring_axioms)
+    apply (rule S.ring_axioms)
     apply (rule h)
     done
 qed
@@ -79,7 +79,7 @@ proof -
   interpret abelian_group_hom R S h by fact
   interpret R: ring R by fact
   interpret S: ring S by fact
-  show ?thesis apply (intro ring_hom_ring.intro ring_hom_ring_axioms.intro, rule R.is_ring, rule S.is_ring)
+  show ?thesis apply (intro ring_hom_ring.intro ring_hom_ring_axioms.intro, rule R.ring_axioms, rule S.ring_axioms)
     apply (insert group_hom.homh[OF a_group_hom])
     apply (unfold hom_def ring_hom_def, simp)
     apply safe
@@ -106,7 +106,7 @@ subsection \<open>The Kernel of a Ring Homomorphism\<close>
 lemma (in ring_hom_ring) kernel_is_ideal:
   shows "ideal (a_kernel R S h) R"
 apply (rule idealI)
-   apply (rule R.is_ring)
+   apply (rule R.ring_axioms)
   apply (rule additive_subgroup.a_subgroup[OF additive_subgroup_a_kernel])
  apply (unfold a_kernel_def', simp+)
 done

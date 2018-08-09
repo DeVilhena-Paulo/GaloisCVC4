@@ -16,6 +16,12 @@ lemma Field_rel_of:
   assumes "refl_on A (rel_of P A)" shows "Field (rel_of P A) = A"
   using assms unfolding refl_on_def Field_def by auto
 
+(* ========== *)
+lemma Chains_rel_of:
+  assumes "C \<in> Chains (rel_of P A)" shows "C \<subseteq> A"
+  using assms unfolding Chains_def by auto
+(* ========== *)
+
 lemma partial_order_on_rel_ofI:
   assumes refl: "\<And>a. a \<in> A \<Longrightarrow> P a a"
     and trans: "\<And>a b c. \<lbrakk> a \<in> A; b \<in> A; c \<in> A \<rbrakk> \<Longrightarrow> P a b \<Longrightarrow> P b c \<Longrightarrow> P a c"
@@ -40,7 +46,7 @@ lemma predicate_Zorn:
   shows "\<exists>m \<in> A. \<forall>a \<in> A. P m a \<longrightarrow> a = m"
 proof -
   have "a \<in> A" if "a \<in> C" and "C \<in> Chains (rel_of P A)" for C a
-    using that unfolding Chains_def by auto
+    using that Chains_rel_of by auto
   moreover have "(a, u) \<in> rel_of P A" if "a \<in> A" and "u \<in> A" and "P a u" for a u
     using that by auto
   ultimately show ?thesis
