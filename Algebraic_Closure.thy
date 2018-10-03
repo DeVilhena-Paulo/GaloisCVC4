@@ -564,6 +564,16 @@ proof (rule ccontr)
   ultimately show False by simp
 qed
 
+lemma (in field) exists_extension_with_roots:
+  shows "\<exists>L \<in> extensions. \<forall>P \<in> carrier (poly_ring R).
+    degree P > 0 \<longrightarrow> (\<exists>x \<in> carrier L. (ring.eval L) (\<sigma> P) x = \<zero>\<^bsub>L\<^esub>)"
+proof -
+  obtain M where "M \<in> extensions" and "\<forall>L \<in> extensions. M \<lesssim> L \<longrightarrow> law_restrict L = law_restrict M"
+    using exists_maximal_extension iso_incl_hom by blast
+  thus ?thesis
+    using exists_root[of M] by auto
+qed
+
 end
   
 
