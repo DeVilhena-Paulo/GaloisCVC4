@@ -3,7 +3,7 @@
 *)
 
 theory Multiplicative_Group_Revised
-  imports Cycles Generated_Groups_Revised Polynomials
+  imports Cycles Generated_Groups Polynomials
 
 begin
 
