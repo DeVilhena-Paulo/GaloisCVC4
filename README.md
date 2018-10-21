@@ -6,3 +6,4 @@ The goal of this project is to formalize Galois Theory on Isabelle/HOL. As a bas
 
 * Clemens Ballarin, who wrote the HOL-Algebra library.
 * Larry Paulson, who supervised our work and answered inumerous questions.
+* Anthony Bordg, who co-supervised our work and firstly oriented us towards the formalization of Algebra.
