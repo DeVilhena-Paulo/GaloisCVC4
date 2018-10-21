@@ -191,7 +191,7 @@ lemma (in int_mod) m_comm:
 
 sublocale int_mod \<subseteq> cring
   unfolding cring_def comm_monoid_def comm_monoid_axioms_def
-  using is_ring m_comm monoid_axioms by auto
+  using m_comm monoid_axioms ring_axioms by auto
 
 
 
@@ -230,7 +230,7 @@ next
 qed
 
 lemma (in int_ring) is_euclidean_domain: "euclidean_domain R (\<lambda>a. nat \<bar> int_repr a \<bar>)"
-proof (rule domain.euclidean_domainI[OF is_domain])
+proof (rule domain.euclidean_domainI[OF domain_axioms])
   let ?norm = "\<lambda>a. nat \<bar> int_repr a \<bar>"
   fix a b assume a: "a \<in> carrier R - { \<zero> }" and b: "b \<in> carrier R - { \<zero> }"
   define q_int and r_int
@@ -450,7 +450,7 @@ next
 qed
 
 lemma (in int_ring) ideal_int_repr: "ideal I R \<Longrightarrow> \<exists>n. I = PIdl \<lbrakk> n \<rbrakk>"
-  using principal_I[of I] int_repr_wf cgenideal_eq_genideal principalideal.generate[of I R] by metis
+  using  int_repr_wf cgenideal_eq_genideal exists_gen by metis
 
 lemma (in int_ring) ideal_pos_int_repr:
   assumes "ideal I R"
@@ -606,7 +606,7 @@ proof -
   have "\<And>i. i \<in> carrier R \<Longrightarrow> h i = \<lbrakk> int_repr i \<rbrakk>\<^bsub>S\<^esub>"
   proof -
     interpret rhom: ring_hom_ring R S h
-      using assms(1) ring_hom_ringI[OF is_ring assms(2), of h] unfolding ring_hom_def by auto
+      using assms(1) ring_hom_ringI[OF ring_axioms assms(2), of h] unfolding ring_hom_def by auto
 
     fix i assume "i \<in> carrier R"
     hence "h i = h \<lbrakk> int_repr i \<rbrakk>"
@@ -658,7 +658,7 @@ corollary (in int_ring) hom_imp_img_int_mod:
   shows "int_mod (S \<lparr> carrier := h ` (carrier R) \<rparr>)"
 proof -
   interpret Hom?: ring_hom_ring R S h
-    using assms is_ring unfolding ring_hom_ring_def ring_hom_ring_axioms_def by auto
+    using assms ring_axioms unfolding ring_hom_ring_def ring_hom_ring_axioms_def by auto
   have "h \<in> ring_hom R (S \<lparr> carrier := h ` (carrier R) \<rparr>)"
     using assms(1) unfolding ring_hom_def by auto
   thus ?thesis
@@ -667,7 +667,7 @@ qed
 
 corollary (in ring) int_subring: "int_mod (R \<lparr> carrier := (\<lambda>i. \<lbrakk> i \<rbrakk>) ` (UNIV) \<rparr>)"
 proof -
-  note ring_R = is_ring
+  note ring_R = ring_axioms
   interpret Z?: int_ring \<Z>
     using int_ring_of_integers .
   show ?thesis
@@ -813,7 +813,7 @@ proof -
     moreover have "a_kernel R R id = { \<zero> }"
       using a_kernel_def'[of R R id] by auto
     hence "a_kernel R R id = PIdl a"
-      using that zero_genideal cgenideal_eq_genideal[OF zero_closed] by simp
+      using that genideal_zero cgenideal_eq_genideal[OF zero_closed] by simp
     ultimately have "(\<lambda>X. the_elem (id ` X)) \<in> ring_iso (R Quot (PIdl a)) R"
       by simp
     hence "bij_betw (\<lambda>X. the_elem (id ` X)) (carrier (R Quot (PIdl a))) (carrier R)"
@@ -857,7 +857,7 @@ proof -
   moreover have "ring S"
     using assms unfolding int_mod_def by simp
   hence ring_hom: "ring_hom_ring R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)"
-    using exists_hom[of S] is_ring unfolding ring_hom_ring_def ring_hom_ring_axioms_def by simp
+    using exists_hom[of S] ring_axioms unfolding ring_hom_ring_def ring_hom_ring_axioms_def by simp
   ultimately have "R Quot (a_kernel R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)) \<simeq> S"
     using ring_hom_ring.FactRing_iso[of R S "\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>"] by simp
   moreover obtain n where n: "PIdl \<lbrakk> n \<rbrakk> = a_kernel R S (\<lambda>r. \<lbrakk> int_repr r \<rbrakk>\<^bsub>S\<^esub>)"
@@ -939,15 +939,17 @@ proof -
             ideal.quotient_is_ring cring.cgenideal_ideal[of \<Z> "int (char ?h_img)"]
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def by simp
     moreover have "ring_hom_ring \<Z> R ?h"
-      using int_ring.exists_hom[OF z_lemmas(7) is_ring] z_lemmas(1) is_ring
+      using int_ring.exists_hom[OF z_lemmas(7) ring_axioms] z_lemmas(1) ring_axioms
       unfolding ring_hom_ring_def ring_hom_ring_axioms_def by (simp add: integer_repr)
     hence "domain ?h_img"
-      using ring_hom_ring.img_is_domain[of \<Z> R ?h] is_domain by simp
+      using ring_hom_ring.img_is_domain[of \<Z> R ?h] domain_axioms by simp
     ultimately have "domain (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img)))"
       using ring_hom_ring.inj_on_domain[of "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img))" ?h_img h] inj by simp
     hence "prime (mult_of \<Z>) (int (char ?h_img))"
+(* FIXME *)
       using principal_domain.domain_iff_prime[of \<Z> "int (char ?h_img)"] A(2) char_eq
-            int_ring_of_integers z_lemmas(4) by auto
+            int_ring_of_integers z_lemmas(4) unfolding ring_prime_def
+      by (simp add: domain.prime_eq_prime_mult z_lemmas(3)) 
     hence "prime' \<bar> int_repr\<^bsub>\<Z>\<^esub> int (char R) \<bar>"
       using int_ring.prime_iff_prime'[OF int_ring_of_integers, of "int (char ?h_img)"] A(2) char_eq by simp
     thus "prime' (int (char R))"
