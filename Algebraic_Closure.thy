@@ -1,5 +1,5 @@
 theory Algebraic_Closure
-  imports Indexed_Polynomials Polynomial_Divisibility Pred_Zorn
+  imports Indexed_Polynomials Polynomial_Divisibility Pred_Zorn Finite_Extensions
 
 begin
 
@@ -37,21 +37,37 @@ lemma (in field) is_ring: "ring R"
   using ring_axioms .
 (* ========== *)
 
+lemma law_restrict_carrier: "carrier (law_restrict R) = carrier R"
+  by (simp add: law_restrict_def ring.defs)
+
+lemma law_restrict_one: "one (law_restrict R) = one R"
+  by (simp add: law_restrict_def ring.defs)
+
+lemma law_restrict_zero: "zero (law_restrict R) = zero R"
+  by (simp add: law_restrict_def ring.defs)
+
+lemma law_restrict_mult: "monoid.mult (law_restrict R) = (\<lambda>a \<in> carrier R. \<lambda>b \<in> carrier R. a \<otimes>\<^bsub>R\<^esub> b)"
+  by (simp add: law_restrict_def ring.defs)
+
+lemma law_restrict_add: "add (law_restrict R) = (\<lambda>a \<in> carrier R. \<lambda>b \<in> carrier R. a \<oplus>\<^bsub>R\<^esub> b)"
+  by (simp add: law_restrict_def ring.defs)
+
 lemma (in ring) law_restrict_is_ring: "ring (law_restrict R)"
   by (unfold_locales) (auto simp add: law_restrict_def Units_def ring.defs,
       simp_all add: a_assoc a_comm m_assoc l_distr r_distr a_lcomm)
 
 lemma (in field) law_restrict_is_field: "field (law_restrict R)"
 proof -
-  interpret L: ring "law_restrict R"
-    using law_restrict_is_ring .
-  have "inv a \<in> carrier R" and "a \<otimes> (inv a) = \<one>" if "a \<noteq> \<zero>" and "a \<in> carrier R" for a
-    using that field_Units by auto
+  have "comm_monoid_axioms (law_restrict R)"
+    using m_comm unfolding comm_monoid_axioms_def law_restrict_carrier law_restrict_mult by auto 
+  then interpret L: cring "law_restrict R"
+    using cring.intro law_restrict_is_ring comm_monoid.intro ring.is_monoid by auto
+  have "Units R = Units (law_restrict R)"
+    unfolding Units_def law_restrict_carrier law_restrict_mult law_restrict_one by auto
   thus ?thesis
-    by (unfold_locales) (auto simp add: law_restrict_def Units_def ring.defs,
-        simp_all add: m_comm integral_iff, blast)
+    using L.cring_fieldI unfolding field_Units law_restrict_carrier law_restrict_zero by simp
 qed
-
+    
 lemma law_restrict_iso_imp_eq:
   assumes "id \<in> ring_iso (law_restrict A) (law_restrict B)" and "ring A" and "ring B"
   shows "law_restrict A = law_restrict B"
@@ -427,9 +443,10 @@ qed
 subsection \<open>Existence of roots\<close>
 
 lemma polynomial_hom:
-  assumes "h \<in> ring_hom R S" and "field R" and "field S" and "p \<in> carrier (poly_ring R)"
-  shows "(map h p) \<in> carrier (poly_ring S)"
+  assumes "h \<in> ring_hom R S" and "field R" and "field S"
+  shows "p \<in> carrier (poly_ring R) \<Longrightarrow> (map h p) \<in> carrier (poly_ring S)"
 proof -
+  assume "p \<in> carrier (poly_ring R)"
   interpret ring_hom_ring R S h
     using ring_hom_ringI2[OF assms(2-3)[THEN field.is_ring] assms(1)] .
 
@@ -443,6 +460,23 @@ proof -
     using lc[OF that] that by (cases p) (auto)
   ultimately show ?thesis
     unfolding sym[OF univ_poly_carrier] polynomial_def by auto 
+qed
+
+lemma (in ring_hom_ring) subfield_polynomial_hom:
+  assumes "subfield K R" and "\<one>\<^bsub>S\<^esub> \<noteq> \<zero>\<^bsub>S\<^esub>"
+  shows "p \<in> carrier (K[X]\<^bsub>R\<^esub>) \<Longrightarrow> (map h p) \<in> carrier ((h ` K)[X]\<^bsub>S\<^esub>)"
+proof -
+  assume "p \<in> carrier (K[X]\<^bsub>R\<^esub>)"
+  hence "p \<in> carrier (poly_ring (R \<lparr> carrier := K \<rparr>))"
+    using R.univ_poly_consistent[OF subfieldE(1)[OF assms(1)]] by simp
+  moreover have "h \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (S \<lparr> carrier := h ` K \<rparr>)"
+    using hom_mult subfieldE(3)[OF assms(1)] unfolding ring_hom_def subset_iff by auto
+  moreover have "field (R \<lparr> carrier := K \<rparr>)" and "field (S \<lparr> carrier := (h ` K) \<rparr>)"
+    using R.subfield_iff(2)[OF assms(1)] S.subfield_iff(2)[OF img_is_subfield(2)[OF assms]] by simp+
+  ultimately have "(map h p) \<in> carrier (poly_ring (S \<lparr> carrier := h ` K \<rparr>))"
+    using polynomial_hom[of h "R \<lparr> carrier := K \<rparr>" "S \<lparr> carrier := h ` K \<rparr>"] by auto
+  thus ?thesis
+    using S.univ_poly_consistent[OF subfieldE(1)[OF img_is_subfield(2)[OF assms]]] by simp
 qed
 
 lemma (in field) exists_root:
@@ -474,8 +508,8 @@ proof (rule ccontr)
   proof (rule ccontr)
     assume "\<not> degree Q > 1" hence "degree Q = 1"
       using M.pirreducible_degree[OF M.carrier_is_subfield Q(1-2)] by simp
-    then obtain x where "x \<in> carrier M" and "(ring.eval M) Q x = \<zero>\<^bsub>M\<^esub>"
-      using M.degree_one_root[OF M.carrier_is_subfield Q(1)] by auto
+    then obtain x where "x \<in> carrier M" and "M.eval Q x = \<zero>\<^bsub>M\<^esub>"
+      using M.degree_one_root[OF M.carrier_is_subfield Q(1)] M.add.inv_closed by blast  
     hence "M.eval (\<sigma> P) x = \<zero>\<^bsub>M\<^esub>"
       using M.pdivides_imp_root_sharing[OF Q(1,3)] by simp
     with \<open>x \<in> carrier M\<close> show False
@@ -574,19 +608,183 @@ proof -
     using exists_root[of M] by auto
 qed
 
+
+subsection \<open>Existence of Algebraic Closure\<close>
+
+locale algebraic_closure = field L + subfield K L for L (structure) and K +
+  assumes algebraic_extension: "x \<in> carrier L \<Longrightarrow> (algebraic over K) x"
+    and roots_over_subfield: "\<lbrakk> P \<in> carrier (K[X]); degree P > 0 \<rbrakk> \<Longrightarrow> \<exists>x \<in> carrier L. eval P x = \<zero>\<^bsub>L\<^esub>"
+
+locale algebraically_closed = field L for L (structure) +
+  assumes roots_over_carrier: "\<lbrakk> P \<in> carrier (K[X]); degree P > 0 \<rbrakk> \<Longrightarrow> \<exists>x \<in> carrier L. eval P x = \<zero>\<^bsub>L\<^esub>"
+
+definition (in field) closure :: "(('a list) multiset \<Rightarrow> 'a) ring" ("\<Omega>")
+  where "closure = (SOME L. algebraic_closure L (indexed_const ` (carrier R)))"
+
+
+lemma algebraic_hom:
+  assumes "h \<in> ring_hom R S" and "field R" and "field S" and "subfield K R" and "x \<in> carrier R"
+  shows "((ring.algebraic R) over K) x \<Longrightarrow> ((ring.algebraic S) over (h ` K)) (h x)"
+proof -
+  interpret Hom: ring_hom_ring R S h
+    using ring_hom_ringI2[OF assms(2-3)[THEN field.is_ring] assms(1)] .
+  assume "(Hom.R.algebraic over K) x"
+  then obtain p where p: "p \<in> carrier (K[X]\<^bsub>R\<^esub>)" and "p \<noteq> []" and eval: "Hom.R.eval p x = \<zero>\<^bsub>R\<^esub>"
+    using domain.algebraicE[OF field.axioms(1) subfieldE(1), of R K x] assms(2,4-5) by auto
+  hence "(map h p) \<in> carrier ((h ` K)[X]\<^bsub>S\<^esub>)" and "(map h p) \<noteq> []"
+    using Hom.subfield_polynomial_hom[OF assms(4) one_not_zero[OF assms(3)]] by auto
+  moreover have "Hom.S.eval (map h p) (h x) = \<zero>\<^bsub>S\<^esub>"
+    using Hom.eval_hom[OF subfieldE(1)[OF assms(4)] assms(5) p] unfolding eval by simp
+  ultimately show ?thesis
+    using Hom.S.non_trivial_ker_imp_algebraic[of "h ` K" "h x"] unfolding a_kernel_def' by auto
+qed
+
+lemma (in field) exists_closure:
+  obtains L :: "(('a list multiset) \<Rightarrow> 'a) ring"
+  where "algebraic_closure L (indexed_const ` (carrier R))" and "indexed_const \<in> ring_hom R L"
+proof -
+  obtain L where "L \<in> extensions"
+    and roots: "\<And>P. \<lbrakk> P \<in> carrier (poly_ring R); degree P > 0 \<rbrakk> \<Longrightarrow>
+                      \<exists>x \<in> carrier L. (ring.eval L) (\<sigma> P) x = \<zero>\<^bsub>L\<^esub>"
+    using exists_extension_with_roots by auto
+
+  let ?K = "indexed_const ` (carrier R)"
+  let ?set_of_algs = "{ x \<in> carrier L. ((ring.algebraic L) over ?K) x }"
+  let ?M = "L \<lparr> carrier := ?set_of_algs \<rparr>"
+
+  from \<open>L \<in> extensions\<close>
+  have L: "field L" and  hom: "ring_hom_ring R L indexed_const"
+    using ring_hom_ringI2[OF ring_axioms field.is_ring] unfolding extensions_def by auto
+  have "subfield ?K L"
+    using ring_hom_ring.img_is_subfield(2)[OF hom carrier_is_subfield
+          domain.one_not_zero[OF field.axioms(1)[OF L]]] by auto
+  hence set_of_algs: "subfield ?set_of_algs L"
+    using field.subfield_of_algebraics[OF L, of ?K] by simp
+  have M: "field ?M"
+    using ring.subfield_iff(2)[OF field.is_ring[OF L] set_of_algs] by simp
+
+  interpret Id: ring_hom_ring ?M L id
+    using ring_hom_ringI[OF field.is_ring[OF M] field.is_ring[OF L]] by auto
+
+  have is_subfield: "subfield ?K ?M"
+  proof (intro ring.subfield_iff(1)[OF field.is_ring[OF M]])
+    have "L \<lparr> carrier := ?K \<rparr> = ?M \<lparr> carrier := ?K \<rparr>"
+      by simp
+    moreover from \<open>subfield ?K L\<close> have "field (L \<lparr> carrier := ?K \<rparr>)"
+      using ring.subfield_iff(2)[OF field.is_ring[OF L]] by simp
+    ultimately show "field (?M \<lparr> carrier := ?K \<rparr>)"
+      by simp
+  next
+    show "?K \<subseteq> carrier ?M"
+    proof
+      fix x :: "('a list multiset) \<Rightarrow> 'a"
+      assume "x \<in> ?K"
+      hence "x \<in> carrier L"
+        using ring_hom_memE(1)[OF ring_hom_ring.homh[OF hom]] by auto
+      moreover from \<open>subfield ?K L\<close> and \<open>x \<in> ?K\<close> have "(Id.S.algebraic over ?K) x"
+        using domain.algebraic_self[OF field.axioms(1)[OF L] subfieldE(1)] by auto
+      ultimately show "x \<in> carrier ?M"
+        by auto
+    qed
+  qed
+
+  have "algebraic_closure ?M ?K"
+  proof (intro algebraic_closure.intro[OF M is_subfield])
+    have "(Id.R.algebraic over ?K) x" if "x \<in> carrier ?M" for x
+      using that Id.S.algebraic_consistent[OF subfieldE(1)[OF set_of_algs]] by simp
+    moreover have "\<exists>x \<in> carrier ?M. Id.R.eval P x = \<zero>\<^bsub>?M\<^esub>"
+      if "P \<in> carrier (?K[X]\<^bsub>?M\<^esub>)" and "degree P > 0" for P
+    proof -
+      from \<open>P \<in> carrier (?K[X]\<^bsub>?M\<^esub>)\<close> have "P \<in> carrier (?K[X]\<^bsub>L\<^esub>)"
+        unfolding Id.S.univ_poly_consistent[OF subfieldE(1)[OF set_of_algs]] .
+      hence "set P \<subseteq> ?K"
+        unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+      hence "\<exists>Q. set Q \<subseteq> carrier R \<and> P = \<sigma> Q"
+      proof (induct P, simp add: \<sigma>_def)
+        case (Cons p P)
+        then obtain q Q where "q \<in> carrier R" "set Q \<subseteq> carrier R" and "\<sigma> Q = P""indexed_const q = p"
+          unfolding \<sigma>_def by auto
+        hence "set (q # Q) \<subseteq> carrier R" and "\<sigma> (q # Q) = (p # P)"
+          unfolding \<sigma>_def by auto
+        thus ?case
+          by metis
+      qed
+      then obtain Q where "set Q \<subseteq> carrier R" and "\<sigma> Q = P"
+        by auto
+      moreover have "lead_coeff Q \<noteq> \<zero>"
+      proof (rule ccontr)
+        assume "\<not> lead_coeff Q \<noteq> \<zero>" then have "lead_coeff Q = \<zero>"
+          by simp
+        with \<open>\<sigma> Q = P\<close> and \<open>degree P > 0\<close> have "lead_coeff P = indexed_const \<zero>"
+          unfolding \<sigma>_def by (metis diff_0_eq_0 length_map less_irrefl_nat list.map_sel(1) list.size(3))
+        hence "lead_coeff P = \<zero>\<^bsub>L\<^esub>"
+          using ring_hom_zero[OF ring_hom_ring.homh ring_hom_ring.axioms(1-2)] hom by auto
+        with \<open>degree P > 0\<close> have "\<not> P \<in> carrier (?K[X]\<^bsub>?M\<^esub>)"
+          unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+        with \<open>P \<in> carrier (?K[X]\<^bsub>?M\<^esub>)\<close> show False
+          by simp
+      qed
+      ultimately have "Q \<in> carrier (poly_ring R)"
+        unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+      moreover from \<open>degree P > 0\<close> and \<open>\<sigma> Q = P\<close> have "degree Q > 0"
+        unfolding \<sigma>_def by auto
+      ultimately obtain x where "x \<in> carrier L" and "Id.S.eval P x = \<zero>\<^bsub>L\<^esub>"
+        using roots[of Q] unfolding \<open>\<sigma> Q = P\<close> by auto
+      hence "Id.R.eval P x = \<zero>\<^bsub>?M\<^esub>"
+        unfolding Id.S.eval_consistent[OF subfieldE(1)[OF set_of_algs]] by simp
+      moreover from \<open>degree P > 0\<close> have "P \<noteq> []"
+        by auto
+      with \<open>P \<in> carrier (?K[X]\<^bsub>L\<^esub>)\<close> and \<open>Id.S.eval P x = \<zero>\<^bsub>L\<^esub>\<close> have "(Id.S.algebraic over ?K) x"
+        using Id.S.non_trivial_ker_imp_algebraic[of ?K x] unfolding a_kernel_def' by auto
+      with \<open>x \<in> carrier L\<close> have "x \<in> carrier ?M"
+        by auto
+      ultimately show ?thesis
+        by auto
+    qed
+    ultimately show "algebraic_closure_axioms ?M ?K"
+      unfolding algebraic_closure_axioms_def by auto
+  qed
+  moreover have "indexed_const \<in> ring_hom R ?M"
+    using ring_hom_ring.homh[OF hom] subfieldE(3)[OF is_subfield]
+    unfolding subset_iff ring_hom_def by auto
+  ultimately show thesis
+    using that by auto
+qed
+      
+
+
+      
+(*
+  have "algebraic_closure L (indexed_const ` (carrier R))"
+  proof (intro algebraic_closure.intro[OF field])
+    from \<open>L \<in> extensions\<close> 
+    interpret Hom: ring_hom_ring R L indexed_const
+      using ring_hom_ringI2[OF ring_axioms field.is_ring[OF field]] unfolding extensions_def by simp
+    show "subfield (indexed_const ` (carrier R)) L"
+      using Hom.img_is_subfield(2)[OF carrier_is_subfield
+            domain.one_not_zero[OF field.axioms(1)[OF field]]] .
+  next
+    show 
+  qed
+*)
+
+(*
+  thus ?thesis
+    by blast
+*)
+qed
+
+
+
+(*
+definition (in field) closure :: "('a multiset \<Rightarrow> 'a) ring"
+  where "closure = (SOME L \<comment> \<open>such that\<close>.
+           \<comment> \<open>i\<close>   (field L) \<and>
+           \<comment> \<open>ii\<close>  (indexed_const \<in> ring_hom R L) \<and>
+           \<comment> \<open>iii\<close> (\<forall>x \<in> carrier L. (ring.algebraic L) (indexed_const ` (carrier R)) x) \<and>
+                    (\<forall>P \<in> carrier (poly_ring R).
+    degree P > 0 \<longrightarrow> (\<exists>x \<in> carrier L. (ring.eval L) (\<sigma> P) x = \<zero>\<^bsub>L\<^esub>)))"
+*)
+
 end
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
