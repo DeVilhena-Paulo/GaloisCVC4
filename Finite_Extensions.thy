@@ -31,6 +31,15 @@ fun (in ring) finite_extension :: "'a set \<Rightarrow> 'a list \<Rightarrow> 'a
 
 subsection \<open>Basic Properties\<close>
 
+lemma (in ring) transcendental_consistent:
+  assumes "subring K R" shows "transcendental = ring.transcendental (R \<lparr> carrier := K \<rparr>)"
+  unfolding transcendental_def ring.transcendental_def[OF subring_is_ring[OF assms]]
+            univ_poly_consistent[OF assms] eval_consistent[OF assms] ..
+
+lemma (in ring) algebraic_consistent:
+  assumes "subring K R" shows "algebraic = ring.algebraic (R \<lparr> carrier := K \<rparr>)"
+  unfolding over_def transcendental_consistent[OF assms] ..
+
 lemma (in ring) eval_transcendental:
   assumes "(transcendental over K) x" "p \<in> carrier (K[X])" "eval p x = \<zero>" shows "p = []"
 proof -
