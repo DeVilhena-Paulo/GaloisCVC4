@@ -362,8 +362,6 @@ proof -
   thus "inj_on h (carrier R)"
     using trivial_ker_imp_inj by blast
 qed
-lemma "field R \<Longrightarrow> cring R"
-  using fieldE(1) by blast
 
 lemma non_trivial_field_hom_is_inj:
   assumes "h \<in> ring_hom R S" and "field R" and "field S" shows "inj_on h (carrier R)"

@@ -946,10 +946,9 @@ proof -
     ultimately have "domain (\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img)))"
       using ring_hom_ring.inj_on_domain[of "\<Z> Quot (PIdl\<^bsub>\<Z>\<^esub> int (char ?h_img))" ?h_img h] inj by simp
     hence "prime (mult_of \<Z>) (int (char ?h_img))"
-(* FIXME *)
-      using principal_domain.domain_iff_prime[of \<Z> "int (char ?h_img)"] A(2) char_eq
-            int_ring_of_integers z_lemmas(4) unfolding ring_prime_def
-      by (simp add: domain.prime_eq_prime_mult z_lemmas(3)) 
+      using principal_domain.domain_iff_prime[OF z_lemmas(4)] A(2)
+            domain.ring_primeE(2)[OF z_lemmas(3)] 
+      unfolding sym[OF char_eq] by simp
     hence "prime' \<bar> int_repr\<^bsub>\<Z>\<^esub> int (char R) \<bar>"
       using int_ring.prime_iff_prime'[OF int_ring_of_integers, of "int (char ?h_img)"] A(2) char_eq by simp
     thus "prime' (int (char R))"
