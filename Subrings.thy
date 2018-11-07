@@ -464,5 +464,28 @@ lemma (in ring_hom_ring) inj_on_subgroup_iff_trivial_ker:
   shows "inj_on h K \<longleftrightarrow> a_kernel (R \<lparr> carrier := K \<rparr>) S h = { \<zero> }"
   using ring_hom_ring.inj_iff_trivial_ker[OF induced_ring_hom[OF assms]] by simp
 
+lemma (in ring_hom_ring) inv_ring_hom:
+  assumes "inj_on h K" and "subring K R"
+  shows "ring_hom_ring (S \<lparr> carrier := h ` K \<rparr>) R (inv_into K h)"
+proof (intro ring_hom_ringI[OF _ R.ring_axioms], auto)
+  show "ring (S \<lparr> carrier := h ` K \<rparr>)"
+    using subring_is_ring[OF img_is_subring[OF assms(2)]] .
+next
+  show "inv_into K h \<one>\<^bsub>S\<^esub> = \<one>\<^bsub>R\<^esub>"
+    using assms(1) subringE(3)[OF assms(2)] hom_one by (simp add: inv_into_f_eq)
+next
+  fix k1 k2
+  assume k1: "k1 \<in> K" and k2: "k2 \<in> K"
+  with \<open>k1 \<in> K\<close> show "inv_into K h (h k1) \<in> carrier R"
+    using assms(1) subringE(1)[OF assms(2)] by (simp add: subset_iff)
+
+  from \<open>k1 \<in> K\<close> and \<open>k2 \<in> K\<close>
+  have "h k1 \<oplus>\<^bsub>S\<^esub> h k2 = h (k1 \<oplus>\<^bsub>R\<^esub> k2)" and "k1 \<oplus>\<^bsub>R\<^esub> k2 \<in> K"
+   and "h k1 \<otimes>\<^bsub>S\<^esub> h k2 = h (k1 \<otimes>\<^bsub>R\<^esub> k2)" and "k1 \<otimes>\<^bsub>R\<^esub> k2 \<in> K"
+    using subringE(1,6,7)[OF assms(2)] by (simp add: subset_iff)+
+  thus "inv_into K h (h k1 \<oplus>\<^bsub>S\<^esub> h k2) = inv_into K h (h k1) \<oplus>\<^bsub>R\<^esub> inv_into K h (h k2)"
+   and "inv_into K h (h k1 \<otimes>\<^bsub>S\<^esub> h k2) = inv_into K h (h k1) \<otimes>\<^bsub>R\<^esub> inv_into K h (h k2)"
+    using assms(1) k1 k2 by simp+
+qed
 
 end
