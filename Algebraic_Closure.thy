@@ -1,3 +1,9 @@
+(*  Title:      HOL/Algebra/Algebraic_Closure.thy
+    Author:     Paulo Emílio de Vilhena
+
+With contributions by Martin Baillon.
+*)
+
 theory Algebraic_Closure
   imports Indexed_Polynomials Polynomial_Divisibility Pred_Zorn Finite_Extensions
 
@@ -616,10 +622,12 @@ locale algebraic_closure = field L + subfield K L for L (structure) and K +
     and roots_over_subfield: "\<lbrakk> P \<in> carrier (K[X]); degree P > 0 \<rbrakk> \<Longrightarrow> \<exists>x \<in> carrier L. eval P x = \<zero>\<^bsub>L\<^esub>"
 
 locale algebraically_closed = field L for L (structure) +
-  assumes roots_over_carrier: "\<lbrakk> P \<in> carrier (K[X]); degree P > 0 \<rbrakk> \<Longrightarrow> \<exists>x \<in> carrier L. eval P x = \<zero>\<^bsub>L\<^esub>"
+  assumes roots_over_carrier: "\<lbrakk> P \<in> carrier (poly_ring L); degree P > 0 \<rbrakk> \<Longrightarrow> \<exists>x \<in> carrier L. eval P x = \<zero>\<^bsub>L\<^esub>"
 
 definition (in field) closure :: "(('a list) multiset \<Rightarrow> 'a) ring" ("\<Omega>")
-  where "closure = (SOME L. algebraic_closure L (indexed_const ` (carrier R)))"
+  where "closure = (SOME L \<comment> \<open>such that\<close>.
+           \<comment> \<open>i\<close>  algebraic_closure L (indexed_const ` (carrier R)) \<and> 
+           \<comment> \<open>ii\<close> indexed_const \<in> ring_hom R L)"
 
 
 lemma algebraic_hom:
@@ -750,9 +758,23 @@ proof -
   ultimately show thesis
     using that by auto
 qed
-      
+
+lemma (in field) closureE:
+  shows "algebraic_closure \<Omega> (indexed_const ` (carrier R))" and "indexed_const \<in> ring_hom R \<Omega>"
+  using exists_closure unfolding closure_def
+  by (metis (mono_tags, lifting) someI2)+
 
 
+sublocale algebraic_closure \<subseteq> algebraically_closed
+proof
+  fix P assume "P \<in> carrier (poly_ring L)" and "degree P > 0"
+  hence "set P \<subseteq> carrier L"
+    by (simp add: polynomial_incl univ_poly_carrier)
+  hence "subfield (finite_extension K P) L" 
+    using algebraic_extension finite_extension_is_subfield[OF subfield_axioms, of P] by auto
+
+
+qed
       
 (*
   have "algebraic_closure L (indexed_const ` (carrier R))"
