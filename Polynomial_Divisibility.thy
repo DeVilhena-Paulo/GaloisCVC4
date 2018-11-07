@@ -789,49 +789,13 @@ proof -
       "\<And>q. \<lbrakk> q \<in> carrier (K[X]); lead_coeff q = \<one>; a_kernel (K[X]) R h = PIdl\<^bsub>K[X]\<^esub> q \<rbrakk> \<Longrightarrow> q = p"
     using exists_unique_gen[OF assms(1) _ assms(3)] by metis
 
-  have "pprime K p"
-  proof (rule pprimeI[OF assms(1) p(1)])
-    show "p \<noteq> []"
-      using UP.genideal_zero UP.cgenideal_eq_genideal[OF UP.zero_closed] assms(3) p(3)
+  have "p \<in> carrier (K[X]) - { [] }"
+      using UP.genideal_zero UP.cgenideal_eq_genideal[OF UP.zero_closed] assms(3) p(1,3)
       by (auto simp add: univ_poly_zero)
-  next
-    show "p \<notin> Units (K [X])"
-      using UP.ideal_eq_carrier_iff[OF p(1)] assms(4) p(3) by auto
-  next
-    note ring_hom_props = ring_hom_memE[OF ring_hom_ring.homh[OF assms(2)]]
-
-    fix q r
-    assume q: "q \<in> carrier (K[X])" and r: "r \<in> carrier (K[X])" and pdvd: "p pdivides (q \<otimes>\<^bsub>K [X]\<^esub> r)"
-    obtain s where s: "s \<in> carrier (K[X])" "q \<otimes>\<^bsub>K [X]\<^esub> r = p \<otimes>\<^bsub>K [X]\<^esub> s"
-      using pdivides_iff[OF assms(1)] p(1) UP.m_closed[OF q r] pdvd
-      unfolding univ_poly_carrier[of R K] by auto
-    hence "h (q \<otimes>\<^bsub>K [X]\<^esub> r) = h (p \<otimes>\<^bsub>K [X]\<^esub> s)" by simp
-    hence "h q \<otimes> h r = h p \<otimes> h s"
-      using ring_hom_props(2) q r p(1) s(1) by auto
-    moreover have "p \<in> a_kernel (K[X]) R h"
-      by (simp add: UP.cgenideal_self p(1) p(3))
-    hence "h p = \<zero>"
-      unfolding a_kernel_def' by simp
-    ultimately have "h q \<otimes> h r = \<zero>"
-      using ring_hom_props(1)[OF s(1)] by simp
-    hence "h q = \<zero> \<or> h r = \<zero>"
-      using integral ring_hom_props(1) q r by auto
-
-    moreover have "\<And>a. \<lbrakk> a \<in> carrier (K[X]); h a = \<zero> \<rbrakk> \<Longrightarrow> p pdivides a"
-    proof -
-      fix a assume a: "a \<in> carrier (K[X])" "h a = \<zero>"
-      hence "a \<in> a_kernel (K[X]) R h"
-        unfolding a_kernel_def' by simp
-      hence "p divides\<^bsub>K [X]\<^esub> a"
-        using UP.to_contain_is_to_divide[OF p(1) a(1)] p(1) a(1) p(3)
-              UP.cgenideal_ideal UP.cgenideal_minimal by blast
-      thus "p pdivides a"
-        using pdivides_iff_shell[OF assms(1) p(1) a(1)] by simp
-    qed
-
-    ultimately show "p pdivides q \<or> p pdivides r"
-      using q r by auto
-  qed
+  hence "pprime K p"
+    using ring_hom_ring.primeideal_vimage[OF assms(2) UP.is_cring zeroprimeideal]
+          UP.primeideal_iff_prime[of p]
+    unfolding univ_poly_zero sym[OF p(3)] a_kernel_def' by simp
   hence "pirreducible K p"
     using pprime_iff_pirreducible[OF assms(1) p(1)] by simp
   thus ?thesis
