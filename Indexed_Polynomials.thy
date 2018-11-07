@@ -1,3 +1,7 @@
+(*  Title:      HOL/Algebra/Indexed_Polynomials.thy
+    Author:     Paulo Emílio de Vilhena
+*)
+
 theory Indexed_Polynomials
   imports Weak_Morphisms "HOL-Library.Multiset" Polynomial_Divisibility
     
