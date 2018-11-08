@@ -812,6 +812,11 @@ next
   qed
 qed
 
+lemma non_trivial_combine_imp_dependent:
+  assumes "set Ks \<subseteq> K" and "combine Ks Us = \<zero>" and "\<not> set (take (length Us) Ks) \<subseteq> { \<zero> }"
+  shows "dependent K Us"
+  using independent_imp_trivial_combine[OF _ assms(1-2)] assms(3) by blast  
+
 lemma trivial_combine_imp_independent:
   assumes "set Us \<subseteq> carrier R"
     and "\<And>Ks. \<lbrakk> set Ks \<subseteq> K; combine Ks Us = \<zero> \<rbrakk> \<Longrightarrow> set (take (length Us) Ks) \<subseteq> { \<zero> }"
@@ -1472,6 +1477,41 @@ end (* of fixed K context. *)
 
 end (* of ring_hom_ring context. *)
 
+lemma (in ring_hom_ring)
+  assumes "subfield K R" and "set Us \<subseteq> carrier R" and "\<one>\<^bsub>S\<^esub> \<noteq> \<zero>\<^bsub>S\<^esub>"
+    and "independent (h ` K) (map h Us)" shows "R.independent K Us"
+proof (rule ccontr)
+  assume "R.dependent K Us"
+  then obtain Ks
+    where "length Ks = length Us" and "R.combine Ks Us = \<zero>" and "set Ks \<subseteq> K" and "set Ks \<noteq> { \<zero> }"
+    using R.dependent_imp_non_trivial_combine[OF assms(1-2)] by metis
+  hence "combine (map h Ks) (map h Us) = \<zero>\<^bsub>S\<^esub>"
+    using combine_hom[OF _ assms(2), of Ks] subfieldE(3)[OF assms(1)] by simp
+  moreover from \<open>set Ks \<subseteq> K\<close> have "set (map h Ks) \<subseteq> h ` K"
+    by (induction Ks) (auto)
+  moreover have "\<not> set (map h Ks) \<subseteq> { h \<zero> }"
+  proof (rule ccontr)
+    assume "\<not> \<not> set (map h Ks) \<subseteq> { h \<zero> }" then have "set (map h Ks) \<subseteq> { h \<zero> }"
+      by simp
+    moreover from \<open>R.dependent K Us\<close> and \<open>length Ks = length Us\<close> have "Ks \<noteq> []"
+      by auto
+    ultimately have "set (map h Ks) = { h \<zero> }"
+      using subset_singletonD by fastforce
+    with \<open>set Ks \<subseteq> K\<close> have "set Ks = { \<zero> }"
+      using inj_onD[OF _ _ _ subringE(2)[OF subfieldE(1)[OF assms(1)]], of h]
+            img_is_subfield(1)[OF assms(1,3)] subset_singletonD
+      by (induction Ks) (auto simp add: subset_singletonD, fastforce)
+    with \<open>set Ks \<noteq> { \<zero> }\<close> show False
+      by simp
+  qed
+  with \<open>length Ks = length Us\<close> have "\<not> set (take (length (map h Us)) (map h Ks)) \<subseteq> { h \<zero> }"
+    by auto
+  ultimately have "dependent (h ` K) (map h Us)"
+    using non_trivial_combine_imp_dependent[OF img_is_subfield(2)[OF assms(1,3)], of "map h Ks"] by simp
+  with \<open>independent (h ` K) (map h Us)\<close> show False
+    by simp
+qed
+
 
 subsection \<open>Finite Dimension\<close>
 
@@ -1623,6 +1663,5 @@ lemma (in ring) telescopic_base_dim:
         finite_dimensionE[OF assms(2,4)]]
         dimI[OF assms(1)] finite_dimensionI
   by auto
-
 
 end
