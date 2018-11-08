@@ -83,7 +83,7 @@ proof
   hence "degree p = 0"
     using poly_mult_degree_eq[OF carrier_is_subring p q] unfolding pq by simp
   hence "length p = 1"
-    using not_nil by (metis One_nat_def Suc_pred length_greater_0_conv)
+    using not_nil unfolding degree_def by (metis One_nat_def Suc_pred length_greater_0_conv)
   then obtain k where k: "p = [ k ]"
     by (metis One_nat_def length_0_conv length_Suc_conv)
   hence "k \<in> carrier R - { \<zero> }"
@@ -203,7 +203,7 @@ qed
 
 corollary (in domain) rupture_surj_norm_is_hom:
   assumes "subring K R" and "p \<in> carrier (K[X])"
-  shows "((rupture_surj K p) \<circ> (\<lambda>a. normalize [ a ])) \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (Rupt K p)"
+  shows "((rupture_surj K p) \<circ> poly_of_const) \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (Rupt K p)"
   using ring_hom_trans[OF canonical_embedding_is_hom[OF assms(1)] rupture_surj_hom(1)[OF assms]] .
 
 lemma (in domain) norm_map_in_poly_ring_carrier:
@@ -236,12 +236,13 @@ qed
 
 lemma (in domain) map_norm_in_poly_ring_carrier:
   assumes "subring K R" and "p \<in> carrier (K[X])"
-  shows "map (\<lambda>a. normalize [ a ]) p \<in> carrier (poly_ring (K[X]))"
+  shows "map poly_of_const p \<in> carrier (poly_ring (K[X]))"
   using domain.map_in_poly_ring_carrier[OF subring_is_domain[OF assms(1)]]
 proof -
-  have "\<And>a. a \<in> K \<Longrightarrow> normalize [ a ] \<in> carrier (K[X])"
-   and "\<And>a. a \<noteq> \<zero> \<Longrightarrow> normalize [ a ] \<noteq> []"
-    using ring_hom_memE(1)[OF canonical_embedding_is_hom[OF assms(1)]] by auto
+  have "\<And>a. a \<in> K \<Longrightarrow> poly_of_const a \<in> carrier (K[X])"
+   and "\<And>a. a \<noteq> \<zero> \<Longrightarrow> poly_of_const a \<noteq> []"
+    using ring_hom_memE(1)[OF canonical_embedding_is_hom[OF assms(1)]]
+    by (auto simp: poly_of_const_def)
   thus ?thesis
     using domain.map_in_poly_ring_carrier[OF subring_is_domain[OF assms(1)]] assms(2)
     unfolding univ_poly_consistent[OF assms(1)] by simp
@@ -249,9 +250,8 @@ qed
 
 lemma (in domain) polynomial_rupture:
   assumes "subring K R" and "p \<in> carrier (K[X])"
-  shows "(ring.eval (Rupt K p)) (map ((rupture_surj K p) \<circ> (\<lambda>a. normalize [ a ])) p) (rupture_surj K p X) = \<zero>\<^bsub>Rupt K p\<^esub>"
+  shows "(ring.eval (Rupt K p)) (map ((rupture_surj K p) \<circ> poly_of_const) p) (rupture_surj K p X) = \<zero>\<^bsub>Rupt K p\<^esub>"
 proof -
-  let ?norm = "\<lambda>a. normalize [ a ]"
   let ?surj = "rupture_surj K p"
 
   interpret UP: domain "K[X]"
@@ -259,7 +259,7 @@ proof -
   interpret Hom: ring_hom_ring "K[X]" "Rupt K p" ?surj
     using rupture_surj_hom(2)[OF assms] .
 
-  have "(Hom.S.eval) (map (?surj \<circ> ?norm) p) (?surj X) = ?surj ((UP.eval) (map ?norm p) X)"
+  have "(Hom.S.eval) (map (?surj \<circ> poly_of_const) p) (?surj X) = ?surj ((UP.eval) (map poly_of_const p) X)"
     using Hom.eval_hom[OF UP.carrier_is_subring var_closed(1)[OF assms(1)]
           map_norm_in_poly_ring_carrier[OF assms]] by simp
   also have " ... = ?surj p"
@@ -867,6 +867,12 @@ proof -
   show "inv (lead_coeff p) \<otimes> (const_term p) \<in> K"
     using p subringE(6)[OF subfieldE(1)[OF assms(1)]] unfolding ct by auto
 qed
+
+
+subsection \<open>Dimension\<close>
+
+
+
 (*
 
 subsection \<open>Roots and Multiplicity\<close>

@@ -724,7 +724,8 @@ proof -
         assume "\<not> lead_coeff Q \<noteq> \<zero>" then have "lead_coeff Q = \<zero>"
           by simp
         with \<open>\<sigma> Q = P\<close> and \<open>degree P > 0\<close> have "lead_coeff P = indexed_const \<zero>"
-          unfolding \<sigma>_def by (metis diff_0_eq_0 length_map less_irrefl_nat list.map_sel(1) list.size(3))
+          unfolding \<sigma>_def degree_def lead_coeff_def
+          by (metis diff_0_eq_0 length_map less_irrefl_nat list.map_sel(1) list.size(3))
         hence "lead_coeff P = \<zero>\<^bsub>L\<^esub>"
           using ring_hom_zero[OF ring_hom_ring.homh ring_hom_ring.axioms(1-2)] hom by auto
         with \<open>degree P > 0\<close> have "\<not> P \<in> carrier (?K[X]\<^bsub>?M\<^esub>)"
@@ -768,45 +769,16 @@ lemma (in field) closureE:
 sublocale algebraic_closure \<subseteq> algebraically_closed
 proof
   fix P assume "P \<in> carrier (poly_ring L)" and "degree P > 0"
-  hence "set P \<subseteq> carrier L"
+  define A where "A = finite_extension K P"
+
+  from \<open>P \<in> carrier (poly_ring L)\<close> have "set P \<subseteq> carrier L"
     by (simp add: polynomial_incl univ_poly_carrier)
-  hence "subfield (finite_extension K P) L" 
-    using algebraic_extension finite_extension_is_subfield[OF subfield_axioms, of P] by auto
-
-
+  hence "subfield A L" 
+    using algebraic_extension finite_extension_is_subfield[OF subfield_axioms, of P]
+    unfolding sym[OF A_def] by auto
+  thus "\<exists>x \<in> carrier L. eval P x = \<zero>"
+    sorry
 qed
-      
-(*
-  have "algebraic_closure L (indexed_const ` (carrier R))"
-  proof (intro algebraic_closure.intro[OF field])
-    from \<open>L \<in> extensions\<close> 
-    interpret Hom: ring_hom_ring R L indexed_const
-      using ring_hom_ringI2[OF ring_axioms field.is_ring[OF field]] unfolding extensions_def by simp
-    show "subfield (indexed_const ` (carrier R)) L"
-      using Hom.img_is_subfield(2)[OF carrier_is_subfield
-            domain.one_not_zero[OF field.axioms(1)[OF field]]] .
-  next
-    show 
-  qed
-*)
-
-(*
-  thus ?thesis
-    by blast
-*)
-qed
-
-
-
-(*
-definition (in field) closure :: "('a multiset \<Rightarrow> 'a) ring"
-  where "closure = (SOME L \<comment> \<open>such that\<close>.
-           \<comment> \<open>i\<close>   (field L) \<and>
-           \<comment> \<open>ii\<close>  (indexed_const \<in> ring_hom R L) \<and>
-           \<comment> \<open>iii\<close> (\<forall>x \<in> carrier L. (ring.algebraic L) (indexed_const ` (carrier R)) x) \<and>
-                    (\<forall>P \<in> carrier (poly_ring R).
-    degree P > 0 \<longrightarrow> (\<exists>x \<in> carrier L. (ring.eval L) (\<sigma> P) x = \<zero>\<^bsub>L\<^esub>)))"
-*)
 
 end
   

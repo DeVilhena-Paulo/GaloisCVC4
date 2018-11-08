@@ -11,10 +11,10 @@ section \<open>Polynomials\<close>
 
 subsection \<open>Definitions\<close>
 
-abbreviation lead_coeff :: "'a list \<Rightarrow> 'a"
+definition lead_coeff :: "'a list \<Rightarrow> 'a"
   where "lead_coeff \<equiv> hd"
 
-abbreviation degree :: "'a list \<Rightarrow> nat"
+definition degree :: "'a list \<Rightarrow> nat"
   where "degree p \<equiv> length p - 1"
 
 definition polynomial :: "_ \<Rightarrow> 'a set \<Rightarrow> 'a list \<Rightarrow> bool" ("polynomial\<index>")
@@ -60,12 +60,17 @@ fun (in ring) dense_repr :: "'a list \<Rightarrow> ('a \<times> nat) list"
 fun (in ring) of_dense :: "('a \<times> nat) list \<Rightarrow> 'a list"
   where "of_dense dl = foldr (\<lambda>(a, n) l. poly_add (monom a n) l) dl []"
 
+definition (in ring) poly_of_const :: "'a \<Rightarrow> 'a list"
+  where "poly_of_const = (\<lambda>k. normalize [ k ])"
 
 
 subsection \<open>Basic Properties\<close>
 
 context ring
 begin
+
+declare lead_coeff_def [simp]
+declare degree_def [simp]
 
 lemma polynomialI [intro]: "\<lbrakk> set p \<subseteq> K; lead_coeff p \<noteq> \<zero> \<rbrakk> \<Longrightarrow> polynomial K p"
   unfolding polynomial_def by auto
@@ -334,9 +339,7 @@ proof (induction p)
 next
   case (Cons a p)
   have "coeff (normalize p) (length p) = \<zero>"
-    using normalize_length_le[of p] coeff_degree[of "normalize p"]
-    by (metis One_nat_def coeff.simps(1) diff_less length_0_conv
-        less_imp_diff_less nat_neq_iff neq0_conv not_le zero_less_Suc)
+    using normalize_length_le[of p] coeff_degree[of "normalize p"] coeff_length by blast
   then show ?case
     using Cons by (cases "a = \<zero>") (auto)
 qed
@@ -439,6 +442,7 @@ proof -
       have p1: "p1 \<noteq> []" and p2: "?p2 \<noteq> []"
         using A(3) by auto
       hence "lead_coeff (map2 (\<oplus>) p1 ?p2) = lead_coeff p1 \<oplus> lead_coeff ?p2"
+        unfolding lead_coeff_def
         by (smt case_prod_conv list.exhaust_sel list.map(2) list.sel(1) zip_Cons_Cons)
       moreover have "lead_coeff p1 \<in> carrier R"
         using p1 A(1) lead_coeff_in_carrier[OF K, of "hd p1" "tl p1"] by auto
@@ -458,8 +462,7 @@ qed
 lemma poly_add_degree_eq:
   assumes "polynomial K p1" "polynomial K p2" and "degree p1 \<noteq> degree p2"
   shows "degree (poly_add p1 p2) = max (degree p1) (degree p2)"
-  using poly_add_length_eq[of p1 p2] assms
-  by (smt diff_le_mono le_cases max.absorb1 max_def)
+  using poly_add_length_eq[OF assms(1-2)] assms(3) by simp
 
 end (* of fixed K context. *)
 (* ========================================================================== *)
@@ -479,7 +482,7 @@ proof -
 qed
 
 lemma poly_add_degree: "degree (poly_add p1 p2) \<le> max (degree p1) (degree p2)"
-  using poly_add_length_le by (meson diff_le_mono le_max_iff_disj)
+  using poly_add_length_le by (metis degree_def diff_le_mono le_max_iff_disj)
 
 lemma poly_add_coeff_aux:
   assumes "length p1 \<ge> length p2"
@@ -1211,7 +1214,8 @@ lemma poly_mult_lead_coeff_aux:
   shows "(coeff (poly_mult p1 p2)) (degree p1 + degree p2) = (lead_coeff p1) \<otimes> (lead_coeff p2)"
 proof -
   have p1: "lead_coeff p1 \<in> carrier R - { \<zero> }" and p2: "lead_coeff p2 \<in> carrier R - { \<zero> }"
-    using assms(2-5) lead_coeff_in_carrier[OF assms(1)] by (metis list.collapse)+
+    using assms(2-5) lead_coeff_in_carrier[OF assms(1)] unfolding lead_coeff_def
+    by (metis list.collapse)+
 
   have "(coeff (poly_mult p1 p2)) (degree p1 + degree p2) = 
         (\<Oplus> k \<in> {..((degree p1) + (degree p2))}.
@@ -1596,7 +1600,8 @@ proof -
       moreover have "lead_coeff (map (\<lambda>a. \<ominus> a) p) = \<ominus> (lead_coeff p)"
         using not_nil by (simp add: hd_map)
       ultimately have "lead_coeff (map (\<lambda>a. \<ominus> a) p) \<noteq> \<zero>"
-        using hd_in_set local.minus_zero not_nil set_p subringE(1)[OF K] by force
+        using hd_in_set local.minus_zero not_nil set_p subringE(1)[OF K]
+        unfolding lead_coeff_def by force
       moreover have "set (map (\<lambda>a. \<ominus> a) p) \<subseteq> K"
         using set_p subringE(5)[OF K] by (induct p) (auto)
       ultimately show ?thesis
@@ -1652,7 +1657,7 @@ proof (induct "length p" arbitrary: p rule: less_induct)
     proof (cases "length b > length p")
       assume "length b > length p"
       hence "p = [] \<or> degree p < degree b"
-        by (meson diff_less_mono length_0_conv less_one not_le) 
+        unfolding degree_def by (meson diff_less_mono length_0_conv less_one not_le) 
       hence "?long_division p [] p"
         using poly_mult_zero(2)[OF polynomial_in_carrier[OF K assms(2)]]
               poly_add_zero(2)[OF K less(2)] zero_is_polynomial less(2)
@@ -1835,7 +1840,7 @@ proof -
   interpret UP: domain "K[X]"
     using univ_poly_is_domain[OF subfieldE(1)[OF assms]] field_def by blast
   show ?thesis
-    using subfield_long_division_theorem_shell[OF assms]
+    using subfield_long_division_theorem_shell[OF assms] unfolding degree_def
     by (auto intro!: UP.euclidean_domainI)
 qed
 
@@ -2168,18 +2173,19 @@ qed
 
 lemma (in domain) eval_rewrite:
   assumes "subring K R" and "p \<in> carrier (K[X])"
-  shows "p = (ring.eval (K[X])) (map (\<lambda>a. normalize [ a ]) p) X"
+  shows "p = (ring.eval (K[X])) (map poly_of_const p) X"
 proof -
-  let ?map_norm = "\<lambda>p. map (\<lambda>a. normalize [ a ]) p"
+  let ?map_norm = "\<lambda>p. map poly_of_const p"
 
   interpret UP: domain "K[X]"
     using univ_poly_is_domain[OF assms(1)] .
 
   { fix l assume "set l \<subseteq> K"
-    hence "normalize [ a ] \<in> carrier (K[X])" if "a \<in> set l" for a
-      using that normalize_gives_polynomial[of "[ a ]" K] unfolding univ_poly_carrier by auto
+    hence "poly_of_const a \<in> carrier (K[X])" if "a \<in> set l" for a
+      using that normalize_gives_polynomial[of "[ a ]" K]
+      unfolding univ_poly_carrier poly_of_const_def by auto
     hence "set (?map_norm l) \<subseteq> carrier (K[X])"
-      by (auto simp del: normalize.simps) }
+      by auto }
   note aux_lemma1 = this
 
   { fix q l assume set_l: "set l \<subseteq> K" and q: "q \<in> carrier (K[X])"
@@ -2189,11 +2195,11 @@ proof -
       from \<open>set l \<subseteq> K\<close> have set_replicate: "set ((replicate n \<zero>) @ l) \<subseteq> K"
         using subringE(2)[OF assms(1)] by (induct n) (auto)
       have step: "UP.eval (?map_norm l') q = UP.eval (?map_norm (\<zero> # l')) q" if "set l' \<subseteq> K" for l'
-        using UP.eval_in_carrier[OF aux_lemma1[OF that]] q
+        using UP.eval_in_carrier[OF aux_lemma1[OF that]] q unfolding poly_of_const_def
         by (simp, simp add: sym[OF univ_poly_zero[of R K]])
       have "UP.eval (?map_norm l) q = UP.eval (?map_norm ((replicate n \<zero>) @ l)) q"
         using Suc by simp
-      also have " ... = UP.eval (map (\<lambda>a. normalize [ a ]) ((replicate (Suc n) \<zero>) @ l)) q"
+      also have " ... = UP.eval (map poly_of_const ((replicate (Suc n) \<zero>) @ l)) q"
         using step[OF set_replicate] by simp
       finally show ?case .
     qed }
@@ -2225,7 +2231,7 @@ proof -
       also have " ... = poly_add ([ a ] \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> (length l))) (UP.eval (?map_norm l) X)"
         unfolding monom_eq_var_pow[OF assms(1) a] aux_lemma3[OF set_l(2) var_closed(1)[OF assms(1)]] ..
       also have " ... = UP.eval (?map_norm (a # l)) X"
-        using a unfolding sym[OF univ_poly_add[of R K]] by auto
+        using a unfolding sym[OF univ_poly_add[of R K]] unfolding poly_of_const_def by auto
       finally show ?thesis
         unfolding Cons(1) .
     qed
@@ -2460,30 +2466,30 @@ qed
 subsection \<open>The Canonical Embedding of K in K[X]\<close>
 
 lemma (in domain) canonical_embedding_is_hom:
-  assumes "subring K R" shows "(\<lambda>k. normalize [ k ]) \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (K[X])"
-  using subringE(1)[OF assms] unfolding subset_iff
+  assumes "subring K R" shows "poly_of_const \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (K[X])"
+  using subringE(1)[OF assms] unfolding subset_iff poly_of_const_def
   by (auto intro!: ring_hom_memI simp add: univ_poly_def)
 
 lemma (in domain) canonical_embedding_ring_hom:
-  assumes "subring K R" shows "ring_hom_ring (R \<lparr> carrier := K \<rparr>) (K[X]) (\<lambda>k. normalize [ k ])"
+  assumes "subring K R" shows "ring_hom_ring (R \<lparr> carrier := K \<rparr>) (K[X]) poly_of_const"
   using canonical_embedding_is_hom[OF assms] unfolding symmetric[OF ring_hom_ring_axioms_def]
   by (rule ring_hom_ring.intro[OF subring_is_ring[OF assms] univ_poly_is_ring[OF assms]])
 
 lemma (in field) univ_poly_carrier_subfield_of_consts:
   "subfield { p \<in> carrier ((carrier R)[X]). degree p = 0 } ((carrier R)[X])"
 proof -
-  have ring_hom: "ring_hom_ring R ((carrier R)[X]) (\<lambda>k. normalize [ k ])"
+  have ring_hom: "ring_hom_ring R ((carrier R)[X]) poly_of_const"
     using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
-  have subfield: "subfield ((\<lambda>k. normalize [ k ]) ` (carrier R)) ((carrier R)[X])"
+  have subfield: "subfield (poly_of_const ` (carrier R)) ((carrier R)[X])"
     using ring_hom_ring.img_is_subfield(2)[OF ring_hom carrier_is_subfield]
     unfolding univ_poly_def by auto
 
-  have "(\<lambda>k. normalize [ k ]) ` (carrier R) = insert [] { [ k ] | k. k \<in> carrier R - { \<zero> } }"
-    by auto
+  have "poly_of_const ` (carrier R) = insert [] { [ k ] | k. k \<in> carrier R - { \<zero> } }"
+    unfolding poly_of_const_def by auto
   also have " ... = { p \<in> carrier ((carrier R)[X]). degree p = 0 }"
     unfolding univ_poly_def polynomial_def
     by (auto, metis le_Suc_eq le_zero_eq length_0_conv length_Suc_conv list.sel(1) list.set_sel(1) subsetCE)
-  finally have "(\<lambda>k. normalize [ k ]) ` (carrier R) = { p \<in> carrier ((carrier R)[X]). degree p = 0 }" .
+  finally have "poly_of_const ` (carrier R) = { p \<in> carrier ((carrier R)[X]). degree p = 0 }" .
   thus ?thesis
     using subfield by auto
 qed

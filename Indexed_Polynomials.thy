@@ -408,23 +408,24 @@ qed
 
 lemma eval_norm_eq_id:
   assumes "q \<in> carrier (poly_ring L)" and "degree q > 0" and "a \<in> carrier L"
-  shows "((eval_pmod q) \<circ> (\<lambda>a. (ring.normalize L) [ a ])) a = a"
+  shows "((eval_pmod q) \<circ> (ring.poly_of_const L)) a = a"
 proof (cases)
   assume "a = \<zero>\<^bsub>L\<^esub>" thus ?thesis
-    using L.long_division_zero(2)[OF L.carrier_is_subfield assms(1)] hyps(4) by auto
+    using L.long_division_zero(2)[OF L.carrier_is_subfield assms(1)] hyps(4)
+    unfolding ring.poly_of_const_def[OF L.ring_axioms] by auto
 next
   assume "a \<noteq> \<zero>\<^bsub>L\<^esub>" then have in_carrier: "[ a ] \<in> carrier (poly_ring L)"
     using assms(3) unfolding sym[OF univ_poly_carrier[of L "carrier L"]] polynomial_def by simp
   from \<open>a \<noteq> \<zero>\<^bsub>L\<^esub>\<close> show ?thesis
     using L.pmod_const(2)[OF L.carrier_is_subfield in_carrier assms(1)] assms(2)
           indexed_padd_zero(2)[OF hyps(2)[OF assms(3)]]
-    by auto
+    unfolding ring.poly_of_const_def[OF L.ring_axioms] by auto
 qed
 
 lemma image_poly_iso_incl:
   assumes "q \<in> carrier (poly_ring L)" and "degree q > 0" shows "id \<in> ring_hom L (image_poly q)"
 proof -
-  have "(eval_pmod q) \<circ> (\<lambda>a. (ring.normalize L) [ a ]) \<in> ring_hom L (image_poly q)"
+  have "((eval_pmod q) \<circ> L.poly_of_const) \<in> ring_hom L (image_poly q)"
     using ring_hom_trans[OF L.canonical_embedding_is_hom[OF L.carrier_is_subring]
           UP.weak_ring_morphism_is_hom[OF indexed_eval_is_weak_ring_morphism[OF assms(1)]]]
     by simp
@@ -472,7 +473,6 @@ lemma image_poly_eval_indexed_var:
     and "q \<in> carrier (poly_ring L)" and "degree q > 1" and "pirreducible\<^bsub>L\<^esub> (carrier L) q"
   shows "(ring.eval (image_poly q)) q \<X>\<^bsub>i\<^esub> = \<zero>\<^bsub>image_poly q\<^esub>"
 proof -
-  let ?norm = "\<lambda>a. L.normalize [ a ]"
   let ?surj = "L.rupture_surj (carrier L) q"
   let ?Rupt = "Rupt\<^bsub>L\<^esub> (carrier L) q"
   let ?f = "eval_pmod q"
@@ -495,11 +495,12 @@ proof -
   have "set q \<subseteq> carrier L" and lc: "q \<noteq> [] \<Longrightarrow> lead_coeff q \<in> carrier L - { \<zero>\<^bsub>L\<^esub> }"
     using assms(2) unfolding sym[OF univ_poly_carrier] polynomial_def by auto
 
-  have map_surj: "set (map (?surj \<circ> ?norm) q) \<subseteq> carrier ?Rupt"
+  have map_surj: "set (map (?surj \<circ> L.poly_of_const) q) \<subseteq> carrier ?Rupt"
   proof -
-    have "?norm a \<in> carrier (poly_ring L)" if "a \<in> carrier L" for a
-      using that L.normalize_gives_polynomial[of "[ a ]"] unfolding univ_poly_carrier by simp
-    hence "(?surj \<circ> ?norm) a \<in> carrier ?Rupt" if "a \<in> carrier L" for a
+    have "L.poly_of_const a \<in> carrier (poly_ring L)" if "a \<in> carrier L" for a
+      using that L.normalize_gives_polynomial[of "[ a ]"]
+      unfolding univ_poly_carrier ring.poly_of_const_def[OF L.ring_axioms] by simp
+    hence "(?surj \<circ> L.poly_of_const) a \<in> carrier ?Rupt" if "a \<in> carrier L" for a
       using ring_hom_memE(1)[OF L.rupture_surj_hom(1)[OF L.carrier_is_subring assms(2)]] that by simp
     with \<open>set q \<subseteq> carrier L\<close> show ?thesis
       by (induct q) (auto)
@@ -507,15 +508,16 @@ proof -
 
   have "?surj X\<^bsub>L\<^esub> \<in> carrier ?Rupt"
     using ring_hom_memE(1)[OF L.rupture_surj_hom(1)[OF _ assms(2)] L.var_closed(1)] L.carrier_is_subring by simp
-  moreover have "map (\<lambda>x. the_elem (?f ` x)) (map (?surj \<circ> ?norm) q) = q"
+  moreover have "map (\<lambda>x. the_elem (?f ` x)) (map (?surj \<circ> L.poly_of_const) q) = q"
   proof -
-    define g where "g = (?surj \<circ> ?norm)"
+    define g where "g = (?surj \<circ> L.poly_of_const)"
     define f where "f = (\<lambda>x. the_elem (?f ` x))"
 
-    have "the_elem (?f ` ((?surj \<circ> ?norm) a)) = ((eval_pmod q) \<circ> ?norm) a" if "a \<in> carrier L" for a
+    have "the_elem (?f ` ((?surj \<circ> L.poly_of_const) a)) = ((eval_pmod q) \<circ> L.poly_of_const) a"
+      if "a \<in> carrier L" for a
       using that L.normalize_gives_polynomial[of "[ a ]"] UP.weak_ring_morphism_range[OF weak_morphism]
-      unfolding univ_poly_carrier by auto
-    hence "the_elem (?f ` ((?surj \<circ> ?norm) a)) = a" if "a \<in> carrier L" for a
+      unfolding univ_poly_carrier ring.poly_of_const_def[OF L.ring_axioms] by auto
+    hence "the_elem (?f ` ((?surj \<circ> L.poly_of_const) a)) = a" if "a \<in> carrier L" for a
       using eval_norm_eq_id[OF assms(2)] that assms(3) by simp
     hence "f (g a) = a" if "a \<in> carrier L" for a
       using that unfolding f_def g_def by simp
@@ -527,14 +529,14 @@ proof -
   moreover have "(\<lambda>x. the_elem (?f ` x)) (?surj X\<^bsub>L\<^esub>) = \<X>\<^bsub>i\<^esub>"
     using UP.weak_ring_morphism_range[OF weak_morphism L.var_closed(1)[OF L.carrier_is_subring]]
     unfolding eval_pmod_var(1)[OF assms(1-3)] by simp
-  ultimately have "Hom.S.eval q \<X>\<^bsub>i\<^esub> = (\<lambda>x. the_elem (?f ` x)) (Rupt.eval (map (?surj \<circ> ?norm) q) (?surj X\<^bsub>L\<^esub>))"
+  ultimately have "Hom.S.eval q \<X>\<^bsub>i\<^esub> = (\<lambda>x. the_elem (?f ` x)) (Rupt.eval (map (?surj \<circ> L.poly_of_const) q) (?surj X\<^bsub>L\<^esub>))"
     using Hom.eval_hom'[OF _ map_surj] by auto
   moreover have "\<zero>\<^bsub>?Rupt\<^esub> = ?surj \<zero>\<^bsub>poly_ring L\<^esub>"
     unfolding rupture_def FactRing_def by (simp add: I.a_rcos_const)
   hence "the_elem (?f ` \<zero>\<^bsub>?Rupt\<^esub>) = \<zero>\<^bsub>image_poly q\<^esub>"
     using UP.weak_ring_morphism_range[OF weak_morphism UP.zero_closed]
     unfolding image_ring_zero by simp 
-  hence "(\<lambda>x. the_elem (?f ` x)) (Rupt.eval (map (?surj \<circ> ?norm) q) (?surj X\<^bsub>L\<^esub>)) = \<zero>\<^bsub>image_poly q\<^esub>"
+  hence "(\<lambda>x. the_elem (?f ` x)) (Rupt.eval (map (?surj \<circ> L.poly_of_const) q) (?surj X\<^bsub>L\<^esub>)) = \<zero>\<^bsub>image_poly q\<^esub>"
     using L.polynomial_rupture[OF L.carrier_is_subring assms(2)] by simp
   ultimately show ?thesis
     by simp
