@@ -289,6 +289,12 @@ definition (in ring) pmod :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a lis
   where "p pmod q = (if q = [] then p else snd (long_division p q))"
 
 
+lemma (in ring) long_dividesI:
+  assumes "b \<in> carrier (poly_ring R)" and "r \<in> carrier (poly_ring R)"
+      and "p = (q \<otimes>\<^bsub>poly_ring R\<^esub> b) \<oplus>\<^bsub>poly_ring R\<^esub> r" and "r = [] \<or> degree r < degree q"
+    shows "long_divides p q (b, r)"
+  using assms unfolding long_divides_def by auto 
+
 lemma (in domain) exists_long_division:
   assumes "subfield K R" and "p \<in> carrier (K[X])" and "q \<in> carrier (K[X])" "q \<noteq> []"
   obtains b r where "b \<in> carrier (K[X])" and "r \<in> carrier (K[X])" and "long_divides p q (b, r)"
@@ -871,7 +877,100 @@ qed
 
 subsection \<open>Dimension\<close>
 
+lemma (in domain) rupture_surj_composed_with_pmod:
+  assumes "subfield K R" and "p \<in> carrier (K[X])" and "q \<in> carrier (K[X])"
+  shows "rupture_surj K p q = rupture_surj K p (q pmod p)"
+proof -
+  interpret UP: principal_domain "K[X]"
+    using univ_poly_is_principal[OF assms(1)] .
+  interpret Rupt: ring "Rupt K p"
+    using assms by (simp add: UP.cgenideal_ideal ideal.quotient_is_ring rupture_def)
 
+  let ?h = "rupture_surj K p"
+
+  have "?h q = (?h p \<otimes>\<^bsub>Rupt K p\<^esub> ?h (q pdiv p)) \<oplus>\<^bsub>Rupt K p\<^esub> ?h (q pmod p)"
+   and "?h (q pdiv p) \<in> carrier (Rupt K p)" "?h (q pmod p) \<in> carrier (Rupt K p)"
+    using pdiv_pmod[OF assms(1,3,2)] long_division_closed[OF assms(1,3,2)] assms UP.m_closed
+          ring_hom_memE[OF rupture_surj_hom(1)[OF subfieldE(1)[OF assms(1)] assms(2)]]
+    by metis+
+  moreover have "?h p = PIdl\<^bsub>K[X]\<^esub> p"
+    using assms by (simp add: UP.a_rcos_zero UP.cgenideal_ideal UP.cgenideal_self)
+  hence "?h p = \<zero>\<^bsub>Rupt K p\<^esub>"
+    unfolding rupture_def FactRing_def by simp
+  ultimately show ?thesis
+    by simp
+qed
+
+corollary (in domain) rupture_carrier_as_pmod_image:
+  assumes "subfield K R" and "p \<in> carrier (K[X])"
+  shows "(rupture_surj K p) ` ((\<lambda>q. q pmod p) ` (carrier (K[X]))) = carrier (Rupt K p)"
+    (is "?lhs = ?rhs")
+proof
+  have "(\<lambda>q. q pmod p) ` carrier (K[X]) \<subseteq> carrier (K[X])"
+    using long_division_closed(2)[OF assms(1) _ assms(2)] by auto
+  thus "?lhs \<subseteq> ?rhs"
+    using ring_hom_memE(1)[OF rupture_surj_hom(1)[OF subfieldE(1)[OF assms(1)] assms(2)]] by auto
+next
+  show "?rhs \<subseteq> ?lhs"
+  proof
+    fix a assume "a \<in> carrier (Rupt K p)"
+    then obtain q where "q \<in> carrier (K[X])" and "a = rupture_surj K p q"
+      unfolding rupture_def FactRing_def A_RCOSETS_def' by auto
+    thus "a \<in> ?lhs"
+      using rupture_surj_composed_with_pmod[OF assms] by auto
+  qed
+qed
+
+(* Move to Ideal.thy ========================================================= *)
+lemma (in ring) quotient_eq_iff_same_a_r_cos:
+  assumes "ideal I R" and "a \<in> carrier R" and "b \<in> carrier R"
+  shows "a \<ominus> b \<in> I \<longleftrightarrow> I +> a = I +> b"
+proof
+  assume "I +> a = I +> b"
+  then obtain i where "i \<in> I" and "\<zero> \<oplus> a = i \<oplus> b"
+    using additive_subgroup.zero_closed[OF ideal.axioms(1)[OF assms(1)]] assms(2)
+    unfolding a_r_coset_def' by blast
+  hence "a \<ominus> b = i"
+    using assms(2-3) by (metis a_minus_def add.inv_solve_right assms(1) ideal.Icarr l_zero)
+  with \<open>i \<in> I\<close> show "a \<ominus> b \<in> I"
+    by simp
+next
+  assume "a \<ominus> b \<in> I"
+  then obtain i where "i \<in> I" and "a = i \<oplus> b"
+    using ideal.Icarr[OF assms(1)] assms(2-3)
+    by (metis a_minus_def add.inv_solve_right)
+  hence "I +> a = (I +> i) +> b"
+    using ideal.Icarr[OF assms(1)] assms(3)
+    by (simp add: a_coset_add_assoc subsetI)
+  with \<open>i \<in> I\<close> show "I +> a = I +> b"
+    using a_rcos_zero[OF assms(1)] by simp
+qed
+(* ========================================================================== *)
+
+lemma (in domain) rupture_carrier_inj_on:
+  assumes "subfield K R" and "p \<in> carrier (K[X])"
+  shows "inj_on (rupture_surj K p) ((\<lambda>q. q pmod p) ` (carrier (K[X])))"
+proof (intro inj_onI)
+  interpret UP: principal_domain "K[X]"
+    using univ_poly_is_principal[OF assms(1)] .
+
+  fix a b
+  assume "a \<in> (\<lambda>q. q pmod p) ` carrier (K[X])"
+     and "b \<in> (\<lambda>q. q pmod p) ` carrier (K[X])"
+  then obtain q s
+    where q: "q \<in> carrier (K[X])" "a = q pmod p"
+      and s: "s \<in> carrier (K[X])" "b = s pmod p"
+    by auto
+  moreover assume "rupture_surj K p a = rupture_surj K p b"
+  ultimately have "q \<ominus>\<^bsub>K[X]\<^esub> s \<in> (PIdl\<^bsub>K[X]\<^esub> p)"
+    using UP.quotient_eq_iff_same_a_r_cos[OF UP.cgenideal_ideal[OF assms(2)], of q s]
+          rupture_surj_composed_with_pmod[OF assms] by auto
+  hence "p pdivides (q \<ominus>\<^bsub>K[X]\<^esub> s)"
+    using assms q(1) s(1) UP.to_contain_is_to_divide pdivides_iff_shell
+    by (meson UP.cgenideal_ideal UP.cgenideal_minimal UP.minus_closed)
+  thus "a = b"
+    unfolding q s same_pmod_iff_pdivides[OF assms(1) q(1) s(1) assms(2)] .
+qed
 
 (*
 
