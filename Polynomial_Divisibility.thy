@@ -3,7 +3,7 @@
 *)
 
 theory Polynomial_Divisibility
-  imports Polynomials "HOL-Library.Multiset"
+  imports Polynomials Embedded_Algebras "HOL-Library.Multiset"
     
 begin
 
@@ -875,7 +875,7 @@ proof -
 qed
 
 
-subsection \<open>Dimension\<close>
+subsection \<open>Link between pmod and rupture_surj\<close>
 
 lemma (in domain) rupture_surj_composed_with_pmod:
   assumes "subfield K R" and "p \<in> carrier (K[X])" and "q \<in> carrier (K[X])"
@@ -947,7 +947,7 @@ next
 qed
 (* ========================================================================== *)
 
-lemma (in domain) rupture_carrier_inj_on:
+lemma (in domain) rupture_surj_inj_on:
   assumes "subfield K R" and "p \<in> carrier (K[X])"
   shows "inj_on (rupture_surj K p) ((\<lambda>q. q pmod p) ` (carrier (K[X])))"
 proof (intro inj_onI)
@@ -970,6 +970,231 @@ proof (intro inj_onI)
     by (meson UP.cgenideal_ideal UP.cgenideal_minimal UP.minus_closed)
   thus "a = b"
     unfolding q s same_pmod_iff_pdivides[OF assms(1) q(1) s(1) assms(2)] .
+qed
+
+
+subsection \<open>Dimension\<close>
+
+definition (in ring) exp_base :: "'a \<Rightarrow> nat \<Rightarrow> 'a list"
+  where "exp_base x n = map (\<lambda>i. x [^] i) (rev [0..< n])"
+
+lemma (in ring) exp_base_closed:
+  assumes "x \<in> carrier R" shows "set (exp_base x n) \<subseteq> carrier R"
+  using assms by (induct n) (auto simp add: exp_base_def)
+
+lemma (in ring) exp_base_append:
+  shows "exp_base x (n + m) = (map (\<lambda>i. x [^] i) (rev [n..< n + m])) @ exp_base x n"
+  unfolding exp_base_def by (metis map_append rev_append upt_add_eq_append zero_le)
+
+lemma (in ring) drop_exp_base:
+  shows "drop n (exp_base x m) = exp_base x (m - n)"
+proof -
+  have ?thesis if "n > m"
+    using that by (simp add: exp_base_def)
+  moreover have ?thesis if "n \<le> m"
+    using exp_base_append[of x "m - n" n] that by auto
+  ultimately show ?thesis
+    by linarith 
+qed
+
+lemma (in ring) combine_eq_eval:
+  shows "combine Ks (exp_base x (length Ks)) = eval Ks x"
+  unfolding exp_base_def by (induct Ks) (auto)
+
+lemma (in domain) pmod_image_characterization:
+  assumes "subfield K R" and "p \<in> carrier (K[X])" and "p \<noteq> []"
+  shows "(\<lambda>q. q pmod p) ` carrier (K[X]) = { q \<in> carrier (K[X]). length q \<le> degree p }"
+proof -
+  interpret UP: principal_domain "K[X]"
+    using univ_poly_is_principal[OF assms(1)] .
+
+  show ?thesis
+  proof (intro no_atp(10)[OF subsetI subsetI])
+    fix q assume "q \<in> { q \<in> carrier (K[X]). length q \<le> degree p }"
+    then have "q \<in> carrier (K[X])" and "length q \<le> degree p"
+      by simp+
+
+    show "q \<in> (\<lambda>q. q pmod p) ` carrier (K[X])"
+    proof (cases "q = []")
+      case True
+      have "p pmod p = q"
+        unfolding True pmod_zero_iff_pdivides[OF assms(1,2,2)]
+        using assms(1-2) pdivides_iff_shell by auto
+      thus ?thesis
+        using assms(2) by blast 
+    next
+      case False
+      with \<open>length q \<le> degree p\<close> have "degree q < degree p"
+        unfolding degree_def using le_eq_less_or_eq by fastforce 
+      with \<open>q \<in> carrier (K[X])\<close> show ?thesis
+        using pmod_const(2)[OF assms(1) _ assms(2), of q] by (metis imageI) 
+    qed
+  next
+    fix q assume "q \<in> (\<lambda>q. q pmod p) ` carrier (K[X])"
+    then obtain q' where "q' \<in> carrier (K[X])" and "q = q' pmod p"
+      by auto
+    thus "q \<in> { q \<in> carrier (K[X]). length q \<le> degree p }"
+      using long_division_closed(2)[OF assms(1) _ assms(2), of q']
+            pmod_degree[OF assms(1) _ assms(2-3), of q']
+      by auto
+  qed
+qed
+
+lemma (in domain) Span_var_pow_base:
+  assumes "subfield K R"
+  shows "ring.Span (K[X]) (poly_of_const ` K) (ring.exp_base (K[X]) X n) =
+         { q \<in> carrier (K[X]). length q \<le> n }" (is "?lhs = ?rhs")
+proof -
+  note subring = subfieldE(1)[OF assms]
+  note subfield = univ_poly_subfield_of_consts[OF assms] 
+
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF subring] .
+
+  show ?thesis
+  proof (intro no_atp(10)[OF subsetI subsetI])
+    fix q assume "q \<in> { q \<in> carrier (K[X]). length q \<le> n }"
+    then have q: "q \<in> carrier (K[X])" "length q \<le> n"
+      by simp+
+
+    let ?repl = "replicate (n - length q) \<zero>\<^bsub>K[X]\<^esub>"
+    let ?map = "map poly_of_const q"
+    let ?comb = "UP.combine"
+    define Ks where "Ks = ?repl @ ?map"
+
+    have "q = ?comb ?map (UP.exp_base X (length q))"
+      using q eval_rewrite[OF subring q(1)] unfolding sym[OF UP.combine_eq_eval] by auto
+    moreover from \<open>length q \<le> n\<close>
+    have "?comb (?repl @ Ks) (UP.exp_base X n) =  ?comb Ks (UP.exp_base X (length q))"
+      if "set Ks \<subseteq> carrier (K[X])" for Ks
+      using UP.combine_prepend_replicate[OF that UP.exp_base_closed[OF var_closed(1)[OF subring]]]
+      unfolding UP.drop_exp_base by auto
+
+    moreover have "set ?map \<subseteq> carrier (K[X])"
+      using map_norm_in_poly_ring_carrier[OF subring q(1)]
+      unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+    
+    moreover have "?repl = map poly_of_const (replicate (n - length q) \<zero>)"
+      unfolding poly_of_const_def univ_poly_zero by (induct "n - length q") (auto)
+    hence "set ?repl \<subseteq> poly_of_const ` K"
+      using subringE(2)[OF subring] by auto
+    moreover from \<open>q \<in> carrier (K[X])\<close> have "set q \<subseteq> K"
+      unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+    hence "set ?map \<subseteq> poly_of_const ` K"
+      by auto
+
+    ultimately have "q = ?comb Ks (UP.exp_base X n)" and "set Ks \<subseteq> poly_of_const ` K"
+      by (simp add: Ks_def)+
+    thus "q \<in> UP.Span (poly_of_const ` K) (UP.exp_base X n)"
+      using UP.Span_eq_combine_set[OF subfield UP.exp_base_closed[OF var_closed(1)[OF subring]]] by auto
+  next
+    fix q assume "q \<in> UP.Span (poly_of_const ` K) (UP.exp_base X n)"
+    thus "q \<in> { q \<in> carrier (K[X]). length q \<le> n }"
+    proof (induction n arbitrary: q)
+      case 0 thus ?case
+        unfolding UP.exp_base_def by (auto simp add: univ_poly_zero)
+    next
+      case (Suc n)
+      then obtain k p where k: "k \<in> K" and p: "p \<in> UP.Span (poly_of_const ` K) (UP.exp_base X n)"
+        and q: "q = ((poly_of_const k) \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> n)) \<oplus>\<^bsub>K[X]\<^esub> p"
+        unfolding UP.exp_base_def using UP.line_extension_mem_iff by auto
+      have p_in_carrier: "p \<in> carrier (K[X])" and "length p \<le> n"
+        using Suc(1)[OF p] by simp+
+      moreover from \<open>k \<in> K\<close> have "poly_of_const k \<in> carrier (K[X])"
+        unfolding poly_of_const_def sym[OF univ_poly_carrier] polynomial_def by auto
+      ultimately have "q \<in> carrier (K[X])"
+        unfolding q using var_pow_closed[OF subring, of n] by algebra
+
+      moreover have "poly_of_const k = \<zero>\<^bsub>K[X]\<^esub>" if "k = \<zero>"
+        unfolding poly_of_const_def that univ_poly_zero by simp
+      with \<open>p \<in> carrier (K[X])\<close> have "q = p" if "k = \<zero>"
+        unfolding q using var_pow_closed[OF subring, of n] that by algebra
+      with \<open>length p \<le> n\<close> have "length q \<le> Suc n" if "k = \<zero>"
+        using that by simp
+
+      moreover have "poly_of_const k = [ k ]" if "k \<noteq> \<zero>"
+        unfolding poly_of_const_def using that by simp
+      hence monom: "monom k n = (poly_of_const k) \<otimes>\<^bsub>K[X]\<^esub> (X [^]\<^bsub>K[X]\<^esub> n)" if "k \<noteq> \<zero>"
+        using that monom_eq_var_pow[OF subring] subfieldE(3)[OF assms] k by auto
+      with \<open>p \<in> carrier (K[X])\<close> and \<open>k \<in> K\<close> and \<open>length p \<le> n\<close>
+      have "length q = Suc n" if "k \<noteq> \<zero>"
+        using that poly_add_length_eq[OF subring monom_is_polynomial[OF subring, of k n], of p]
+        unfolding univ_poly_carrier monom_def univ_poly_add sym[OF monom[OF that]] q by auto  
+      ultimately show ?case
+        by (cases "k = \<zero>", auto)
+    qed
+  qed
+qed
+
+lemma (in domain) var_pow_base_independent:
+  assumes "subfield K R"
+  shows "ring.independent (K[X]) (poly_of_const ` K) (ring.exp_base (K[X]) X n)"
+proof -
+  note subring = subfieldE(1)[OF assms]
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF subring] .
+
+  show ?thesis
+  proof (induction n, simp add: UP.exp_base_def)
+    case (Suc n)
+    have "X [^]\<^bsub>K[X]\<^esub> n \<notin> UP.Span (poly_of_const ` K) (ring.exp_base (K[X]) X n)"
+      unfolding sym[OF unitary_monom_eq_var_pow[OF subring]] monom_def
+                Span_var_pow_base[OF assms] by auto
+    moreover have "X [^]\<^bsub>K[X]\<^esub> n # UP.exp_base X n = UP.exp_base X (Suc n)"
+      unfolding UP.exp_base_def by simp
+    ultimately show ?case
+      using UP.li_Cons[OF var_pow_closed[OF subring, of n] _Suc] by simp
+  qed
+qed
+
+lemma (in domain) bounded_degree_dimension:
+  assumes "subfield K R"
+  shows "ring.dimension (K[X]) n (poly_of_const ` K) { q \<in> carrier (K[X]). length q \<le> n }"
+proof -
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF subfieldE(1)[OF assms]] .
+  have "length (UP.exp_base X n) = n"
+    unfolding UP.exp_base_def by simp
+  thus ?thesis
+    using UP.dimension_independent[OF var_pow_base_independent[OF assms], of n]
+    unfolding Span_var_pow_base[OF assms] by simp
+qed
+
+lemma (in domain) rupture_dimension:
+  assumes "subfield K R" and "p \<in> carrier (K[X])" and "degree p > 0"
+  shows "ring.dimension (Rupt K p) (degree p) ((rupture_surj K p) ` poly_of_const ` K) (carrier (Rupt K p))"
+proof -
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF subfieldE(1)[OF assms(1)]] .
+  interpret Hom: ring_hom_ring "K[X]" "Rupt K p" "rupture_surj K p"
+    using rupture_surj_hom(2)[OF subfieldE(1)[OF assms(1)] assms(2)] .
+
+  have not_nil: "p \<noteq> []"
+    using assms(3) by auto
+
+  have one_not_zero: "\<one>\<^bsub>Rupt K p\<^esub> \<noteq> \<zero>\<^bsub>Rupt K p\<^esub>"
+  proof (rule ccontr)
+    assume "\<not> \<one>\<^bsub>Rupt K p\<^esub> \<noteq> \<zero>\<^bsub>Rupt K p\<^esub>"
+    then have "PIdl\<^bsub>K[X]\<^esub> p +>\<^bsub>K[X]\<^esub> \<one>\<^bsub>K[X]\<^esub> = PIdl\<^bsub>K[X]\<^esub> p"
+      unfolding rupture_def FactRing_def by simp
+    hence "\<one>\<^bsub>K[X]\<^esub> \<in> PIdl\<^bsub>K[X]\<^esub> p"
+      using ideal.rcos_const_imp_mem[OF UP.cgenideal_ideal[OF assms(2)]] by auto
+    then obtain q where "q \<in> carrier (K[X])" and "\<one>\<^bsub>K[X]\<^esub> = q \<otimes>\<^bsub>K[X]\<^esub> p"
+      using assms(2) unfolding cgenideal_def by auto
+    hence "p \<in> Units (K[X])"
+      unfolding Units_def using assms(2) UP.m_comm by auto
+    hence "degree p = 0"
+      unfolding univ_poly_units[OF assms(1)] by auto
+    with \<open>degree p > 0\<close> show False
+      by simp
+  qed
+
+  show ?thesis
+    using Hom.inj_hom_dimension[OF univ_poly_subfield_of_consts[OF assms(1)] one_not_zero
+          rupture_surj_inj_on[OF assms(1-2)]] bounded_degree_dimension[OF assms(1)]
+    unfolding sym[OF rupture_carrier_as_pmod_image[OF assms(1-2)]]
+              pmod_image_characterization[OF assms(1-2) not_nil]
+    by simp
 qed
 
 (*

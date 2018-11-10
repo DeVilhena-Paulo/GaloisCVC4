@@ -406,32 +406,6 @@ qed
 
 subsection \<open>Link between dimension of K-algebras and algebraic extensions\<close>
 
-abbreviation (in ring) exp_base :: "'a \<Rightarrow> nat \<Rightarrow> 'a list"
-  where "exp_base x n \<equiv> map (\<lambda>i. x [^] i) (rev [0..< n])"
-
-lemma (in ring) exp_base_closed:
-  assumes "x \<in> carrier R" shows "set (exp_base x n) \<subseteq> carrier R"
-  using assms by (induct n) (auto)
-
-lemma (in ring) exp_base_append:
-  shows "exp_base x (n + m) = (map (\<lambda>i. x [^] i) (rev [n..< n + m])) @ exp_base x n"
-  by (metis map_append rev_append upt_add_eq_append zero_le)
-
-lemma (in ring) drop_exp_base:
-  shows "drop n (exp_base x m) = exp_base x (m - n)"
-proof -
-  have ?thesis if "n > m"
-    using that by simp
-  moreover have ?thesis if "n \<le> m"
-    using exp_base_append[of x "m - n" n] that by auto
-  ultimately show ?thesis
-    by linarith 
-qed
-
-lemma (in ring) combine_eq_eval:
-  shows "combine Ks (exp_base x (length Ks)) = eval Ks x"
-  by (induct Ks) (auto)
-
 lemma (in domain) exp_base_independent:
   assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
   shows "independent K (exp_base x (degree (Irr K x)))"
@@ -439,16 +413,17 @@ proof -
   have "\<And>n. n \<le> degree (Irr K x) \<Longrightarrow> independent K (exp_base x n)"
   proof -
     fix n show "n \<le> degree (Irr K x) \<Longrightarrow> independent K (exp_base x n)"
-    proof (induct n, simp)
+    proof (induct n, simp add: exp_base_def)
       case (Suc n)
       have "x [^] n \<notin> Span K (exp_base x n)"
       proof (rule ccontr)
         assume "\<not> x [^] n \<notin> Span K (exp_base x n)"
         then obtain a Ks
           where Ks: "a \<in> K - { \<zero> }" "set Ks \<subseteq> K" "length Ks = n" "combine (a # Ks) (exp_base x (Suc n)) = \<zero>"
-          using Span_mem_imp_non_trivial_combine[OF assms(1) exp_base_closed[OF assms(2), of n]] by auto
+          using Span_mem_imp_non_trivial_combine[OF assms(1) exp_base_closed[OF assms(2), of n]]
+          by (auto simp add: exp_base_def)
         hence "eval (a # Ks) x = \<zero>"
-          using combine_eq_eval by auto
+          using combine_eq_eval by (auto simp add: exp_base_def)
         moreover have "(a # Ks) \<in> carrier (K[X]) - { [] }"
           unfolding univ_poly_def polynomial_def using Ks(1-2) by auto
         ultimately have "degree (Irr K x) \<le> n"
@@ -457,7 +432,7 @@ proof -
         from \<open>Suc n \<le> degree (Irr K x)\<close> and this show False by simp
       qed
       thus ?case
-        using independent.li_Cons assms(2) Suc by auto
+        using independent.li_Cons assms(2) Suc by (auto simp add: exp_base_def)
     qed
   qed
   thus ?thesis
@@ -473,7 +448,8 @@ proof
   proof
     fix u assume "u \<in> Span K (exp_base x n)"
     then obtain Ks where Ks: "set Ks \<subseteq> K" "length Ks = n" "u = combine Ks (exp_base x n)"
-      using Span_eq_combine_set_length_version[OF assms(1) exp_base_closed[OF assms(2)]] by auto
+      using Span_eq_combine_set_length_version[OF assms(1) exp_base_closed[OF assms(2)]]
+      by (auto simp add: exp_base_def)
     hence "u = eval (normalize Ks) x"
       using combine_eq_eval eval_normalize[OF _ assms(2)] subfieldE(3)[OF assms(1)] by auto
     moreover have "normalize Ks \<in> carrier (K[X])"
@@ -536,7 +512,8 @@ qed
 corollary (in domain) dimension_simple_extension:
   assumes "subfield K R" "x \<in> carrier R" "(algebraic over K) x"
   shows "dimension (degree (Irr K x)) K (simple_extension K x)"
-  using dimension_independent[OF exp_base_independent[OF assms]] Span_exp_base[OF assms] by simp
+  using dimension_independent[OF exp_base_independent[OF assms]] Span_exp_base[OF assms]
+  by (simp add: exp_base_def)
 
 lemma (in ring) finite_dimension_imp_algebraic:
   assumes "subfield K R" "subring F R" and "finite_dimension K F"
@@ -560,7 +537,7 @@ proof -
   have "set Ks \<subseteq> carrier R"
     using subring_props(1)[OF assms(1)] Ks(3) by auto 
   hence "eval (normalize Ks) x = \<zero>"
-    using combine_eq_eval[of Ks] eval_normalize[OF _ in_carrier] Ks(1-2) by simp
+    using combine_eq_eval[of Ks] eval_normalize[OF _ in_carrier] Ks(1-2) by (simp add: exp_base_def)
   moreover have "normalize Ks = [] \<Longrightarrow> set Ks \<subseteq> { \<zero> }"
     by (induct Ks) (auto, meson list.discI,
                     metis all_not_in_conv list.discI list.sel(3) singletonD subset_singletonD)

@@ -57,8 +57,8 @@ fun (in ring) dense_repr :: "'a list \<Rightarrow> ('a \<times> nat) list"
                      then (lead_coeff p, degree p) # (dense_repr (tl p))
                      else (dense_repr (tl p)))"
 
-fun (in ring) of_dense :: "('a \<times> nat) list \<Rightarrow> 'a list"
-  where "of_dense dl = foldr (\<lambda>(a, n) l. poly_add (monom a n) l) dl []"
+fun (in ring) poly_of_dense :: "('a \<times> nat) list \<Rightarrow> 'a list"
+  where "poly_of_dense dl = foldr (\<lambda>(a, n) l. poly_add (monom a n) l) dl []"
 
 definition (in ring) poly_of_const :: "'a \<Rightarrow> 'a list"
   where "poly_of_const = (\<lambda>k. normalize [ k ])"
@@ -729,7 +729,7 @@ qed
 
 lemma monom_decomp:
   assumes "subring K R" "polynomial K p"
-  shows "p = of_dense (dense_repr p)"
+  shows "p = poly_of_dense (dense_repr p)"
   using assms(2)
 proof (induct "length p" arbitrary: p rule: less_induct)
   case less thus ?case
@@ -744,12 +744,12 @@ proof (induct "length p" arbitrary: p rule: less_induct)
     also have " ... = poly_add (monom a (degree (a # l))) (normalize l)"
       using poly_add_normalize(2)[of "monom a (degree (a # l))", OF _ l(1)] a
       unfolding monom_def by force
-    also have " ... = poly_add (monom a (degree (a # l))) (of_dense (dense_repr (normalize l)))"
+    also have " ... = poly_add (monom a (degree (a # l))) (poly_of_dense (dense_repr (normalize l)))"
       using less(1)[OF _ normalize_gives_polynomial[OF l(2)]] normalize_length_le[of l]
       unfolding Cons by simp
-    also have " ... = of_dense ((a, degree (a # l)) # dense_repr (normalize l))"
+    also have " ... = poly_of_dense ((a, degree (a # l)) # dense_repr (normalize l))"
       by simp
-    also have " ... = of_dense (dense_repr (a # l))"
+    also have " ... = poly_of_dense (dense_repr (a # l))"
       using polynomial_dense_repr[OF less(2)] unfolding Cons by simp
     finally show ?thesis
       unfolding Cons by simp
@@ -2276,7 +2276,7 @@ proof -
 
       have a: "a \<in> K - { \<zero> }"
         using less(2) subringE(1)[OF assms(1)] unfolding Cons univ_poly_def polynomial_def by auto 
-      hence "p = (monom a (length l)) \<oplus>\<^bsub>K[X]\<^esub> (of_dense (dense_repr (normalize l)))"
+      hence "p = (monom a (length l)) \<oplus>\<^bsub>K[X]\<^esub> (poly_of_dense (dense_repr (normalize l)))"
         using monom_decomp[OF assms(1), of p] less(2) dense_repr_normalize
         unfolding univ_poly_add univ_poly_carrier Cons by (auto simp del: poly_add.simps)
       also have " ... = (monom a (length l)) \<oplus>\<^bsub>K[X]\<^esub> (normalize l)"
@@ -2465,6 +2465,11 @@ qed
 
 subsection \<open>The Canonical Embedding of K in K[X]\<close>
 
+lemma (in ring) poly_of_const_consistent:
+  assumes "subring K R" shows "ring.poly_of_const (R \<lparr> carrier := K \<rparr>) = poly_of_const"
+  unfolding ring.poly_of_const_def[OF subring_is_ring[OF assms]]
+            normalize_consistent[OF assms] poly_of_const_def ..
+
 lemma (in domain) canonical_embedding_is_hom:
   assumes "subring K R" shows "poly_of_const \<in> ring_hom (R \<lparr> carrier := K \<rparr>) (K[X])"
   using subringE(1)[OF assms] unfolding subset_iff poly_of_const_def
@@ -2475,28 +2480,37 @@ lemma (in domain) canonical_embedding_ring_hom:
   using canonical_embedding_is_hom[OF assms] unfolding symmetric[OF ring_hom_ring_axioms_def]
   by (rule ring_hom_ring.intro[OF subring_is_ring[OF assms] univ_poly_is_ring[OF assms]])
 
-lemma (in field) univ_poly_carrier_subfield_of_consts:
-  "subfield { p \<in> carrier ((carrier R)[X]). degree p = 0 } ((carrier R)[X])"
+lemma (in field) poly_of_const_over_carrier:
+  shows "poly_of_const ` (carrier R) = { p \<in> carrier ((carrier R)[X]). degree p = 0 }"
 proof -
-  have ring_hom: "ring_hom_ring R ((carrier R)[X]) poly_of_const"
-    using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
-  have subfield: "subfield (poly_of_const ` (carrier R)) ((carrier R)[X])"
-    using ring_hom_ring.img_is_subfield(2)[OF ring_hom carrier_is_subfield]
-    unfolding univ_poly_def by auto
-
   have "poly_of_const ` (carrier R) = insert [] { [ k ] | k. k \<in> carrier R - { \<zero> } }"
     unfolding poly_of_const_def by auto
   also have " ... = { p \<in> carrier ((carrier R)[X]). degree p = 0 }"
     unfolding univ_poly_def polynomial_def
     by (auto, metis le_Suc_eq le_zero_eq length_0_conv length_Suc_conv list.sel(1) list.set_sel(1) subsetCE)
-  finally have "poly_of_const ` (carrier R) = { p \<in> carrier ((carrier R)[X]). degree p = 0 }" .
+  finally show ?thesis .
+qed
+
+lemma (in ring) poly_of_const_over_subfield:
+  assumes "subfield K R" shows "poly_of_const ` K = { p \<in> carrier (K[X]). degree p = 0 }"
+  using field.poly_of_const_over_carrier[OF subfield_iff(2)[OF assms]]
+        poly_of_const_consistent[OF subfieldE(1)[OF assms]]
+        univ_poly_consistent[OF subfieldE(1)[OF assms]] by simp
+    
+lemma (in field) univ_poly_carrier_subfield_of_consts:
+  "subfield (poly_of_const ` (carrier R)) ((carrier R)[X])"
+proof -
+  have ring_hom: "ring_hom_ring R ((carrier R)[X]) poly_of_const"
+    using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
   thus ?thesis
-    using subfield by auto
+    using ring_hom_ring.img_is_subfield(2)[OF ring_hom carrier_is_subfield]
+    unfolding univ_poly_def by auto
 qed
 
 proposition (in ring) univ_poly_subfield_of_consts:
-  assumes "subfield K R" shows "subfield { p \<in> carrier (K[X]). degree p = 0 } (K[X])"
+  assumes "subfield K R" shows "subfield (poly_of_const ` K) (K[X])"
   using field.univ_poly_carrier_subfield_of_consts[OF subfield_iff(2)[OF assms]]
-        univ_poly_consistent[OF subfieldE(1)[OF assms]] by auto
+  unfolding poly_of_const_consistent[OF subfieldE(1)[OF assms]]
+            univ_poly_consistent[OF subfieldE(1)[OF assms]] by simp
 
 end
