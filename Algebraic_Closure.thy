@@ -768,16 +768,109 @@ lemma (in field) closureE:
 
 sublocale algebraic_closure \<subseteq> algebraically_closed
 proof
-  fix P assume "P \<in> carrier (poly_ring L)" and "degree P > 0"
+  fix P assume in_carrier: "P \<in> carrier (poly_ring L)" and gt_zero: "degree P > 0"
   define A where "A = finite_extension K P"
 
   from \<open>P \<in> carrier (poly_ring L)\<close> have "set P \<subseteq> carrier L"
     by (simp add: polynomial_incl univ_poly_carrier)
-  hence "subfield A L" 
-    using algebraic_extension finite_extension_is_subfield[OF subfield_axioms, of P]
-    unfolding sym[OF A_def] by auto
-  thus "\<exists>x \<in> carrier L. eval P x = \<zero>"
-    sorry
+  hence A: "subfield A L" and P: "P \<in> carrier (A[X])"
+    using finite_extension_mem[OF subfieldE(1)[OF subfield_axioms], of P] in_carrier
+          algebraic_extension finite_extension_is_subfield[OF subfield_axioms, of P]
+    unfolding sym[OF A_def] sym[OF univ_poly_carrier] polynomial_def by auto
+  from \<open>set P \<subseteq> carrier L\<close> have incl: "K \<subseteq> A"
+    using finite_extension_incl[OF subfieldE(3)[OF subfield_axioms]] unfolding A_def by simp
+
+  interpret UP_K: domain "K[X]"
+    using univ_poly_is_domain[OF subfieldE(1)[OF subfield_axioms]] .
+  interpret UP_A: domain "A[X]"
+    using univ_poly_is_domain[OF subfieldE(1)[OF A]] .
+  interpret Rupt: ring "Rupt A P"
+    unfolding rupture_def using ideal.quotient_is_ring[OF UP_A.cgenideal_ideal[OF P]] .
+  interpret Hom: ring_hom_ring "L \<lparr> carrier := A \<rparr>" "Rupt A P" "rupture_surj A P \<circ> poly_of_const"
+    using ring_hom_ringI2[OF subring_is_ring[OF subfieldE(1)] Rupt.ring_axioms
+          rupture_surj_norm_is_hom[OF subfieldE(1) P]] A by simp
+  let ?h = "rupture_surj A P \<circ> poly_of_const"
+
+  have h_simp: "rupture_surj A P ` poly_of_const ` E = ?h ` E" for E
+    by auto
+  hence aux_lemmas:
+    "subfield (rupture_surj A P ` poly_of_const ` K) (Rupt A P)"
+    "subfield (rupture_surj A P ` poly_of_const ` A) (Rupt A P)"
+    using Hom.img_is_subfield(2)[OF _ rupture_one_not_zero[OF A P gt_zero]]
+          ring.subfield_iff(1)[OF subring_is_ring[OF subfieldE(1)[OF A]]]
+          subfield_iff(2)[OF subfield_axioms] subfield_iff(2)[OF A] incl
+    by auto
+
+  have "carrier (K[X]) \<subseteq> carrier (A[X])"
+    using subsetI[of "carrier (K[X])" "carrier (A[X])"] incl
+    unfolding sym[OF univ_poly_carrier] polynomial_def by auto
+  hence "id \<in> ring_hom (K[X]) (A[X])"
+    unfolding ring_hom_def unfolding univ_poly_mult univ_poly_add univ_poly_one by (simp add: subsetD)
+  hence "rupture_surj A P \<in> ring_hom (K[X]) (Rupt A P)"
+    using ring_hom_trans[OF _ rupture_surj_hom(1)[OF subfieldE(1)[OF A] P], of id] by simp
+  then interpret Hom': ring_hom_ring "K[X]" "Rupt A P" "rupture_surj A P"
+    using ring_hom_ringI2[OF UP_K.ring_axioms Rupt.ring_axioms] by simp
+
+  from \<open>id \<in> ring_hom (K[X]) (A[X])\<close> have Id: "ring_hom_ring (K[X]) (A[X]) id"
+    using ring_hom_ringI2[OF UP_K.ring_axioms UP_A.ring_axioms] by simp
+  hence "subalgebra (poly_of_const ` K) (carrier (K[X])) (A[X])"
+    using ring_hom_ring.img_is_subalgebra[OF Id _ UP_K.carrier_is_subalgebra[OF subfieldE(3)]]
+          univ_poly_subfield_of_consts[OF subfield_axioms] by auto
+
+  moreover from \<open>carrier (K[X]) \<subseteq> carrier (A[X])\<close> have "poly_of_const ` K \<subseteq> carrier (A[X])"
+    using subfieldE(3)[OF univ_poly_subfield_of_consts[OF subfield_axioms]] by simp 
+
+  ultimately
+  have "subalgebra (rupture_surj A P ` poly_of_const ` K) (rupture_surj A P ` carrier (K[X])) (Rupt A P)"
+    using ring_hom_ring.img_is_subalgebra[OF rupture_surj_hom(2)[OF subfieldE(1)[OF A] P]] by simp 
+
+  moreover have "Rupt.finite_dimension (rupture_surj A P ` poly_of_const ` K) (carrier (Rupt A P))"
+  proof (intro Rupt.telescopic_base_dim(1)[where
+            ?K = "rupture_surj A P ` poly_of_const ` K" and
+            ?F = "rupture_surj A P ` poly_of_const ` A" and
+            ?E = "carrier (Rupt A P)", OF aux_lemmas])
+    show "Rupt.finite_dimension (rupture_surj A P ` poly_of_const ` A) (carrier (Rupt A P))"
+      using Rupt.finite_dimensionI[OF rupture_dimension[OF A P gt_zero]] .
+  next
+    let ?h = "rupture_surj A P \<circ> poly_of_const"
+
+    from \<open>set P \<subseteq> carrier L\<close> have "finite_dimension K A"
+      using finite_extension_finite_dimension(1)[OF subfield_axioms, of P] algebraic_extension
+      unfolding A_def by auto
+    then obtain Us where Us: "set Us \<subseteq> carrier L" "A = Span K Us"
+      using exists_base subfield_axioms by blast
+    hence "?h ` A = Rupt.Span (?h ` K) (map ?h Us)"
+      using Hom.Span_hom[of K Us] incl Span_base_incl[OF subfield_axioms, of Us]
+      unfolding Span_consistent[OF subfieldE(1)[OF A]] by simp
+    moreover have "set (map ?h Us) \<subseteq> carrier (Rupt A P)"
+      using Span_base_incl[OF subfield_axioms Us(1)] ring_hom_memE(1)[OF Hom.homh]
+      unfolding sym[OF Us(2)] by auto
+    ultimately
+    show "Rupt.finite_dimension (rupture_surj A P ` poly_of_const ` K) (rupture_surj A P ` poly_of_const ` A)"
+      using Rupt.Span_finite_dimension[OF aux_lemmas(1)] unfolding h_simp by simp
+  qed
+
+  moreover have "rupture_surj A P ` carrier (A[X]) = carrier (Rupt A P)"
+    unfolding rupture_def FactRing_def A_RCOSETS_def' by auto
+  with \<open>carrier (K[X]) \<subseteq> carrier (A[X])\<close> have "rupture_surj A P ` carrier (K[X]) \<subseteq> carrier (Rupt A P)"
+    by auto
+
+  ultimately
+  have "Rupt.finite_dimension (rupture_surj A P ` poly_of_const ` K) (rupture_surj A P ` carrier (K[X]))"
+    using Rupt.subalbegra_incl_imp_finite_dimension[OF aux_lemmas(1)] by simp 
+
+  hence "\<not> inj_on (rupture_surj A P) (carrier (K[X]))"
+    using Hom'.infinite_dimension_hom[OF _ rupture_one_not_zero[OF A P gt_zero] _
+          UP_K.carrier_is_subalgebra[OF subfieldE(3)] univ_poly_infinite_dimension[OF subfield_axioms]]
+          univ_poly_subfield_of_consts[OF subfield_axioms]
+    by auto
+  then obtain Q where "Q \<in> carrier (K[X])" and "Q \<noteq> []" and "rupture_surj A P Q = \<zero>\<^bsub>Rupt A P\<^esub>"
+    using Hom'.trivial_ker_imp_inj Hom'.hom_zero unfolding a_kernel_def' univ_poly_zero by blast
+  with \<open>carrier (K[X]) \<subseteq> carrier (A[X])\<close> have "Q \<in> PIdl\<^bsub>A[X]\<^esub> P"
+    using ideal.rcos_const_imp_mem[OF UP_A.cgenideal_ideal[OF P]]
+    unfolding rupture_def FactRing_def by auto
+  then obtain R where "R \<in> carrier (A[X])" and "Q = R \<otimes>\<^bsub>A[X]\<^esub> P"
+    unfolding cgenideal_def by blast
 qed
 
 end
