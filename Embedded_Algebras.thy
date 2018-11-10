@@ -49,6 +49,16 @@ begin
 
 subsection \<open>Basic Properties - First Part\<close>
 
+lemma line_extension_consistent:
+  assumes "subring K R" shows "ring.line_extension (R \<lparr> carrier := K \<rparr>) = line_extension"
+  unfolding ring.line_extension_def[OF subring_is_ring[OF assms]] line_extension_def
+  by (simp add: set_add_def set_mult_def)
+
+lemma Span_consistent:
+  assumes "subring K R" shows "ring.Span (R \<lparr> carrier := K \<rparr>) = Span"
+  unfolding ring.Span.simps[OF subring_is_ring[OF assms]] Span.simps
+            line_extension_consistent[OF assms] by simp
+
 lemma combine_in_carrier [simp, intro]:
   "\<lbrakk> set Ks \<subseteq> carrier R; set Us \<subseteq> carrier R \<rbrakk> \<Longrightarrow> combine Ks Us \<in> carrier R"
   by (induct Ks Us rule: combine.induct) (auto)
@@ -1184,6 +1194,37 @@ proof -
     using aux_lemma[OF _ assms(2-3)] by auto
 qed
 
+lemma filter_base:
+  assumes "set Us \<subseteq> carrier R"
+  obtains Vs where "set Vs \<subseteq> carrier R" and "independent K Vs" and "Span K Vs = Span K Us"
+proof -
+  from \<open>set Us \<subseteq> carrier R\<close> have "\<exists>Vs. independent K Vs \<and> Span K Vs = Span K Us"
+  proof (induction Us)
+    case Nil thus ?case by auto
+  next
+    case (Cons u Us)
+    then obtain Vs where Vs: "independent K Vs" "Span K Vs = Span K Us"
+      by auto
+    show ?case
+    proof (cases "u \<in> Span K Us")
+      case True
+      hence "Span K (u # Us) = Span K Us"
+        using Span_base_incl mono_Span_subset
+        by (metis Cons.prems insert_subset list.simps(15) subset_antisym)
+      thus ?thesis
+        using Vs by blast
+    next
+      case False
+      hence "Span K (u # Vs) = Span K (u # Us)" and "independent K (u # Vs)"
+        using li_Cons[of u K Vs] Cons(2) Vs by auto
+      thus ?thesis
+        by blast
+    qed
+  qed
+  thus ?thesis
+    using independent_in_carrier that by auto
+qed
+
 lemma dimension_backwards:
   "dimension (Suc n) K E \<Longrightarrow> \<exists>v \<in> carrier R. \<exists>E'. dimension n K E' \<and> v \<notin> E' \<and> E = line_extension K v E'"
   by (cases rule: dimension.cases) (auto)
@@ -1518,6 +1559,9 @@ subsection \<open>Finite Dimension\<close>
 definition (in ring) finite_dimension :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool"
   where "finite_dimension K E \<longleftrightarrow> (\<exists>n. dimension n K E)"
 
+abbreviation (in ring) infinite_dimension :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool"
+  where "infinite_dimension K E \<equiv> \<not> finite_dimension K E"
+
 definition (in ring) dim :: "'a set \<Rightarrow> 'a set \<Rightarrow> nat"
   where "dim K E = (THE n. dimension n K E)"
 
@@ -1548,6 +1592,16 @@ lemma (in ring) finite_dimensionE' [elim]:
   assumes "finite_dimension K E" and "\<And>n. dimension n K E \<Longrightarrow> P" shows P
   using assms unfolding finite_dimension_def by auto
 
+lemma (in ring) Span_finite_dimension:
+  assumes "subfield K R" and "set Us \<subseteq> carrier R"
+  shows "finite_dimension K (Span K Us)"
+  using filter_base[OF assms] finite_dimensionI[OF dimension_independent[of K]] by metis
+
+lemma (in ring) carrier_is_subalgebra:
+  assumes "K \<subseteq> carrier R" shows "subalgebra K (carrier R) R"
+  using assms subalgebra.intro[OF add.group_incl_imp_subgroup[of "carrier R"], of K] add.group_axioms
+  unfolding subalgebra_axioms_def by auto
+
 lemma (in ring) subalgebra_in_carrier:
   assumes "subalgebra K V R" shows "V \<subseteq> carrier R"
   using subgroup.subset[OF subalgebra.axioms(1)[OF assms]] by simp
@@ -1555,6 +1609,21 @@ lemma (in ring) subalgebra_in_carrier:
 lemma (in ring) subalgebra_inter:
   assumes "subalgebra K V R" and "subalgebra K V' R" shows "subalgebra K (V \<inter> V') R"
   using add.subgroups_Inter_pair assms unfolding subalgebra_def subalgebra_axioms_def by auto
+
+lemma (in ring_hom_ring) img_is_subalgebra:
+  assumes "K \<subseteq> carrier R" and "subalgebra K V R" shows "subalgebra (h ` K) (h ` V) S"
+proof (intro subalgebra.intro)
+  have "group_hom (add_monoid R) (add_monoid S) h"
+    using ring_hom_in_hom(2)[OF homh] R.add.group_axioms add.group_axioms
+    unfolding group_hom_def group_hom_axioms_def by auto
+  thus "subgroup (h ` V) (add_monoid S)"
+    using group_hom.subgroup_img_is_subgroup[OF _ subalgebra.axioms(1)[OF assms(2)]] by force
+next
+  show "subalgebra_axioms (h ` K) (h ` V) S"
+    using R.subalgebra_in_carrier[OF assms(2)] subalgebra.axioms(2)[OF assms(2)] assms(1)
+    unfolding subalgebra_axioms_def
+    by (auto, metis hom_mult image_eqI subset_iff)
+qed
 
 lemma (in ring) ideal_is_subalgebra:
   assumes "K \<subseteq> carrier R" "ideal I R" shows "subalgebra K I R"
@@ -1634,6 +1703,45 @@ proof -
   qed
   thus ?thesis
     using finite_dimensionI[OF dimension_independent[OF Us(2)]] by simp
+qed
+
+lemma (in ring_hom_ring) infinite_dimension_hom:
+  assumes "subfield K R" and "\<one>\<^bsub>S\<^esub> \<noteq> \<zero>\<^bsub>S\<^esub>" and "inj_on h E" and "subalgebra K E R"
+  shows "R.infinite_dimension K E \<Longrightarrow> infinite_dimension (h ` K) (h ` E)"
+proof -
+  note subfield = img_is_subfield(2)[OF assms(1-2)]
+
+  assume "R.infinite_dimension K E"
+  show "infinite_dimension (h ` K) (h ` E)"
+  proof (rule ccontr)
+    assume "\<not> infinite_dimension (h ` K) (h ` E)"
+    then obtain Vs where "set Vs \<subseteq> carrier S" and "Span (h ` K) Vs = h ` E"
+      using exists_base[OF subfield] by blast
+    hence "set Vs \<subseteq> h ` E"
+      using Span_base_incl[OF subfield] by blast
+    hence "\<exists>Us. set Us \<subseteq> E \<and> Vs = map h Us"
+      by (induct Vs) (auto, metis insert_subset list.simps(9,15))
+    then obtain Us where "set Us \<subseteq> E" and "Vs = map h Us"
+      by blast
+    with \<open>Span (h ` K) Vs = h ` E\<close> have "h ` (R.Span K Us) = h ` E"
+      using R.subalgebra_in_carrier[OF assms(4)] Span_hom assms(1) by auto
+    moreover from \<open>set Us \<subseteq> E\<close> have "R.Span K Us \<subseteq> E"
+      using R.subalgebra_Span_incl assms(1-4) by blast
+    ultimately have "R.Span K Us = E"
+    proof (auto simp del: R.Span.simps)
+      fix a assume "a \<in> E"
+      with \<open>h ` (R.Span K Us) = h ` E\<close> obtain b where "b \<in> R.Span K Us" and "h a = h b"
+        by auto
+      with \<open>R.Span K Us \<subseteq> E\<close> and \<open>a \<in> E\<close> have "a = b"
+        using inj_onD[OF assms(3)] by auto
+      with \<open>b \<in> R.Span K Us\<close> show "a \<in> R.Span K Us"
+        by simp
+    qed
+    with \<open>set Us \<subseteq> E\<close> have "R.finite_dimension K E"
+      using R.Span_finite_dimension[OF assms(1)] R.subalgebra_in_carrier[OF assms(4)] by auto
+    with \<open>R.infinite_dimension K E\<close> show False
+      by simp
+  qed
 qed
 
 
