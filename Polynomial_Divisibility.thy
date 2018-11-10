@@ -122,6 +122,28 @@ lemma (in ring) univ_poly_units:
   using field.univ_poly_carrier_units[OF subfield_iff(2)[OF assms]]
         univ_poly_consistent[OF subfieldE(1)[OF assms]] by auto
 
+corollary (in domain) rupture_one_not_zero:
+  assumes "subfield K R" and "p \<in> carrier (K[X])" and "degree p > 0"
+  shows "\<one>\<^bsub>Rupt K p\<^esub> \<noteq> \<zero>\<^bsub>Rupt K p\<^esub>"
+proof (rule ccontr)
+  interpret UP: principal_domain "K[X]"
+    using univ_poly_is_principal[OF assms(1)] . 
+
+  assume "\<not> \<one>\<^bsub>Rupt K p\<^esub> \<noteq> \<zero>\<^bsub>Rupt K p\<^esub>"
+  then have "PIdl\<^bsub>K[X]\<^esub> p +>\<^bsub>K[X]\<^esub> \<one>\<^bsub>K[X]\<^esub> = PIdl\<^bsub>K[X]\<^esub> p"
+    unfolding rupture_def FactRing_def by simp
+  hence "\<one>\<^bsub>K[X]\<^esub> \<in> PIdl\<^bsub>K[X]\<^esub> p"
+    using ideal.rcos_const_imp_mem[OF UP.cgenideal_ideal[OF assms(2)]] by auto
+  then obtain q where "q \<in> carrier (K[X])" and "\<one>\<^bsub>K[X]\<^esub> = q \<otimes>\<^bsub>K[X]\<^esub> p"
+    using assms(2) unfolding cgenideal_def by auto
+  hence "p \<in> Units (K[X])"
+    unfolding Units_def using assms(2) UP.m_comm by auto
+  hence "degree p = 0"
+    unfolding univ_poly_units[OF assms(1)] by auto
+  with \<open>degree p > 0\<close> show False
+    by simp
+qed
+
 corollary (in ring) pirreducible_degree:
   assumes "subfield K R" "p \<in> carrier (K[X])" "pirreducible K p"
   shows "degree p \<ge> 1"
@@ -1046,7 +1068,7 @@ lemma (in domain) Span_var_pow_base:
          { q \<in> carrier (K[X]). length q \<le> n }" (is "?lhs = ?rhs")
 proof -
   note subring = subfieldE(1)[OF assms]
-  note subfield = univ_poly_subfield_of_consts[OF assms] 
+  note subfield = univ_poly_subfield_of_consts[OF assms]
 
   interpret UP: domain "K[X]"
     using univ_poly_is_domain[OF subring] .
@@ -1160,7 +1182,23 @@ proof -
     unfolding Span_var_pow_base[OF assms] by simp
 qed
 
-lemma (in domain) rupture_dimension:
+corollary (in domain) univ_poly_infinite_dimension:
+  assumes "subfield K R" shows "ring.infinite_dimension (K[X]) (poly_of_const ` K) (carrier (K[X]))"
+proof (rule ccontr)
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF subfieldE(1)[OF assms]] .
+
+  assume "\<not> UP.infinite_dimension (poly_of_const ` K) (carrier (K[X]))"
+  then obtain n where n: "UP.dimension n (poly_of_const ` K) (carrier (K[X]))"
+    by blast
+  show False
+    using UP.independent_length_le_dimension[OF univ_poly_subfield_of_consts[OF assms] n
+          var_pow_base_independent[OF assms, of "Suc n"]
+          UP.exp_base_closed[OF var_closed(1)[OF subfieldE(1)[OF assms]]]]
+    unfolding UP.exp_base_def by simp
+qed
+
+corollary (in domain) rupture_dimension:
   assumes "subfield K R" and "p \<in> carrier (K[X])" and "degree p > 0"
   shows "ring.dimension (Rupt K p) (degree p) ((rupture_surj K p) ` poly_of_const ` K) (carrier (Rupt K p))"
 proof -
@@ -1172,30 +1210,14 @@ proof -
   have not_nil: "p \<noteq> []"
     using assms(3) by auto
 
-  have one_not_zero: "\<one>\<^bsub>Rupt K p\<^esub> \<noteq> \<zero>\<^bsub>Rupt K p\<^esub>"
-  proof (rule ccontr)
-    assume "\<not> \<one>\<^bsub>Rupt K p\<^esub> \<noteq> \<zero>\<^bsub>Rupt K p\<^esub>"
-    then have "PIdl\<^bsub>K[X]\<^esub> p +>\<^bsub>K[X]\<^esub> \<one>\<^bsub>K[X]\<^esub> = PIdl\<^bsub>K[X]\<^esub> p"
-      unfolding rupture_def FactRing_def by simp
-    hence "\<one>\<^bsub>K[X]\<^esub> \<in> PIdl\<^bsub>K[X]\<^esub> p"
-      using ideal.rcos_const_imp_mem[OF UP.cgenideal_ideal[OF assms(2)]] by auto
-    then obtain q where "q \<in> carrier (K[X])" and "\<one>\<^bsub>K[X]\<^esub> = q \<otimes>\<^bsub>K[X]\<^esub> p"
-      using assms(2) unfolding cgenideal_def by auto
-    hence "p \<in> Units (K[X])"
-      unfolding Units_def using assms(2) UP.m_comm by auto
-    hence "degree p = 0"
-      unfolding univ_poly_units[OF assms(1)] by auto
-    with \<open>degree p > 0\<close> show False
-      by simp
-  qed
-
   show ?thesis
-    using Hom.inj_hom_dimension[OF univ_poly_subfield_of_consts[OF assms(1)] one_not_zero
-          rupture_surj_inj_on[OF assms(1-2)]] bounded_degree_dimension[OF assms(1)]
+    using Hom.inj_hom_dimension[OF univ_poly_subfield_of_consts rupture_one_not_zero
+          rupture_surj_inj_on] bounded_degree_dimension assms
     unfolding sym[OF rupture_carrier_as_pmod_image[OF assms(1-2)]]
               pmod_image_characterization[OF assms(1-2) not_nil]
     by simp
 qed
+
 
 (*
 
