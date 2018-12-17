@@ -1,5 +1,5 @@
 theory Directed_Products
-imports "HOL-Algebra.QuotRing"
+imports QuotRing
 
 begin
 
@@ -408,11 +408,5 @@ proof -
   show ?thesis
     by (unfold_locales, auto simp add: RDirProd_def DirProd_def monoid.defs assms ring.ring_simprules)
 qed
-
-(*
-  TODO :
-   - Add suitable definition for the 'cartesian product' of fields (and domains), which I think
-     to be the field of fractions (or the localization for domains) of the directed product.
-*)
 
 end
