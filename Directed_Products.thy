@@ -1,5 +1,5 @@
 theory Directed_Products
-imports QuotRing
+  imports QuotRing
 
 begin
 
@@ -279,6 +279,20 @@ lemma product_ring_cartesian:
 
 subsection \<open>Algebraic Structure\<close>
 
+(* Move --------------------------------------------------------------------- *)
+lemma (in monoid) group_ByWitness:
+  assumes "f \<in> carrier G \<rightarrow> carrier G" and "\<And>x. x \<in> carrier G \<Longrightarrow> f x \<otimes> x = \<one>"
+  shows "group G" and "\<And>x. x \<in> carrier G \<Longrightarrow> inv x = f x"
+proof -
+  have "\<exists>y \<in> carrier G. y \<otimes> x = \<one>" if "x \<in> carrier G" for x
+    using assms that by auto
+  then interpret group G
+    using groupI[of G] by (auto simp add: m_assoc)
+  show "group G" and "\<And>x. x \<in> carrier G \<Longrightarrow> inv x = f x"
+    using inv_equality[OF assms(2)] assms(1) is_group by fastforce+
+qed
+(* -------------------------------------------------------------------------- *)
+
 lemma product_group_is_monoid:
   assumes "\<And>i. i \<in> I \<Longrightarrow> monoid (G i)" shows "monoid (product_group I G)"
 proof (intro monoid.intro, simp_all add: product_group_def)
@@ -316,31 +330,29 @@ next
 qed
 
 lemma product_group_is_group:
-  assumes "\<And>i. i \<in> I \<Longrightarrow> group (G i)" shows "group (product_group I G)"
-proof (intro group.intro)
-  show "monoid (product_group I G)"
-    using product_group_is_monoid[of I G, OF group.axioms(1)[OF assms]] .
-next
-  show "group_axioms (product_group I G)"
-  proof (auto simp add: group_axioms_def product_group_fields(1))
-    fix x assume x: "x \<in> (\<Pi>\<^sub>E i\<in>I. carrier (G i))"
-    define x_inv where "x_inv = (\<lambda>i\<in>I. inv\<^bsub>G i\<^esub> (x i))"
-    hence "x_inv \<in> carrier (product_group I G)"
-      using group.inv_closed[OF assms PiE_mem[OF x]]
-      unfolding product_group_fields(1) by simp
-    moreover have "x \<otimes>\<^bsub>product_group I G\<^esub> x_inv = (\<lambda>i\<in>I. \<one>\<^bsub>G i\<^esub>)"
-              and "x_inv \<otimes>\<^bsub>product_group I G\<^esub> x = (\<lambda>i\<in>I. \<one>\<^bsub>G i\<^esub>)"
-      using group.r_inv[OF assms] group.l_inv[OF assms] PiE_mem[OF x]
-      unfolding product_group_fields(2) x_inv_def
-      by (intro restrict_ext, auto)
-    ultimately show "x \<in> Units (product_group I G)"
-      using x unfolding Units_def product_group_fields by auto
-  qed
+  assumes "\<And>i. i \<in> I \<Longrightarrow> group (G i)"
+  shows "group (product_group I G)"
+    and "\<And>x. x \<in> carrier (product_group I G) \<Longrightarrow>
+              inv\<^bsub>(product_group I G)\<^esub> x = (\<lambda>i\<in>I. inv\<^bsub>G i\<^esub> (x i))"
+proof -
+  let ?H = "product_group I G"
+  let ?f = "\<lambda>x. (\<lambda>i\<in>I. inv\<^bsub>G i\<^esub> (x i))"
+
+  have hyp1: "?f \<in> carrier ?H \<rightarrow> carrier ?H"
+    using group.inv_closed[OF assms]
+    by (simp add: PiE_iff product_group_fields(1))
+  moreover have hyp2: "?f x \<otimes>\<^bsub>?H\<^esub> x = \<one>\<^bsub>?H\<^esub>" if "x \<in> carrier ?H" for x
+    using group.r_inv[OF assms] group.l_inv[OF assms] that
+    unfolding product_group_fields
+    by (intro restrict_ext, simp add: PiE_iff)
+  ultimately show "group ?H" and "\<And>x. x \<in> carrier ?H \<Longrightarrow> inv\<^bsub>?H\<^esub> x = (\<lambda>i\<in>I. inv\<^bsub>G i\<^esub> (x i))"
+    using monoid.group_ByWitness[OF product_group_is_monoid[of I G, OF group.axioms(1)[OF assms]] hyp1 hyp2]
+    by blast+
 qed
 
 lemma product_group_is_comm_group:
   assumes "\<And>i. i \<in> I \<Longrightarrow> comm_group (G i)" shows "comm_group (product_group I G)"
-  using comm_group.intro[OF product_group_is_comm_monoid product_group_is_group[of I G]]
+  using comm_group.intro[OF product_group_is_comm_monoid product_group_is_group(1)[of I G]]
         comm_group.axioms[OF assms]
   by simp
 
